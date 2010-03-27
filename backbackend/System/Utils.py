@@ -160,20 +160,6 @@ def DirName(path):
 		path = path[:-1]
 	return os.path.dirname(path)
 				
-				
-def open_for_read(ToRead):
-	return [open(ToRead,'r'),True]
-
-
-def open_for_read_universal(ToRead):
-	return [open(ToRead,'rU'),True]
-
-def open_for_write(ToWrite):
-	return [open(ToWrite,'w'),True]
-
-def open_for_append(ToAddTo):
-	return [open(ToAddTo,'a'),True]
-		
 
 def compile_expr( expr ):
     """Return a code object for the given expression.  Shorthand for compile( expr, 'this_filename', 'eval' )."""
