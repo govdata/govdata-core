@@ -1,0 +1,15 @@
+<HTML>
+<HEAD>
+<TITLE>$PAGETITLE</TITLE>
+</HEAD>
+
+<FRAMESET ROWS="5%, *">
+  <FRAME SRC="$LINKCHOICEPATH">
+  <FRAME SRC="$STARTPATH", name = "VariableSegment">
+  <NOFRAMES>
+  <H1>No Frames? FUCK YOU!</H1>
+  </NOFRAMES>
+
+</FRAMESET>
+
+</HTML>
