@@ -5,6 +5,7 @@ import tornado.ioloop
 import tornado.options
 import tornado.web
 import api
+import os
 
 from tornado.options import define, options
 
@@ -30,7 +31,7 @@ class MainHandler(tornado.web.RequestHandler):
 
 def main():
     tornado.options.parse_command_line()
-    http_server = tornado.httpserver.HTTPServer(BetterData)
+    http_server = tornado.httpserver.HTTPServer(BetterData())
     http_server.listen(options.port)
     tornado.ioloop.IOLoop.instance().start()
 
