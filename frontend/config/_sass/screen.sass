@@ -1,0 +1,69 @@
+@import compass/reset.sass
+@import compass/utilities/lists.sass
+@import partials/base.sass
+@import blueprint
+@import partials/theme.sass
+@import fancy_buttons.sass
+
++blueprint-utilities
++blueprint-typography
++blueprint-debug
++blueprint-grid
+
+body
+  color: #AAA
+  background:
+    color: #{!bgcolor}
+
+#container
+  +container
+
+#header, #footer
+  +column(24)
+
+#header
+  ul
+    +inline-list
+
+#content
+  +column(24)
+  margin: auto
+
+#q
+  width: 99.2%
+  font-size: 200%
+  margin: 0.5em 0
+
+#numFound
+  position: absolute
+  top: 0
+  right: 0
+  color: #{!base_color}
+
+#cluster_container
+  text-align: right
+
+#results
+  text-align: left
+  padding-bottom: 50px
+
+a.button, button  
+  +fancy-button-structure
+  +fancy-button-colors
+  margin: 0 2px
+  vertical-align: middle
+
+.term
+  +fancy-button-colors-matte(#ddd)
+  float: left
+  margin-top: 12px
+
+#search_container, #terms
+  display: inline
+
+///////////////////////////////////////////////////
+// Links
+///////////////////////////////////////////////////
+
+a
+  color: #AAA
