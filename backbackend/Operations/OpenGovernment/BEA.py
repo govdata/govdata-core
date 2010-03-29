@@ -6,7 +6,7 @@ from mechanize import Browser
 import urllib
 import re
 
-from System.Utils import MakeDir, Contents, listdir, IsDir, wget, uniqify, PathExists
+from System.Utils import MakeDir, Contents, listdir, IsDir, wget, uniqify, PathExists,RecursiveFileList
 import Operations.htools as htools
 
 import Operations.OpenGovernment.OpenGovernment as OG
@@ -894,12 +894,22 @@ def REA_StateAnnualPersonalIncome_Unzip(depends_on = root + 'REA_StateAnnualPers
 	flist = [f for f in listdir(depends_on) if f.endswith('.zip')]
 	for f in flist:
 		os.system('unzip -d ' + creates + f.replace('.zip', '/') + ' ' + depends_on + f)
-	fixlist = [creates + 'StateAnnualPersonalIncome!AllNAICStables1990-2008/SA07N_2001_2008_GTLK.csv'] + [creates + 'StateAnnualPersonalIncome!Allothertables--04,30,35,45,50--1969-2008/' + f for f in listdir(creates + 'StateAnnualPersonalIncome!Allothertables--04,30,35,45,50--1969-2008/')]
+	
+	#fixlist = [x for x in RecursiveFileList(creates) if x.split('/')[-1].startswith('SA07N_') or x.split('/')[-1].startswith('SA25N_')  or x.split('/')[-1].startswith('SA06N_') or 'Allothertables' in x.split('/')[-2]]
+	fixlist = [x for x in RecursiveFileList(creates) if x.endswith(('.tsv','.csv'))]
+	
+	firstline = None
 	for f in fixlist:
 		F = open(f, 'rU').read().strip('\n').split('\n')
 		Source = [line for line in F if line.strip('"').startswith('Source')]
-		F = [line for line in F if not line.strip('"').startswith('Source')]
+		F = [line for line in F if not line.strip('"').startswith('Source')]	
 		F += Source
+		if F[0].startswith('"State FIPS"'):
+			firstline = F[0]
+		else:
+
+			assert firstline != None, "Can't figure out proper column header line of " + f
+			F = [firstline] + F
 		G = open(f, 'w')
 		G.write('\n'.join(F))
 		
