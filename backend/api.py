@@ -28,8 +28,10 @@ def get(collectionName,querySequence,timeQuery=None, returnMetadata=False,fh = N
 	collection = Collection(collectionName)
 	vars = collection.VARIABLES
 	ColumnGroups = collection.ColumnGroups
+
 	
 	if timeQuery and collection.DateFormat:
+
 		DateFormat = collection.DateFormat
 		Q = td.generateQueries(DateFormat,timeQuery)
 		TimeColNames = ColumnGroups['TimeColNames'] if 'TimeColNames' in ColumnGroups.keys() else []
@@ -72,7 +74,7 @@ def get(collectionName,querySequence,timeQuery=None, returnMetadata=False,fh = N
 								posargs[0][t + '.' + '.'.join(p)] = Q[p]
 							
 					querySequence[i] = (action,[posargs,kwargs])
-						
+
 	if querySequence:
 	
 	
@@ -93,7 +95,7 @@ def get(collectionName,querySequence,timeQuery=None, returnMetadata=False,fh = N
 			posArgs.append(posargs)
 			kwArgs.append(kwargs)
 		
-	
+		
 		R = collection	
 		for (a,p,k) in zip(Actions,posArgs,kwArgs):
 			R = getattr(R,a)(*p,**k)	
@@ -106,7 +108,6 @@ def get(collectionName,querySequence,timeQuery=None, returnMetadata=False,fh = N
 			Obj = {}
 	
 		if isinstance(R,pm.cursor.Cursor):
-		
 			if returnObj:
 				Obj['data'] = []
 			if fh:
