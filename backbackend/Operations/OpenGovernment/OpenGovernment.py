@@ -8,9 +8,7 @@ protocolroot = '../Protocol_Instances/OpenGovernment/'
 
 
 def initialize(creates = (root, protocolroot)):
-	MakeDir(root)
 	MakeDir(protocolroot)
-
 
 def initialize_mongosources(creates = root + 'MongoSources/'):
 	MakeDir(creates)

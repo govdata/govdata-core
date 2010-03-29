@@ -652,7 +652,7 @@ def RemoveDownstreamOfFailures(RemainingLinkList,ScriptsToCall,Round,ToRemove,Se
 	
 def EmailResults(EmailWhenDone,SsName,FileName):
 
-	[account,password] = open('../System/GmailAccountInfo.txt','r').read().split('\n')
+	[account,password] = open('../System/GmailAccountInfo.txt','rU').read().strip().split('\n')
 	EmailList = [account + '@gmail.com']
 	if isinstance(EmailWhenDone,str):
 		EmailWhenDone = EmailWhenDone.split(',')
