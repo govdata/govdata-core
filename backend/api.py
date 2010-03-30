@@ -68,6 +68,12 @@ def get(collectionName,querySequence,timeQuery=None, returnMetadata=False,fh = N
 							kwargs['fields'] = list(retainCols.intersection(kwargs['fields']))
 						else:
 							kwargs['fields'] = list(retainCols)	
+						if posargs:
+							posargs[0][tuple(TimeColNamesToReturn)] = {'$exists':True}
+						else:
+							posargs = ({tuple(TimeColNamesToReturn) : {'$exists':True}},)
+					
+						
 					if TimeColumns:
 						for p in Q.keys():
 							for t in TimeColumns:
@@ -76,7 +82,6 @@ def get(collectionName,querySequence,timeQuery=None, returnMetadata=False,fh = N
 					querySequence[i] = (action,[posargs,kwargs])
 
 	if querySequence:
-	
 	
 		[Actions, Args] = zip(*querySequence)
 		
@@ -94,7 +99,6 @@ def get(collectionName,querySequence,timeQuery=None, returnMetadata=False,fh = N
 				kwargs = {}
 			posArgs.append(posargs)
 			kwArgs.append(kwargs)
-		
 		
 		R = collection	
 		for (a,p,k) in zip(Actions,posArgs,kwArgs):
@@ -146,7 +150,6 @@ def get(collectionName,querySequence,timeQuery=None, returnMetadata=False,fh = N
 			fh.write('}')									
 		if returnObj:
 			return Obj
-
 
 def getsci(collection):
 	if 'Subcollections' in collection.VARIABLES:
@@ -217,11 +220,11 @@ def processArg(arg,collection):
 	elif isinstance(arg, list):
 		T = [processArg(d,collection) for d in arg]
 		Tr = []
-		for (t,a) in zip(T,arg):
-			if isinstance(a,str):
-				Tr += t
-			else:
+		for t in T:
+			if isinstance(t,str):
 				Tr.append(t)
+			else:
+				Tr += t
 		return Tr
 	elif isinstance(arg,tuple):
 		return tuple(processArg(list(arg),collection))
@@ -231,8 +234,14 @@ def processArg(arg,collection):
 		CodeStrings = []
 		for (k,v) in T:
 			if isinstance(k,list) or isinstance(k,tuple):
-				orgroup = '( ' + ' || '.join(['this[' + repr(kk) + '] == ' + repr(v) for kk in k]) + ' )' 
-				CodeStrings.append(orgroup)
+				if not isinstance(v,dict) or not any([key.startswith('$') for key in v.keys()]):
+					orgroup = '( ' + ' || '.join(['this["' + str(kk) + '"] ' + js_translator('$e',v) for kk in k]) + ' )' 
+					CodeStrings.append(orgroup)
+				else:
+					assert all([key in ['$exists','$gt','gte','$lt','$lte','$ne'] for key in v.keys()]), 'Cannot handle this query.'
+					for key in v.keys():
+						orgroup =  '( ' + ' || '.join(['this["' + str(kk) + '"] ' + js_translator(key,v[key])  for kk in k]) + ' )' 
+						CodeStrings.append(orgroup)
 		if CodeStrings:
 			codeString = 'function(){ return '  + ' && '.join(CodeStrings) + ';}'
 			S['$where'] = pm.code.Code(codeString)
@@ -240,7 +249,22 @@ def processArg(arg,collection):
 	else:
 		return arg
 		
-	
+def js_translator(key,value):
+	if key == '$e':
+		return ' === "' + str(value) + '"'
+	elif key == '$exists':
+		return ('!==' if value else '===') + ' undefined'
+	elif key == '$ne':
+		return ' !== "' + str(value) + '"'
+	elif key == '$gt':
+		return ' > "' + str(value) + '"'
+	elif key == '$lt':
+		return ' < "' + str(value) + '"'	
+	elif key == '$gte':
+		return ' >= "' + str(value) + '"'
+	elif key == '$lte':
+		return ' <= "' + str(value) + '"'		
+		
 class Collection(pm.collection.Collection):
 	
 	def __init__(self,name,connection = None):
@@ -281,3 +305,27 @@ def getArgs(args):
 		raise ValueError, 'querySequence'	
 	
 	return (posargs,kwargs)
+	
+	
+#=-=-=-=-=-=-=-=-=-=-=-=-=-
+import itertools
+def expand(r):
+	L = [k for k in r.keys() if isinstance(r[k],list)]
+	NL = [k for k in r.keys() if is_string_like(r[k])]
+	I = itertools.product(*tuple([r[k] for k in L]))
+	return [dict([(k,r[k]) for k in NL] + zip(L,x)) for x in I]
+	
+def getquerylist(collectionName,keys):
+	collection = Collection(collectionName)
+	R = get(collectionName,[('find',{'fields':keys})])['data']
+	colnames = [k for k in keys if k in collection.VARIABLES]
+	colgroups = [k for k in keys if k in collection.ColumnGroups]
+	T= ListUnion([collection.ColumnGroups[k] for k in colgroups])
+	R = [dict([(collection.VARIABLES[int(i)],r[i]) for i in r.keys() if i.isdigit() and r[i]]) for r in R]
+	R = [dict(  [(k,v) for (k,v) in r.items() if k not in T] + [(g,[r[k] for k in collection.ColumnGroups[g] if k in r.keys() and r[k]]) for g in colgroups ]  ) for r in R]
+	return ListUnion([expand(r) for r in R])
+
+
+
+ 
+	
