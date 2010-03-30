@@ -12,7 +12,6 @@ from common.utils import IsFile, listdir, is_string_like, ListUnion
 import common.timedate as td
 
 
-EXPOSED_ACTIONS = ['find','find_one','group','skip','limit','sort','count','distinct']
 
 class GetHandler(tornado.web.RequestHandler):
     def get(self):
@@ -22,6 +21,13 @@ class FindHandler(tornado.web.RequestHandler):
     def get(self):
         self.write("Hello, find")
 
+
+#=-=-=-=-=-=-=-=-=-=-=-=-=-
+#GET
+#=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+
+EXPOSED_ACTIONS = ['find','find_one','group','skip','limit','sort','count','distinct']
 
 def get(collectionName,querySequence,timeQuery=None, returnMetadata=False,fh = None,returnObj = True,processor = None):
 	
@@ -308,14 +314,18 @@ def getArgs(args):
 	
 	
 #=-=-=-=-=-=-=-=-=-=-=-=-=-
+#FIND
+#=-=-=-=-=-=-=-=-=-=-=-=-=-
+
 import itertools
+
 def expand(r):
 	L = [k for k in r.keys() if isinstance(r[k],list)]
 	NL = [k for k in r.keys() if is_string_like(r[k])]
 	I = itertools.product(*tuple([r[k] for k in L]))
 	return [dict([(k,r[k]) for k in NL] + zip(L,x)) for x in I]
 	
-def getquerylist(collectionName,keys):
+def getQueryList(collectionName,keys):
 	collection = Collection(collectionName)
 	R = get(collectionName,[('find',{'fields':keys})])['data']
 	colnames = [k for k in keys if k in collection.VARIABLES]
@@ -326,6 +336,11 @@ def getquerylist(collectionName,keys):
 	return ListUnion([expand(r) for r in R])
 
 
-
+def addToSolr(collectionName):
+	pass
+	#get list of column names to index by
+	#get list of column names to slice by
+	#index all records to keywords
+	#getQueryList and go through, for all things that are more than 1, index with query description
  
 	
