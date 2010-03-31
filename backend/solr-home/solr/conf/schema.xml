@@ -107,9 +107,9 @@
     <!-- a delimited-list version of phrase, where the delimiter is "|||"   -->
     <fieldType name="multiPhraseTight" class="solr.TextField" positionIncrementGap="100">
       <analyzer>
-        <tokenizer class="solr.PatternTokenizerFactor" pattern="|||" />
+        <tokenizer class="solr.PatternTokenizerFactory" pattern="|||" />
         <filter class="solr.LowerCaseFilterFactory"/>
-        <filter class="solr.TrimFilterFactor" />
+        <filter class="solr.TrimFilterFactory" />
       </analyzer>
     </fieldType>
     
@@ -117,8 +117,8 @@
     <!-- lists of loose english phrase matching -->
     <fieldType name="multiPhraseLoose" class="solr.TextField" positionIncrementGap="100">
        <analyzer>
-        <tokenizer class="solr.PatternTokenizerFactor" pattern="|||" />
-        <filter class="solr.TrimFilterFactor" />
+        <tokenizer class="solr.PatternTokenizerFactory" pattern="|||" />
+        <filter class="solr.TrimFilterFactory" />
         <filter class="solr.SynonymFilterFactory" synonyms="synonyms.txt" ignoreCase="true" expand="true"/>
         <filter class="solr.StopFilterFactory"
                 ignoreCase="true"
@@ -175,7 +175,7 @@
     
    <!-- acronyms -->
    <dynamicField name="*_acronym"  type="text_ws"  indexed="true"  stored="true"/>
-   <dynamicField name="acronyms"  type="text_ws"  indexed="true"  stored="true" multiValued="true"/>
+   <field name="acronyms"  type="text_ws"  indexed="true"  stored="true" multiValued="true"/>
 
 
    <!-- standard metadata keys -->
@@ -185,8 +185,8 @@
    <field name="author" type="textgen" indexed="true" stored="true"/>
    <field name="keywords" type="multiPhraseLoose" indexed="true" stored="true"/>
    <field name="content_type" type="string" indexed="true" stored="true" multiValued="true"/>
-   <field name="last_modified" type="date" indexed="true" stored="true"/>
-   <field name="dateReleased" type="date" indexed="true" stored="true"/>
+   <field name="last_modified" type="tdate" indexed="true" stored="true"/>
+   <field name="dateReleased" type="tdate" indexed="true" stored="true"/>
    <field name="links" type="string" indexed="true" stored="true" multiValued="true"/>
    <!-- put other non-standard fields in  using spec-type dynamic field names except for some excluded ones -->
    
@@ -199,7 +199,7 @@
    <field name="dateFormat" type="text" indexed="true" stored="true"  />
    <field name="begin_date" type="tdate" indexed="true" stored="true"  />
    <field name="end_date" type="tdate" indexed="true" stored="true"  />
-   <field name="dateList" type="MultiPhraseTight" indexed="true" stored="true"  />
+   <field name="dateList" type="multiPhraseTight" indexed="true" stored="true"  />
    <field name="datePhrase" type="datePhrase" indexed="true" stored="true"  />
    
    
@@ -229,8 +229,19 @@
  <solrQueryParser defaultOperator="OR"/>
 
  <!-- copyField commands-->
- <copyField source="name" dest="text"/>
+ <copyField source="slicePhrases" dest="text"/>
+ <copyField source="columnNames" dest="text"/>
+ <copyField source="datePhrase" dest="text"/>
+ <copyField source="title" dest="text"/>
+ <copyField source="subject" dest="text"/>
+ <copyField source="description" dest="text"/>
+ <copyField source="author" dest="text"/>
+ <copyField source="keywords" dest="text"/>
+ <copyField source="source" dest="text"/>
  <copyField source="*_acronym" dest="acronyms"/>
+ <copyField source="acronyms" dest="text"/>
+ <copyField source="*_s" dest="text"/>
+ <copyField source="*_t" dest="text"/>
  <copyField source="sourceSpec" dest="source"/>
  <copyField source="source_*_acronym" dest="source"/>
 
