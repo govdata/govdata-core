@@ -460,6 +460,7 @@ def MakeMongoSource(metafile, docfile, seriesfile, filelistfile, sourcedir, outd
 	D['ColumnGroups'] = {'TimeColNames': TIMECOLS, 'LabelColumns': getnames }
 	D['UniqueIndexes'] = [['Series']]
 	D['VARIABLES'] = NAMES
+	D['sliceCols'] = getnames	
 	
 	SubCols[''] = D
 	

@@ -2,15 +2,12 @@
 
 import tornado.web
 import os
-import hashlib
 import pymongo as pm
 import json
 import pymongo.json_util
-import gridfs as gfs
-import cPickle as pickle
 from common.utils import IsFile, listdir, is_string_like, ListUnion
+from common.mongo import Collection
 import common.timedate as td
-
 
 
 class GetHandler(tornado.web.RequestHandler):
@@ -270,31 +267,7 @@ def js_translator(key,value):
 		return ' >= "' + str(value) + '"'
 	elif key == '$lte':
 		return ' <= "' + str(value) + '"'		
-		
-class Collection(pm.collection.Collection):
-	
-	def __init__(self,name,connection = None):
-		if connection == None:
-			connection = pm.Connection()
-		assert 'govdata' in connection.database_names(), 'govdata collection not found.'
-		db = connection['govdata']
-		assert name in db.collection_names(), 'collection ' + name + ' not found in govdata database.'
-		pm.collection.Collection.__init__(self,db,name)
-		metaname = '__' + name + '__'
-		assert metaname in db.collection_names(), 'No metadata collection associated with ' + name + ' found.'
-		self.metaCollection = db[metaname]		
-		self.meta = dict([(l['_id'],l) for l in self.metaCollection.find()])
-		
-	def subcollection_names(self):
-		return self.meta.keys()
-		
-	def __getattr__(self,name):
-		try:
-			V = self.meta[''][name]
-		except KeyError:
-			raise AttributeError, "Can't find attribute " + name
-		else:
-			return V
+
 		
 def getArgs(args):
 	if isinstance(args,list):
@@ -317,30 +290,4 @@ def getArgs(args):
 #FIND
 #=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-import itertools
-
-def expand(r):
-	L = [k for k in r.keys() if isinstance(r[k],list)]
-	NL = [k for k in r.keys() if is_string_like(r[k])]
-	I = itertools.product(*tuple([r[k] for k in L]))
-	return [dict([(k,r[k]) for k in NL] + zip(L,x)) for x in I]
-	
-def getQueryList(collectionName,keys):
-	collection = Collection(collectionName)
-	R = get(collectionName,[('find',{'fields':keys})])['data']
-	colnames = [k for k in keys if k in collection.VARIABLES]
-	colgroups = [k for k in keys if k in collection.ColumnGroups]
-	T= ListUnion([collection.ColumnGroups[k] for k in colgroups])
-	R = [dict([(collection.VARIABLES[int(i)],r[i]) for i in r.keys() if i.isdigit() and r[i]]) for r in R]
-	R = [dict(  [(k,v) for (k,v) in r.items() if k not in T] + [(g,[r[k] for k in collection.ColumnGroups[g] if k in r.keys() and r[k]]) for g in colgroups ]  ) for r in R]
-	return ListUnion([expand(r) for r in R])
-
-
-def addToSolr(collectionName):
-	pass
-	#get list of column names to index by
-	#get list of column names to slice by
-	#index all records to keywords
-	#getQueryList and go through, for all things that are more than 1, index with query description
- 
 	

@@ -133,9 +133,9 @@
    
    
     <!-- date phrase matching -->
-    <fieldType name="datePhrase" class="solr.TextField" positionIncrementGap="100">
+    <fieldType name="datePhrases" class="solr.TextField" positionIncrementGap="100">
        <analyzer>
-        <tokenizer class="solr.KeywordTokenizerFactory"/>
+        <tokenizer class="solr.PatternTokenizerFactory" pattern="|||" />
         <filter class="solr.SynonymFilterFactory" synonyms="datesynonyms.txt" ignoreCase="true" expand="true"/>
         <filter class="solr.StopFilterFactory"
                 ignoreCase="true"
@@ -143,6 +143,7 @@
                 enablePositionIncrements="true"
                 />
         <filter class="solr.LowerCaseFilterFactory"/>
+        <filter class="solr.TrimFilterFactory" />
         <filter class="solr.SnowballPorterFilterFactory" language="English" protected="protwords.txt"/>
       </analyzer>
     </fieldType>     
@@ -157,8 +158,8 @@
  <fields>
    <!-- database slice things --> 
    <field name="mongoQuery" type="string" indexed="true" stored="true" required="true" />  <!-- mongoQuery is the unique ID!  --> 
-   <field name="sliceContents" type="text" indexed="true" stored="true" />
-   <field name="slicePhrases" type="multiPhraseLoose" indexed="true" stored="true" />
+   <field name="sliceContents" type="text" indexed="true" stored="false" />
+   <field name="slicePhrases" type="multiPhraseLoose" indexed="true" stored="false" />
    <field name="columnNames" type="multiPhraseTight" indexed="true" stored="true" />
    
    <!-- slice stats.  more can be adde using specific-type dynamic fields --> 
@@ -200,7 +201,7 @@
    <field name="begin_date" type="tdate" indexed="true" stored="true"  />
    <field name="end_date" type="tdate" indexed="true" stored="true"  />
    <field name="dateList" type="multiPhraseTight" indexed="true" stored="true"  />
-   <field name="datePhrase" type="datePhrase" indexed="true" stored="true"  />
+   <field name="datePhrases" type="datePhrases" indexed="true" stored="false"  />
    
    
    <!-- Specific-type dynamic fields-->
@@ -231,7 +232,7 @@
  <!-- copyField commands-->
  <copyField source="slicePhrases" dest="text"/>
  <copyField source="columnNames" dest="text"/>
- <copyField source="datePhrase" dest="text"/>
+ <copyField source="datePhrases" dest="text"/>
  <copyField source="title" dest="text"/>
  <copyField source="subject" dest="text"/>
  <copyField source="description" dest="text"/>

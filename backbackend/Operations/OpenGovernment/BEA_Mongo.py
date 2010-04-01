@@ -141,12 +141,15 @@ def NEACollectionsObjects(inpath,outpath,L = None):
 	
 	Category = AllMeta['Category']
 	AllMeta.pop('Category')
-	AllMeta['Source'] = {'Agency':{'Name':'Department of Commerce','ShortName':'DOC'},'Subagency':{'Name':'Bureau of Economic Analysis','ShortName':'BEA'},'Program':'National Economic Accounts', 'Dataset': Category}
+	AllMeta['Source'] = [('Agency',{'Name':'Department of Commerce','ShortName':'DOC'}),('Subagency',{'Name':'Bureau of Economic Analysis','ShortName':'BEA'}),('Program','National Economic Accounts'), ('Dataset',Category)]
 	AllMeta['TopicHierarchy'] = ('Agency','Subagency','Program','Dataset','Section','Table')
 	AllMeta['UniqueIndexes'] = [['TableNo','Line']]
 	AllMeta['ColumnGroups'] = ColGroups
 	AllMeta['DateFormat'] = 'YYYYqmm'
 	AllMeta['VARIABLES'] = VARS
+	AllMeta['sliceCols'] = ['Section','Table','Topics']
+	AllMeta['phraseCols'] = ['Section','Table','Topics','Line','TableNo']
+
 	
 	Subcollections = Metadict
 	Subcollections[''] = AllMeta
@@ -217,12 +220,14 @@ def MakeFATCollectionObject(depends_on = sourceroot + 'NEA_FixedAssetTables/Pars
 				
 	Category = AllMeta['Category']
 	AllMeta.pop('Category')
-	AllMeta['Source'] = {'Agency':{'Name':'Department of Commerce','ShortName':'DOC'},'Subagency':{'Name':'Bureau of Economic Analysis','ShortName':'BEA'},'Program':'National Economic Accounts', 'Dataset': Category}
+	AllMeta['Source'] = [('Agency',{'Name':'Department of Commerce','ShortName':'DOC'}),('Subagency',{'Name':'Bureau of Economic Analysis','ShortName':'BEA'}),('Program','National Economic Accounts'), ('Dataset',Category)]
 	AllMeta['TopicHierarchy'] =  ('Agency','Subagency','Program','Dataset','Section','Table')
 	AllMeta['UniqueIndexes'] = [['TableNo','Line']]
 	AllMeta['ColumnGroups'] = ColGroups
 	AllMeta['DateFormat'] = 'YYYYqmm'
 	AllMeta['VARIABLES'] = VARS
+	AllMeta['sliceCols'] = ['Section','Table','Topics']
+	AllMeta['phraseCols'] = ['Section','Table','Topics','Line','TableNo']
 	
 	Subcollections = Metadict
 	Subcollections[''] = AllMeta
@@ -336,7 +341,7 @@ def GDPByStateAreaCollectionsObjects(depends_on = (sourceroot + 'REA_GDPByState/
 				X.metadata.pop(k)
 		
 		if 'Categories' in X.coloring.keys():
-			X.coloring['Industry Hierarchy'] = X.coloring['Categories']
+			X.coloring['IndustryHierarchy'] = X.coloring['Categories']
 			X.coloring.pop('Categories')
 		X.coloring['TimeColNames'] = X.coloring['Data']
 		X.coloring.pop('Data')
@@ -367,12 +372,17 @@ def GDPByStateAreaCollectionsObjects(depends_on = (sourceroot + 'REA_GDPByState/
 	Subcollections['M']['Title'] = 'GDP by Metropolitan Area'
 
 	AllMeta = {}
-	AllMeta['Source'] = {'Agency':{'Name':'Department of Commerce','ShortName':'DOC'},'Subagency':{'Name':'Bureau of Economic Analysis','ShortName':'BEA'},'Program':'Regional Economic Accounts', 'Dataset':'Regional GDP Data'}
+	AllMeta['Source'] = [('Agency',{'Name':'Department of Commerce','ShortName':'DOC'}),('Subagency',{'Name':'Bureau of Economic Analysis','ShortName':'BEA'}),('Program','Regional Economic Accounts'), ('Dataset','Regional GDP Data')]
 	AllMeta['TopicHierarchy']  = ('Agency','Subagency','Program','Dataset','Category')
 	AllMeta['UniqueIndexes'] = [['FIPS','IndustryCode','ComponentCode','IndClass']]
 	AllMeta['ColumnGroups'] = ColGroups
 	AllMeta['DateFormat'] = 'YYYYqmm'
 	AllMeta['VARIABLES'] = VARS
+	
+	AllMeta['sliceCols'] = ['State', 'Component', 'IndClass', 'Metropolitan Area', 'IndustryHierarchy']	
+	AllMeta['phraseCols'] = ['State', 'Component', 'IndClass', 'Metropolitan Area', 'IndustryHierarchy','Industry','Units','FIPS','Units']	 
+
+	
 	Subcollections[''] = AllMeta
 		
 	F = open(outpath+'__metadata.pickle','w')
@@ -681,12 +691,16 @@ def PersonalIncomeCollectionObject(depends_on = (sourceroot + 'REA_LocalAreaPers
 	
 				
 	AllMeta = {}
-	AllMeta['Source'] = {'Agency':{'Name':'Department of Commerce','ShortName':'DOC'},'Subagency':{'Name':'Bureau of Economic Analysis','ShortName':'BEA'},'Program':'Regional Economic Accounts', 'Dataset':'Personal Income'}
+	AllMeta['Source'] = [('Agency',{'Name':'Department of Commerce','ShortName':'DOC'}),('Subagency',{'Name':'Bureau of Economic Analysis','ShortName':'BEA'}),('Program','Regional Economic Accounts'), ('Dataset','Personal Income')]
 	AllMeta['TopicHierarchy']  = ('Agency','Subagency','Dataset','Category','Subcategory','SubjectHierarchy')
 	AllMeta['UniqueIndexes'] = [['FIPS','Table','LineCode']]
 	AllMeta['ColumnGroups'] = ColGroups
 	AllMeta['DateFormat'] = 'YYYYqmm'
 	AllMeta['VARIABLES'] = VARS
+		
+	AllMeta['sliceCols'] = ['County','State','Table','SubjectHierarchy']	
+	AllMeta['phraseCols'] = ['County','State','Table','SubjectHierarchy','Line','FIPS','LineCode']	
+	
 	Subcollections[''] = AllMeta
 	
 	F = open(outpath+'__metadata.pickle','w')

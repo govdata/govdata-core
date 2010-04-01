@@ -1,4 +1,4 @@
-import pymongo as pm
+import pymongo.son as son
 from common.utils import is_string_like, ListUnion, uniqify
 
 TIME_CODE_MAP = [('Y','Year',None),('h','Half',range(1,3)),('q','Quarter',range(1,5)),('m','Month',range(1,13)),('d','DayOfMonth',range(1,32)),('U','WeekOfYear',range(1,53)),('w','DayOfWeek',range(1,8)),('j','DayOfYear',range(1,366)),('H','HourOfDay',range(1,25)),('M','MinuteOfHour',range(0,60)),('S','Second',range(0,60)),('Z','TimeZone',None)]
@@ -50,7 +50,7 @@ def getFunc(H,fs,fblocks):
 def applyHierarchy(H,bdict):
 	if isinstance(H,list):
 		L = [applyHierarchy(h,bdict) for h in H]
-		return pm.son.SON([l for l in L if l[1]])
+		return son.SON([l for l in L if l[1]])
 	elif isinstance(H,tuple):
 		assert 1 <= len(H) <= 2
 		assert is_string_like(H[0])
