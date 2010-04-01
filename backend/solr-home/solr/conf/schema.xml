@@ -172,7 +172,7 @@
    <field name="dimension" type="tint" indexed="true" stored="true" />
 
    <!-- source -->
-   <field name="sourceSpec" type="string" indexed="true" stored="true" required="true" />  
+   <field name="SourceSpec" type="string" indexed="true" stored="true" required="true" />  
    <field name="agency" type="agency" indexed="true" stored="true" required="true" />  
    <field name="subagency" type="agency" indexed="true" stored="true" required="true" />
    <field name="dataset" type="text_ws" indexed="true" stored="true" required="true" />
@@ -237,8 +237,6 @@
 
  <!-- copyField commands-->
  <copyField source="mongoQuery" dest="mongoText"/>
- <copyField source="sourceSpec" dest="source"/>
- <copyField source="source_*_acronym" dest="source"/>
  <copyField source="*_acronym" dest="acronyms"/>
  <copyField source="slicePhrases" dest="text"/>
  <copyField source="columnNames" dest="text"/>
@@ -249,6 +247,7 @@
  <copyField source="author" dest="text"/>
  <copyField source="keywords" dest="text"/>
  <copyField source="source" dest="text"/>
+ <copyField source="*_acronym" dest="text"/>
  <copyField source="acronyms" dest="text"/>
  <copyField source="*_s" dest="text"/>
  <copyField source="*_t" dest="text"/>

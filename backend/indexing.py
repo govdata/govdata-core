@@ -1,16 +1,17 @@
 #!/usr/bin/env python
 
-from common.mongo import Collection
+from common.mongo import Collection, cleanCollection
 from common.utils import IsFile, listdir, is_string_like, ListUnion, uniqify
 import common.timedate as td
 import backend.api as api
-import sunburnt
 import solr
 import itertools
 import json
+import pymongo as pm
 import pymongo.json_util as ju
 import pymongo.son as son
 import os
+import hashlib
 
 def pathToSchema():
 	plist = os.getcwd().split('/')
@@ -21,7 +22,7 @@ def expand(r):
 	L = [k for k in r.keys() if isinstance(r[k],list)]
 	NL = [k for k in r.keys() if is_string_like(r[k])]
 	I = itertools.product(*tuple([r[k] for k in L]))
-	return [dict([(k,r[k]) for k in NL] + zip(L,x)) for x in I]
+	return uniqify([son.SON([(k,r[k]) for k in NL] + zip(L,x)) for x in I])
 	
 def getQueryList(collectionName,keys):
 	collection = Collection(collectionName)
@@ -29,55 +30,102 @@ def getQueryList(collectionName,keys):
 	colnames = [k for k in keys if k in collection.VARIABLES]
 	colgroups = [k for k in keys if k in collection.ColumnGroups]
 	T= ListUnion([collection.ColumnGroups[k] for k in colgroups])
-	R = [dict([(collection.VARIABLES[int(i)],r[i]) for i in r.keys() if i.isdigit() and r[i]]) for r in R]
-	R = [dict(  [(k,v) for (k,v) in r.items() if k not in T] + [(g,[r[k] for k in collection.ColumnGroups[g] if k in r.keys() and r[k]]) for g in colgroups ]  ) for r in R]
+	R = [son.SON([(collection.VARIABLES[int(i)],r[i]) for i in r.keys() if i.isdigit() and r[i]]) for r in R]
+	R = [son.SON([(k,v) for (k,v) in r.items() if k not in T] + [(g,[r[k] for k in collection.ColumnGroups[g] if k in r.keys() and r[k]]) for g in colgroups ]  ) for r in R]
 	return ListUnion([expand(r) for r in R])
 
+
 def makeQueryDB(collectionName):
-	pass
+	
+	collection = Collection(collectionName)
+	sliceCols = collection.sliceCols
+	Q = getQueryList(collectionName,sliceCols)
+	connection = pm.Connection()
+	db = connection['govdata']
+	col = db['__' + collectionName + '__SLICES__']
+	cleanCollection(col)
+	col.ensure_index('hash',unique=True,dropDups=True)
+	
+	for (i,q) in enumerate(Q):
+		if not col.find_one({'queries':q}):
+			R = api.get(collectionName,[('find',[(q,),{'fields':['_id']}])])['data']
+			count = len(R)
+			if count > 1:
+				print 'Preprocessing query', i ,'of', len(Q)
+				hash = hashlib.sha1(''.join([str(r['_id']) for r in R])).hexdigest()
+				if col.find_one({'hash':hash}):
+					col.update({'hash':hash},{'$push':{'queries':q}})
+				else:
+					col.insert({'hash':hash,'queries':[q],'count':count})
+
+
+STANDARD_META = ['title','subject','description','author','keywords','content_type','last_modified','dateReleased','links']
+STANDARD_META_FORMATS = {'keywords':'tplist','last_modified':'dt','dateReleased':'dt'}
 
 def indexCollection(collectionName):
 
+	ArgDict = {}
 	collection = Collection(collectionName)
 	sliceCols = collection.sliceCols
+	
 	if hasattr(collection,'contentCols'):
 		contentCols = collection.contentCols
 	else:
 		contentCols = sliceCols
 	contentColNums = getNums(collection,contentCols)
+	ArgDict['contentColNums'] = contentColNums
 		
 	if hasattr(collection,'phraseCols'):
 		phraseCols = collection.phraseCols
 	else:
 		phraseCols = contentCols
 	phraseColNums = getNums(collection,phraseCols)
-	
-	#index all indiviudal records with query by _id
-	R = collection.find()
-	standard_meta = ['title','subject','description','author','keywords','content_type','last_modified','dateReleased','links']
-	standard_meta_formats = {'keywords':'tplist','last_modified':'dt','dateReleased':'dt'}
+	ArgDict['phraseCols'] = phraseCols
+	ArgDict['phraseColNums'] = phraseColNums
 	
 	if hasattr(collection,'DateFormat'):
 		DateFormat = collection.DateFormat
+		ArgDict['DateFormat'] = DateFormat
+		
 		timeFormatter = td.mongotimeformatter(DateFormat)
 		if 'TimeColNames' in collection.ColumnGroups.keys():
 			TimeColNamesInd = getNums(collection,collection.ColumnGroups['TimeColNames'])
 			tcs = [timeFormatter(t) for t in collection.ColumnGroups['TimeColNames']]
+			ArgDict['timeCols'] = tcs
 			timeColNameDivisions = [[td.TIME_DIVISIONS[x] for x in td.getLowest(tc)] for tc in tcs] 
 			timeColPhrases = [td.phrase(t) for t in tcs]
-
-			
+			ArgDict['TimeColNamesInd'] = TimeColNamesInd
+			ArgDict['timeColNameDivisions'] = timeColNameDivisions
+			ArgDict['timeColPhrases'] = timeColPhrases
+	
 		if 'TimeColumns' in collection.ColumnGroups.keys():
 			timeColInd = getNums(collection,collection.ColumnGroups['TimeColumns'])
+			ArgDict['timeColInd'] = timeColInd
 
 	#solr_interface = sunburnt.SolrInterface("http://localhost:8983", pathToSchema())
 	solr_interface = solr.SolrConnection("http://localhost:8983/solr")
-	
-	for (i,r) in enumerate(R):
 
+	R = collection.find()
+	for (i,r) in enumerate(R):
 		print i
-		if i > 100:
-			break
+		addToIndex([r],collection,solr_interface,**ArgDict)	
+		
+	solr_interface.commit()
+	
+	
+def getNums(collection,namelist):
+	numlist = []
+	for n in namelist:
+		if n in collection.VARIABLES:
+			numlist.append(collection.VARIABLES.index(n))
+		else:
+			numlist.append([collection.VARIABLES.index(m) for m in collection.ColumnGroups[n]])
+	return numlist
+	
+	
+def addToIndex(R,collection,solr_interface,contentColNums = None, phraseCols = None, phraseColNums = None,DateFormat = None,TimeColNamesInd = None,timeColNameDivisions = None,timeColPhrases=None,timeColInd=None,timeCols=None):
+	
+	for r in R:
 		d = {}
 		#database slice things
 		d['mongoQuery'] = json.dumps(r['_id'],default=ju.default)
@@ -92,8 +140,8 @@ def indexCollection(collectionName):
 		
 		#source and source acronyms
 		Source = collection.Source
-		d['sourceSpec'] = json.dumps(Source,default=ju.default)
 		SourceNameDict = dict([(k,Source[k]['Name'] if isinstance(Source[k],dict) else Source[k]) for k in Source.keys()])
+		d['SourceSpec'] = json.dumps(SourceNameDict,default=ju.default)
 		SourceAbbrevDict = dict([(k,Source[k]['ShortName']) for k in Source.keys() if isinstance(Source[k],dict) and 'ShortName' in Source[k].keys() ])
 		d['agency'] = SourceNameDict['Agency']
 		d['subagency'] = SourceNameDict['Subagency']
@@ -102,6 +150,7 @@ def indexCollection(collectionName):
 			d['source_' + str(k).lower()] = SourceNameDict[k]
 		for k in SourceAbbrevDict.keys():
 			d['source_' + str(k).lower() + '_acronym'] = SourceAbbrevDict[k]
+		d['source'] = ' '.join(SourceNameDict.values() + SourceAbbrevDict.values())
 		
 		#metadata
 		metadata = collection.meta['']
@@ -110,9 +159,9 @@ def indexCollection(collectionName):
 				metadata.update(collection.meta[l])
 
 		for k in metadata.keys():
-			if k in standard_meta:
-				if k in standard_meta_formats.keys():
-					val = coerceToFormat(metadata[k],standard_meta_formats[k])
+			if k in STANDARD_META:
+				if k in STANDARD_META_FORMATS.keys():
+					val = coerceToFormat(metadata[k],STANDARD_META_FORMATS[k])
 					if val:
 						d[str(k)] = val
 				else:
@@ -131,8 +180,8 @@ def indexCollection(collectionName):
 			if 'TimeColNames' in collection.ColumnGroups.keys():
 				K = [k for (k,j) in enumerate(TimeColNamesInd) if str(j) in r.keys()]
 				dateDivisions += uniqify(ListUnion([timeColNameDivisions[k] for k in K]))
-				d['begin_date'] = td.convertToDT(min([tcs[k] for k in K]))
-				d['end_date'] = td.convertToDT(max([tcs[k] for k in K]),convertMode='High')
+				d['begin_date'] = td.convertToDT(min([timeCols[k] for k in K]))
+				d['end_date'] = td.convertToDT(max([timeCols[k] for k in K]),convertMode='High')
 				datePhrases += uniqify([timeColPhrases[k] for k in K])
 
 				
@@ -151,16 +200,3 @@ def indexCollection(collectionName):
 		
 		solr_interface.add(**d)
 		#solr_interface.add(d)
-	
-	solr_interface.commit()
-	
-	#getQueryList and go through, for all things that are more than 1, index with query description
- 
-def getNums(collection,namelist):
-	numlist = []
-	for n in namelist:
-		if n in collection.VARIABLES:
-			numlist.append(collection.VARIABLES.index(n))
-		else:
-			numlist.append([collection.VARIABLES.index(m) for m in collection.ColumnGroups[n]])
-	return numlist

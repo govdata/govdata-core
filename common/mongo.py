@@ -24,3 +24,12 @@ class Collection(pm.collection.Collection):
 			raise AttributeError, "Can't find attribute " + name
 		else:
 			return V
+
+def cleanCollection(collection):
+	collection.remove()
+	try:
+		collection.drop_indexes()
+	except:
+		print 'couldnt delete index'
+	else:
+		pass

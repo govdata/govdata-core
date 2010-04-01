@@ -5,6 +5,7 @@ import gridfs as gfs
 import cPickle as pickle
 import tabular as tb
 from common.utils import IsFile, listdir, is_string_like, ListUnion
+from common.mongo import cleanCollection
 import common.timedate as td
 
 MONGOSOURCES_PATH = '../Data/OpenGovernment/MongoSources/'
@@ -118,11 +119,3 @@ def createCollection(path):
 		
 	connection.disconnect()
 	
-def cleanCollection(collection):
-	collection.remove()
-	try:
-		collection.drop_indexes()
-	except:
-		print 'couldnt delete index'
-	else:
-		pass
