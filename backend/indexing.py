@@ -33,6 +33,8 @@ def getQueryList(collectionName,keys):
 	R = [dict(  [(k,v) for (k,v) in r.items() if k not in T] + [(g,[r[k] for k in collection.ColumnGroups[g] if k in r.keys() and r[k]]) for g in colgroups ]  ) for r in R]
 	return ListUnion([expand(r) for r in R])
 
+def makeQueryDB(collectionName):
+	pass
 
 def indexCollection(collectionName):
 
@@ -74,9 +76,11 @@ def indexCollection(collectionName):
 	for (i,r) in enumerate(R):
 
 		print i
+		if i > 100:
+			break
 		d = {}
 		#database slice things
-		d['mongoQuery'] = json.dumps(son.SON([('_id',r['_id'])]),default=ju.default)
+		d['mongoQuery'] = json.dumps(r['_id'],default=ju.default)
 		
 		d['sliceContents'] = ' '.join(ListUnion([([str(r[str(x)])] if str(x) in r.keys() else []) if isinstance(x,int) else [str(r[str(xx)]) for xx in x if str(xx) in r.keys()] for x in contentColNums]))
 		d['slicePhrases'] = '|||'.join(ListUnion([([s + ':' + str(r[str(x)])] if str(x) in r.keys() else []) if isinstance(x,int) else [s + ':' +  str(r[str(xx)]) for xx in x if str(xx) in r.keys()] for (s,x) in zip(phraseCols,phraseColNums)]))

@@ -527,10 +527,10 @@
      <str name="echoParams">explicit</str>
      <float name="tie">0.01</float>
      <str name="qf">
-        text^0.5 mongoQuery^1.5 sliceContents^1.0 datePhrase^1.0
+        text^0.5 mongoText^1.5 sliceContents^1.0 datePhrase^1.0
      </str>
      <str name="pf">
-        text^0.2 mongoQuery^0.7 slicePhrases^1.0 datePhrase^1.0
+        text^0.2 mongoText^0.7 slicePhrases^1.0 datePhrase^1.0
      </str>
      <str name="mm">
         2&lt;-1 5&lt;-2 6&lt;90%
