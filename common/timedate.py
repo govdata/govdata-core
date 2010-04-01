@@ -3,6 +3,8 @@ from common.utils import is_string_like, ListUnion, uniqify
 
 TIME_CODE_MAP = [('Y','Year',None),('h','Half',range(1,3)),('q','Quarter',range(1,5)),('m','Month',range(1,13)),('d','DayOfMonth',range(1,32)),('U','WeekOfYear',range(1,53)),('w','DayOfWeek',range(1,8)),('j','DayOfYear',range(1,366)),('H','HourOfDay',range(1,25)),('M','MinuteOfHour',range(0,60)),('S','Second',range(0,60)),('Z','TimeZone',None)]
 (TIME_CODES,TIME_DIVISIONS,TIME_RANGES) = zip(*TIME_CODE_MAP)
+TIME_DIVISIONS = dict(zip(TIME_CODES,TIME_DIVISIONS))
+TIME_RANGES = dict(zip(TIME_CODES,TIME_RANGES))
 TIME_HIERARCHY_RELATIONS = dict([('Y',['h','q','m','U','j']),('m',['d']),('d',['H']),('H',['M']),('M',['S']),('U',['w']),('w',['H']),('j',['H'])])
 
 def getHierarchy(f):
@@ -71,7 +73,13 @@ def Flatten(L):
 			S.append(l)
 	return S
 
-
+def tObjFlatten(tObj):
+	S = {}
+	for l in tObj.keys():
+		if hasattr(tObj[l],'keys'):
+			S[l] = tObj[l]['']
+			S.update(tObjFlatten(tObj[l]))
+	return S
 
 def generateQueries(DateFormat,timeQuery):	
 	timeQueryFormat = timeQuery['format'] if 'format' in timeQuery.keys() else DateFormat
@@ -139,4 +147,45 @@ def getPathsTo(m,H):
 				return [(H[0],) + y for y in getPathsTo(m,H[1])]
 			else:
 				return [()]
-				
+
+def getLowest(tObj):
+	lowest =[]
+	for k in tObj.keys():
+		if hasattr(tObj[k],'keys'):
+			if tObj[k].keys() == ['']:
+				lowest.append(k)
+			else:
+				lowest += getLowest(tObj[k])
+	return lowest
+
+#import mx	
+#import mx.DateTime as DateTime
+import datetime
+
+def convertToDT(tObj,convertMode = 'Low'):
+	assert convertMode in ['Low','High']
+	ftObj = tObjFlatten(tObj)
+	tlist = []
+	default_val = {'Y':0,'m':1,'d':1,'H':0,'M':0,'S':0,'MS':0,'Z':None}
+	for k in ('Y','m','d'):
+		if k in ftObj.keys():
+			tlist.append(ftObj[k])
+		else:
+			tlist.append(default_val[k])
+	if 'q' in ftObj.keys() and 'm' not in ftObj.keys():
+		if convertMode == 'Low':
+			tlist[1] = 3*(ftObj['q']-1) + 1
+		elif convertMode == 'High':
+			tlist[1] = 3*ftObj['q']
+
+	return datetime.date(*tlist)
+	
+def phrase(tObj,convertMode = 'Low'):
+	dateObj = convertToDT(tObj,convertMode = convertMode)
+	ftObj = tObjFlatten(tObj)
+	X =  [('w', '%A' ), ('m','%B') , ('d', '%d'), ('Y','%Y')]
+	s = ' '.join([x for (m,x) in X if m in ftObj.keys()])
+	H = dateObj.strftime(s)
+	if 'q' in ftObj.keys():
+		H = 'Q' + str(ftObj['q']) + ' ' + H
+	return H
