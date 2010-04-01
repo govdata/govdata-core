@@ -47,6 +47,7 @@ def indexCollection(collectionName):
 	#index all indiviudal records with query by _id
 	R = collection.find()
 	standard_meta = ['title','subject','description','author','keywords','content_type','last_modified','dateReleased','links']
+	standard_meta_formats = {'keywords':'tplist','last_mo
 	
 	for r in R:
 		d = {}

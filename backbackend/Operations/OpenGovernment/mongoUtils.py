@@ -40,7 +40,7 @@ def createCollection(path):
 
 	
 	#ADD SUBCOLLECTION DOCUMENTS --  with id = '__' + name
-	M['']['Source'] = pm.son.SON(M['']['Source'])
+	AllMeta['Source'] = pm.son.SON(AllMeta['Source'])
 	for k in M['Subcollections'].keys():
 		x = M['Subcollections'][k]
 		x['_id'] = k
