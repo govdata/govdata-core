@@ -189,12 +189,9 @@
    <field name="last_modified" type="tdate" indexed="true" stored="true"/>
    <field name="dateReleased" type="tdate" indexed="true" stored="true"/>
    <field name="links" type="string" indexed="true" stored="true" multiValued="true"/>
-   <!-- put other non-standard fields in  using spec-type dynamic field names except for some excluded ones -->
+   <!-- put other non-standard fields in  using spec-type dynamic field names except for some excluded ones --> 
    
-
-   <!-- catchall field, containing all other searchable text fields (implemented via copyField further on in this schema  -->
-   <field name="text" type="text" indexed="true" stored="false" multiValued="true"/>
-   
+ 
    <!-- TIME/DATE -->
    <field name="dateFormatString" type="string" indexed="true" stored="true"  />
    <field name="dateFormat" type="text" indexed="true" stored="true"  />
@@ -216,7 +213,11 @@
    <dynamicField name="*_tplist" type="multiPhraseTight"  indexed="true"  stored="true"/>
    <dynamicField name="ignored_*" type="ignored" multiValued="true"/>
 
-   
+
+   <!-- catchall field, containing all other searchable text fields (implemented via copyField further on in this schema  -->
+   <field name="text" type="text" indexed="true" stored="false" multiValued="true"/>
+    
+    
  </fields>
 
 
@@ -230,6 +231,9 @@
  <solrQueryParser defaultOperator="OR"/>
 
  <!-- copyField commands-->
+ <copyField source="sourceSpec" dest="source"/>
+ <copyField source="source_*_acronym" dest="source"/>
+ <copyField source="*_acronym" dest="acronyms"/>
  <copyField source="slicePhrases" dest="text"/>
  <copyField source="columnNames" dest="text"/>
  <copyField source="datePhrases" dest="text"/>
@@ -239,13 +243,9 @@
  <copyField source="author" dest="text"/>
  <copyField source="keywords" dest="text"/>
  <copyField source="source" dest="text"/>
- <copyField source="*_acronym" dest="acronyms"/>
  <copyField source="acronyms" dest="text"/>
  <copyField source="*_s" dest="text"/>
  <copyField source="*_t" dest="text"/>
- <copyField source="sourceSpec" dest="source"/>
- <copyField source="source_*_acronym" dest="source"/>
-
 	
 
 </schema>
