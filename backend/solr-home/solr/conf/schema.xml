@@ -3,6 +3,7 @@
 <schema name="GOVLOVE" version="0.1">
 
   <types>
+    <!-- basic types -->
     <fieldType name="string" class="solr.StrField" sortMissingLast="true" omitNorms="true"/>
     <fieldType name="boolean" class="solr.BoolField" sortMissingLast="true" omitNorms="true"/>
     <fieldtype name="binary" class="solr.BinaryField"/> 

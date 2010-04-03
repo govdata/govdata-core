@@ -71,6 +71,7 @@ def get(collectionName,querySequence,timeQuery=None, returnMetadata=False,fh = N
 							kwargs['fields'] = list(retainCols.intersection(kwargs['fields']))
 						else:
 							kwargs['fields'] = list(retainCols)	
+					
 						if posargs:
 							posargs[0][tuple(TimeColNamesToReturn)] = {'$exists':True}
 						else:

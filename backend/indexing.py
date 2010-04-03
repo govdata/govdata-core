@@ -47,18 +47,24 @@ def makeQueryDB(collectionName):
 	col.ensure_index('hash',unique=True,dropDups=True)
 	
 	for (i,q) in enumerate(Q):
-		if not col.find_one({'queries':q}):
-			R = api.get(collectionName,[('find',[(q,),{'fields':['_id']}])])['data']
-			count = len(R)
-			if count > 1:
-				print 'Preprocessing query', i ,'of', len(Q)
-				hash = hashlib.sha1(''.join([str(r['_id']) for r in R])).hexdigest()
-				if col.find_one({'hash':hash}):
-					col.update({'hash':hash},{'$push':{'queries':q}})
-				else:
-					col.insert({'hash':hash,'queries':[q],'count':count})
+		sq = subqueries(q)
+		for qq in sq:
+			if not col.find_one({'queries':qq}):
+				print i ,'of', len(Q)
+				R = api.get(collectionName,[('find',[(qq,),{'fields':['_id']}])])['data']
+				count = len(R)
+				if count > 1:
+					hash = hashlib.sha1(''.join([str(r['_id']) for r in R])).hexdigest()
+					if col.find_one({'hash':hash}):
+						col.update({'hash':hash},{'$push':{'queries':qq}})
+					else:
+						col.insert({'hash':hash,'queries':[qq],'count':count})
 
-
+def subqueries(q):
+	K = q.keys()
+	ind = itertools.product(*[[0,1]]*len(K))
+	return [son.SON([(K[i],q[K[i]]) for (i,k) in enumerate(j) if k]) for  j in ind]
+	
 STANDARD_META = ['title','subject','description','author','keywords','content_type','last_modified','dateReleased','links']
 STANDARD_META_FORMATS = {'keywords':'tplist','last_modified':'dt','dateReleased':'dt'}
 
@@ -101,14 +107,32 @@ def indexCollection(collectionName):
 		if 'TimeColumns' in collection.ColumnGroups.keys():
 			timeColInd = getNums(collection,collection.ColumnGroups['TimeColumns'])
 			ArgDict['timeColInd'] = timeColInd
-
+	
+	d = {}
+	Source = collection.Source
+	SourceNameDict = son.SON([(k,Source[k]['Name'] if isinstance(Source[k],dict) else Source[k]) for k in Source.keys()])
+	SourceAbbrevDict = dict([(k,Source[k]['ShortName']) for k in Source.keys() if isinstance(Source[k],dict) and 'ShortName' in Source[k].keys() ])
+	d['SourceSpec'] = json.dumps(SourceNameDict,default=ju.default)
+	d['agency'] = SourceNameDict['Agency']
+	d['subagency'] = SourceNameDict['Subagency']
+	d['dataset'] = SourceNameDict['Dataset']
+	for k in set(SourceNameDict.keys()).difference(['Agency','Subagency','Dataset']):
+		d['source_' + str(k).lower()] = SourceNameDict[k]
+	for k in SourceAbbrevDict.keys():
+		d['source_' + str(k).lower() + '_acronym'] = SourceAbbrevDict[k]
+	d['source'] = ' '.join(SourceNameDict.values() + SourceAbbrevDict.values())			
+	
+	if 'Subcollections' in collection.VARIABLES:
+		ArgDict['subColInd'] = collection.VARIABLES.index('Subcollections')
+		
 	#solr_interface = sunburnt.SolrInterface("http://localhost:8983", pathToSchema())
 	solr_interface = solr.SolrConnection("http://localhost:8983/solr")
 
 	R = collection.find()
 	for (i,r) in enumerate(R):
 		print i
-		addToIndex([r],collection,solr_interface,**ArgDict)	
+		d['mongoQuery'] = json.dumps(r['_id'],default=ju.default)
+		addToIndex([r],d,collection,solr_interface,**ArgDict)	
 		
 	solr_interface.commit()
 	
@@ -123,80 +147,85 @@ def getNums(collection,namelist):
 	return numlist
 	
 	
-def addToIndex(R,collection,solr_interface,contentColNums = None, phraseCols = None, phraseColNums = None,DateFormat = None,TimeColNamesInd = None,timeColNameDivisions = None,timeColPhrases=None,timeColInd=None,timeCols=None):
+def addToIndex(R,d,collection,solr_interface,contentColNums = None, phraseCols = None, phraseColNums = None,DateFormat = None,TimeColNamesInd = None,timeColNameDivisions = None,timeColPhrases=None,timeColInd=None,timeCols=None,subColInd = None):
+	
+	d['sliceContents'] = ''
+	d['slicePhrases'] = []
+	colnames = []
+	d['volume'] = 0
+	mindate = None
+	maxdate = None
+	Subcollections = []
 	
 	for r in R:
-		d = {}
-		#database slice things
-		d['mongoQuery'] = json.dumps(r['_id'],default=ju.default)
-		
-		d['sliceContents'] = ' '.join(ListUnion([([str(r[str(x)])] if str(x) in r.keys() else []) if isinstance(x,int) else [str(r[str(xx)]) for xx in x if str(xx) in r.keys()] for x in contentColNums]))
-		d['slicePhrases'] = '|||'.join(ListUnion([([s + ':' + str(r[str(x)])] if str(x) in r.keys() else []) if isinstance(x,int) else [s + ':' +  str(r[str(xx)]) for xx in x if str(xx) in r.keys()] for (s,x) in zip(phraseCols,phraseColNums)]))
-		d['columnNames'] = '|||'.join(r.keys())
-		
-		#slice stats
-		d['volume'] = 1
-		d['dimension'] = len(d['columnNames'])
-		
-		#source and source acronyms
-		Source = collection.Source
-		SourceNameDict = dict([(k,Source[k]['Name'] if isinstance(Source[k],dict) else Source[k]) for k in Source.keys()])
-		d['SourceSpec'] = json.dumps(SourceNameDict,default=ju.default)
-		SourceAbbrevDict = dict([(k,Source[k]['ShortName']) for k in Source.keys() if isinstance(Source[k],dict) and 'ShortName' in Source[k].keys() ])
-		d['agency'] = SourceNameDict['Agency']
-		d['subagency'] = SourceNameDict['Subagency']
-		d['dataset'] = SourceNameDict['Dataset']
-		for k in set(SourceNameDict.keys()).difference(['Agency','Subagency','Dataset']):
-			d['source_' + str(k).lower()] = SourceNameDict[k]
-		for k in SourceAbbrevDict.keys():
-			d['source_' + str(k).lower() + '_acronym'] = SourceAbbrevDict[k]
-		d['source'] = ' '.join(SourceNameDict.values() + SourceAbbrevDict.values())
-		
-		#metadata
-		metadata = collection.meta['']
-		if 'Subcollections' in collection.VARIABLES:
-			for l in r[str(collection.VARIABLES.index('Subcollections'))]:
-				metadata.update(collection.meta[l])
 
-		for k in metadata.keys():
-			if k in STANDARD_META:
-				if k in STANDARD_META_FORMATS.keys():
-					val = coerceToFormat(metadata[k],STANDARD_META_FORMATS[k])
-					if val:
-						d[str(k)] = val
-				else:
-					d[str(k)] = str(metadata[k])
-			else:
-				if is_string_like(metadata[k]):
-					d[str(k) + '_t'] = metadata[k]
-				
+		d['sliceContents'] += ' '.join(ListUnion([([str(r[str(x)])] if str(x) in r.keys() else []) if isinstance(x,int) else [str(r[str(xx)]) for xx in x if str(xx) in r.keys()] for x in contentColNums]))
 		
-		#time/date
-		if hasattr(collection,'DateFormat'):
-			d['dateFormat'] = DateFormat
-			
-			dateDivisions = []
-			datePhrases = []
-			if 'TimeColNames' in collection.ColumnGroups.keys():
-				K = [k for (k,j) in enumerate(TimeColNamesInd) if str(j) in r.keys()]
-				dateDivisions += uniqify(ListUnion([timeColNameDivisions[k] for k in K]))
-				d['begin_date'] = td.convertToDT(min([timeCols[k] for k in K]))
-				d['end_date'] = td.convertToDT(max([timeCols[k] for k in K]),convertMode='High')
-				datePhrases += uniqify([timeColPhrases[k] for k in K])
-
+		sP = ListUnion([([s + ':' + str(r[str(x)])] if str(x) in r.keys() else []) if isinstance(x,int) else [s + ':' +  str(r[str(xx)]) for xx in x if str(xx) in r.keys()] for (s,x) in zip(phraseCols,phraseColNums)])
+		for ssP in sP:
+			if ssP not in d['slicePhrases']:
+				d['slicePhrases'].append(ssP)
+		
+		colnames  = uniqify(colnames + r.keys())
+		d['volume'] += 1
+		
+		if subColInd:
+			Subcollections = uniqify(Subcollections + r[str(subColInd)])
 				
-			if 'TimeColumns' in collection.ColumnGroups.keys():
-				for (k,x) in zip(collection.ColumnGroups['TimeColumns'],timeColInd):
-					if str(x) in r.keys():
-						dateDivisions += td.getLowest(r[str(x)])
-						datePhrases.append(td.phrase(r[str(x)]))
+		if timeColInd:
+			for (k,x) in zip(collection.ColumnGroups['TimeColumns'],timeColInd):
+				if str(x) in r.keys():
+					dateDivisions += td.getLowest(r[str(x)])
+					datePhrases.append(td.phrase(r[str(x)]))		
+					if mindate:
+						mindate = min(mindate,r[str(x)])
+						maxdate = max(maxdate,r[str(x)])
+					else:
+						mindate = r[str(x)]
+						maxdate = r[str(x)]
 					
-				d['begin_date'] = td.convertToDT(min([r[str(x)] for x in timeColInd]))
-				d['end_date'] = td.convertToDT(max([r[str(x)] for x in timeColInd]),convertMode='High')
-			
-			
-			d['dateDivisions'] = ' '.join(uniqify(dateDivisions))
-			d['datePhrases'] = '|||'.join(datePhrases)
+	
+	d['columnNames'] = [collection.VARIABLES[int(x)] for x in colnames if x.isdigit()]
+	d['dimension'] = len(d['columnNames'])
+	#time/date
 		
-		solr_interface.add(**d)
-		#solr_interface.add(d)
+	if hasattr(collection,'DateFormat'):
+		d['dateFormat'] = DateFormat
+		
+		dateDivisions = []
+		datePhrases = []
+		if 'TimeColNames' in collection.ColumnGroups.keys():
+			K = [k for (k,j) in enumerate(TimeColNamesInd) if str(j) in colnames]
+			dateDivisions += uniqify(ListUnion([timeColNameDivisions[k] for k in K]))
+			d['begin_date'] = td.convertToDT(min([timeCols[k] for k in K]))
+			d['end_date'] = td.convertToDT(max([timeCols[k] for k in K]),convertMode='High')
+			datePhrases += uniqify([timeColPhrases[k] for k in K])
+		
+		if 'TimeColumns' in collection.ColumnGroups.keys():
+			d['begin_date'] = td.convertToDT(mindate)
+			d['end_date'] = td.convertToDT(maxdate,convertMode='High')
+		
+		d['dateDivisions'] = ' '.join(uniqify(dateDivisions))
+		d['datePhrases'] = '|||'.join(datePhrases)
+	
+	
+	#metadata
+	metadata = collection.meta['']
+	for sc in Subcollections:
+		metadata.update(collection.meta[sc])
+
+	for k in metadata.keys():
+		if k in STANDARD_META:
+			if k in STANDARD_META_FORMATS.keys():
+				val = coerceToFormat(metadata[k],STANDARD_META_FORMATS[k])
+				if val:
+					d[str(k)] = val
+			else:
+				d[str(k)] = str(metadata[k])
+		else:
+			if is_string_like(metadata[k]):
+				d[str(k) + '_t'] = metadata[k]		
+	
+	
+	solr_interface.add(**d)
+	#solr_interface.add(d)
