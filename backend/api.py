@@ -306,8 +306,12 @@ def find(query, hlParams=None,facetParams=None,mltParams = None, **params):
 
 	if facetparams == None:
 		pass
-		#facet on source
-		#facet on time
+		#facet on agency
+		#facet on subagency
+		#facet on dataset
+		#facet on date divisions
+		#facet on begin_date == 1900, end_date = 2010, interval is decade
+		
 		
 	if 'wt' not in params.keys():
 		params['wt'] = 'json'
