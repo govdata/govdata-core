@@ -424,9 +424,9 @@ def MakeMongoSource(metafile, docfile, seriesfile, filelistfile, sourcedir, outd
 						if t in NAMES:
 							tind = NAMES.index(t)
 						else:
+							tind = len(NAMES)
 							NAMES.append(t)
 							TIMECOLS.append(t)
-							tind = len(NAMES)
 						servals.append((str(tind),float(dlinesplit[3])))
 						
 					dline = F.readline().strip('\n')
@@ -460,7 +460,7 @@ def MakeMongoSource(metafile, docfile, seriesfile, filelistfile, sourcedir, outd
 	D['ColumnGroups'] = {'TimeColNames': TIMECOLS, 'LabelColumns': getnames }
 	D['UniqueIndexes'] = [['Series']]
 	D['VARIABLES'] = NAMES
-	D['sliceCols'] = getnames	
+	D['sliceCols'] = [g for g in getnames	if g.lower() not in ['footnote','seasonal','msa','periodicity']]
 	
 	SubCols[''] = D
 	

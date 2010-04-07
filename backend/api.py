@@ -291,4 +291,44 @@ def getArgs(args):
 #FIND
 #=-=-=-=-=-=-=-=-=-=-=-=-=-
 
+import urllib2
+import ast
+
+def find(query, hlParams=None,facetParams=None,mltParams = None, **params):
+
+
+	if 'qt' not in params.keys():
+		params['qt'] = 'dismax'
+	if 'sort' not in params.keys():
+		params['sort'] = 'score desc, volume desc'
+	if 'rows' not in params.keys():
+		params['rows'] = '20'
+
+	if facetparams == None:
+		pass
+		#facet on source
+		#facet on time
+		
+	if 'wt' not in params.keys():
+		params['wt'] = 'json'
 	
+	paramstring = processSolrArgList('',params)
+	facetstring = processSolrArgList('facet',facetParams)
+	hlstring = processSolrArgList('hl',hlParams)
+	mltstring = processSolrArgList('mlt',mltParams)
+	
+	URL = 'http://localhost:8983/solr/select/?q=' + query + paramstring + facetstring + hlstring + mltstring
+
+	if params['wt'] == 'json':
+		return urllib2.urlopen(URL).read()
+	elif params['wt'] == 'python':
+		X = ast.literal_eval(urllib2.urlopen(URL).read())
+		#do stuff to X
+		return X
+	
+
+def processSolrArgList(base,valdict)		
+	return ('&' + ((base + '=true&') if base and '' not in valdict.keys() else '') + '&'.join([processSolrArg(base,key,valdict[key]) for key in valdict()])) if valdict else ''		
+	
+def processSolrArg(base,key,value):
+	return base + ('.' if key and base else '') + key + '=' + value if is_string_like(value) else '&'.join([base + '.' + key + '=' + v for v in value]) 

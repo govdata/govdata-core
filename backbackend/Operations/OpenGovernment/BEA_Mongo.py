@@ -379,7 +379,7 @@ def GDPByStateAreaCollectionsObjects(depends_on = (sourceroot + 'REA_GDPByState/
 	AllMeta['DateFormat'] = 'YYYYqmm'
 	AllMeta['VARIABLES'] = VARS
 	
-	AllMeta['sliceCols'] = ['State', 'Component', 'IndClass', 'Metropolitan Area', 'IndustryHierarchy']	
+	AllMeta['sliceCols'] = [['State', 'Metropolitan Area', 'IndustryHierarchy']	,['State', 'Metropolitan Area','Component'],['IndustryHierarchy','Component']]
 	AllMeta['phraseCols'] = ['State', 'Component', 'IndClass', 'Metropolitan Area', 'IndustryHierarchy','Industry','Units','FIPS','Units']	 
 
 	

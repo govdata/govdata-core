@@ -14,6 +14,10 @@ class Collection(pm.collection.Collection):
 		self.metaCollection = db[metaname]		
 		self.meta = dict([(l['_id'],l) for l in self.metaCollection.find()])
 		
+		slicesname = '__' + name + '__SLICES__'
+		if slicesname in db.collection_names():
+			self.slices = db[slicesname]
+		
 	def subcollection_names(self):
 		return self.meta.keys()
 		
