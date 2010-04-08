@@ -4,13 +4,15 @@ import pymongo as pm
 import gridfs as gfs
 import cPickle as pickle
 import tabular as tb
-from common.utils import IsFile, listdir, is_string_like, ListUnion
+from common.utils import IsFile, listdir, is_string_like, ListUnion,createCertificate
 from common.mongo import cleanCollection
 import common.timedate as td
+from System.Protocols import activate
 
 MONGOSOURCES_PATH = '../Data/OpenGovernment/MongoSources/'
-		
-def createCollection(path):
+
+@activate(lambda x : x[0],lambda x : x[1])
+def createCollection(path,certpath):
 
 	path += '/' if path[-1] != '/' else ''	
 	
@@ -70,7 +72,9 @@ def createCollection(path):
 		G = gfs.GridFS(db)
 		for F in Files:
 			File = G.open(F['Name'],mode='w',collection=collectionName)
+			os.environ['PROTECTION'] = 'OFF'
 			S = open(F['path'],'r').read()
+			os.environ['PROTECTION'] = 'ON'
 			File.write(S)
 			File.close()
 	
@@ -115,7 +119,8 @@ def createCollection(path):
 						c[tc] = TimeFormatter(c[tc])
 				collection.insert(c)
 		else:
-			print 'Type of chunk file', fpath, 'not reconized.' 
+			print 'Type of chunk file', fpath, 'not recognized.' 
 		
 	connection.disconnect()
+	createCertificate(certpath,'Collection ' + collectionName + ' written to DB.')
 	

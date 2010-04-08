@@ -6,10 +6,12 @@ import cPickle as pickle
 import re
 from BeautifulSoup import BeautifulSoup, BeautifulStoneSoup, NavigableString
 from System.Utils import MakeDir, Contents, listdir, IsDir, wget, uniqify, PathExists, ListUnion,RecursiveFileList
+import Operations.OpenGovernment.OpenGovernment as OG
 
 
 sourceroot = '../Data/OpenGovernment/BEA/'
 root = '../Data/OpenGovernment/MongoSources/'	
+protocol_root = '../Protocol_Instances/OpenGovernment/BEA/'
 
 def NumberVars(Z,V):
 	newnames = []
@@ -26,6 +28,9 @@ def NumberVars(Z,V):
 def MakeNIPACollectionObject(depends_on = sourceroot + 'NEA_NIPA/ParsedFiles/',creates = root + 'BEA_NIPA/'):
 	NEACollectionsObjects(depends_on,creates)
 
+def addNIPA(creates = OG.CERT_PROTOCOL_ROOT + 'BEA_NIPA.py'):
+	OG.backendProtocol('BEA_NIPA')
+	
 def MakeNIPAUnpublishedCollectionObject(depends_on = sourceroot + 'NEA_NIPA_Unpublished/ParsedFiles/',creates = root + 'BEA_NIPA_Unpublished/'):
 	NEACollectionsObjects(depends_on,creates)	
 
@@ -158,7 +163,11 @@ def NEACollectionsObjects(inpath,outpath,L = None):
 	pickle.dump({'Subcollections':Subcollections, 'Hashes':Hashes},F)
 	F.close()
 	
-	
+
+
+
+###FAT####
+
 def MakeFATCollectionObject(depends_on = sourceroot + 'NEA_FixedAssetTables/ParsedFiles/',creates = root + 'BEA_FixedAsset/'):
 	inpath = depends_on
 	outpath = creates
@@ -237,6 +246,7 @@ def MakeFATCollectionObject(depends_on = sourceroot + 'NEA_FixedAssetTables/Pars
 	F.close()
 	
 	
+###RegionalGDP###
 def GDPByStateAreaCollectionsObjects(depends_on = (sourceroot + 'REA_GDPByState/ParsedFiles/',sourceroot + 'REA_GDPByMetropolitanArea/ParsedFiles/'),creates = root + 'BEA_RegionalGDP/'):
 	inpath = depends_on[0]
 	outpath = creates
@@ -389,7 +399,12 @@ def GDPByStateAreaCollectionsObjects(depends_on = (sourceroot + 'REA_GDPByState/
 	pickle.dump({'Subcollections':Subcollections,'Hashes':Hashes},F)
 	F.close()	
 	
+
+def addRegionalGDP(creates = OG.CERT_PROTOCOL_ROOT + 'BEA_RegionalGDP.py'):
+	OG.backendProtocol('BEA_RegionalGDP')
+
 	
+###PersonalIncome###
 def PersonalIncomeCollectionObject(depends_on = (sourceroot + 'REA_LocalAreaPersonalIncome/ParsedFiles/',sourceroot + 'REA_StateAnnualPersonalIncome/ParsedFiles/',sourceroot + 'REA_StateQuarterlyPersonalIncome/ParsedFiles/'),creates = root + 'BEA_PersonalIncome/'):
 
 

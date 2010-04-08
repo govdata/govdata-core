@@ -348,6 +348,15 @@ def BLS_mainInstantiator(creates = protocol_root + 'main.py'):
 	
 	ApplyOperations2(creates,D)
 
+
+import Operations.OpenGovernment.OpenGovernment as OG		
+def addBLS_ap(creates = OG.CERT_PROTOCOL_ROOT + 'BLS_ap.py'):
+	OG.backendProtocol('BLS_ap')
+	
+def addBLS_bd(creates = OG.CERT_PROTOCOL_ROOT + 'BLS_bd.py'):
+	OG.backendProtocol('BLS_bd')
+		
+
 @activate(lambda x : (x[0],x[1],x[2],x[3],x[4]),lambda x : x[5])
 def MakeMongoSource(metafile, docfile, seriesfile, filelistfile, sourcedir, outdir):
 	MakeDir(outdir)
@@ -495,8 +504,7 @@ def tval(year,per):
 		return  year + 'X' + 'X' + 'XX' 
 	else:
 		raise ValueError, 'Time period format of ' + per + ' not recognized.'
-		
-		
+
 #test=-=-=-=-=
 @activate(lambda x : (x[0],x[1],x[2],x[3],x[4]),lambda x : x[5])
 def MakeMongoSourceFlat(metafile, docfile, seriesfile, filelistfile, sourcedir, outdir):

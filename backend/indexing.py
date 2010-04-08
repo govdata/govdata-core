@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 from common.mongo import Collection, cleanCollection
-from common.utils import IsFile, listdir, is_string_like, ListUnion, uniqify
+from common.utils import IsFile, listdir, is_string_like, ListUnion, uniqify,createCertificate
 import common.timedate as td
 import backend.api as api
 import solr
@@ -12,6 +12,7 @@ import pymongo.json_util as ju
 import pymongo.son as son
 import os
 import hashlib
+from System.Protocols import activate
 
 def pathToSchema():
 	plist = os.getcwd().split('/')
@@ -36,7 +37,8 @@ def getQueryList(collectionName,keys):
 	else:
 		return [()]
 
-def makeQueryDB(collectionName,hashSlices=True):
+@activate(lambda x : x[1],lambda x : x[2])
+def makeQueryDB(collectionName,incertpath,certpath, hashSlices=True):
 	
 	collection = Collection(collectionName)
 	sliceCols = collection.sliceCols
@@ -73,6 +75,8 @@ def makeQueryDB(collectionName,hashSlices=True):
 			else:
 				col.insert({'hash':q,'queries':[q]})
 				
+	createCertificate(certpath,'Slice database for ' + collectionName + ' written.')
+	
 
 def subqueries(q):
 	K = q.keys()
@@ -86,7 +90,8 @@ def subTuples(T):
 STANDARD_META = ['title','subject','description','author','keywords','content_type','last_modified','dateReleased','links']
 STANDARD_META_FORMATS = {'keywords':'tplist','last_modified':'dt','dateReleased':'dt'}
 
-def indexCollection(collectionName):
+@activate(lambda x : x[1],lambda x : x[2])
+def indexCollection(collectionName,incertpath,certpath):
 
 	ArgDict = {}
 	
@@ -167,6 +172,7 @@ def indexCollection(collectionName):
 		
 	solr_interface.commit()
 	
+	createCertificate(certpath,'Collection ' + collectionName + ' indexed.')		
 	
 def getNums(collection,namelist):
 	numlist = []

@@ -112,3 +112,9 @@ def listdir(ToList):
 		
 	'''
 	return os.listdir(ToList)
+	
+import random
+def createCertificate(path,msg,tol=10000000000):
+	F = open(path,'w')
+	F.write(msg + ' Random certificate: ' + str(random.randint(0,tol)))
+	F.close()

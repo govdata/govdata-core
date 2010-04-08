@@ -297,7 +297,6 @@ def getArgs(args):
 import urllib2,urllib
 def find(query, hlParams=None,facetParams=None,mltParams = None, **params):
 
-
 	if 'qt' not in params.keys():
 		params['qt'] = 'dismax'
 	if 'sort' not in params.keys():
