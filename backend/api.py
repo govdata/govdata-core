@@ -17,9 +17,24 @@ class GetHandler(tornado.web.RequestHandler):
     def get(self):
         self.write("Hello, get")
 
+	def post(self):
+		args = self.request.arguments
+    	assert 'collectionName' in args.keys() and len(args['collectionName']) == 1
+    	assert 'querySequence' in args.keys() and len(args['querySequence']) == 1
+    	collectionName = args['collectionName'][0]
+    	querySequence = args['querySequence'][0]
+    	args.pop('collectionName')
+    	args.pop('querySequence')
+    	get(collectionName,querySequence,fh=self,**args)
+    	
+    	
 class FindHandler(tornado.web.RequestHandler):
     def get(self):
-        self.write("Hello, find")
+    	args = self.request.arguments
+    	assert 'query' in args.keys() and len(args['query']) == 1
+    	query = args['query'][0]
+    	args.pop('query')
+        self.write(find(query,**args))
 
 
 #=-=-=-=-=-=-=-=-=-=-=-=-=-
