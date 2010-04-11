@@ -76,7 +76,7 @@ from System.Utils import PathAlong, funcname, MakeT, caller, BadCheckError
 from os import getcwd
 from os.path import normpath
 
-def IsntProtected(r):
+def IsntProtected(r,callermodule=None):
 	'''
 	If the environment variable "PROTECTION" is set to "ON"
 	(see comments in i/o GetDependsCreates), this function looks 
@@ -99,8 +99,12 @@ def IsntProtected(r):
 			ProtList = [env['DataEnvironmentDirectory']]
 		else:
 			ProtList = []
+
+		if not callermodule or any([PathAlong(callermodule,x) for x in ProtList]):
+			return not any([PathAlong(r,x) for x in ProtList])
+		else:
+			return True
 			
-		return not any([PathAlong(r,x) for x in ProtList])
 	else:
 		return False
 
@@ -169,10 +173,9 @@ def GetDependsCreates():
 old_open = __builtin__.open
 def system_open(ToOpen,Mode='r',bufsize=1):
 	[DependencyList,CreatesList] = GetDependsCreates()
-	if IsntProtected(ToOpen) or any([PathAlong(ToOpen,r) for r in CreatesList]) if ('w' in Mode or 'a' in Mode) else any([PathAlong(ToOpen,r) for r in CreatesList + DependencyList]):	
+	if IsntProtected(ToOpen,callermodule=callermodule()) or (any([PathAlong(ToOpen,r) for r in CreatesList]) if ('w' in Mode or 'a' in Mode) else any([PathAlong(ToOpen,r) for r in CreatesList + DependencyList])):	
 		return old_open(ToOpen,Mode,bufsize)
 	else:
-		print funcname(),caller(3),ToOpen if ('w' in Mode or 'a' in Mode) else None,DependencyList,CreatesList
 		raise BadCheckError(funcname(),ToOpen if 'r' in Mode else None,ToOpen if ('w' in Mode or 'a' in Mode) else None,DependencyList,CreatesList)
 __builtin__.open = system_open
 
@@ -180,7 +183,7 @@ __builtin__.open = system_open
 old_copy = shutil.copy
 def system_copy(tocopy,destination):
 	[DependencyList,CreatesList] = GetDependsCreates()
-	Check = (IsntProtected(tocopy) or any([PathAlong(tocopy,r) for r in DependencyList+CreatesList])) and (IsntProtected(destination) or any([PathAlong(destination,r) for r in CreatesList]))
+	Check = (IsntProtected(tocopy,callermodule=callermodule()) or any([PathAlong(tocopy,r) for r in DependencyList+CreatesList])) and (IsntProtected(destination) or any([PathAlong(destination,r) for r in CreatesList]))
 	if Check:
 		old_copy(tocopy,destination)	
 	else: 
@@ -191,7 +194,7 @@ shutil.copy = system_copy
 old_copy2 = shutil.copy2
 def system_copy2(tocopy,destination):
 	[DependencyList,CreatesList] = GetDependsCreates()
-	Check = (IsntProtected(tocopy) or any([PathAlong(tocopy,r) for r in DependencyList+CreatesList])) and (IsntProtected(destination) or any([PathAlong(destination,r) for r in CreatesList]))
+	Check = (IsntProtected(tocopy,callermodule=callermodule()) or any([PathAlong(tocopy,r) for r in DependencyList+CreatesList])) and (IsntProtected(destination) or any([PathAlong(destination,r) for r in CreatesList]))
 	if Check:
 		old_copy2(tocopy,destination)	
 	else: 
@@ -202,7 +205,7 @@ shutil.copy2 = system_copy2
 old_copytree = shutil.copytree
 def system_copytree(tocopy,destination,symlinks=False):
 	[DependencyList,CreatesList] = GetDependsCreates()
-	Check = (IsntProtected(tocopy) or any([PathAlong(tocopy,r) for r in DependencyList+CreatesList])) and (IsntProtected(destination) or any([PathAlong(destination,r) for r in CreatesList]))
+	Check = (IsntProtected(tocopy,callermodule=callermodule()) or any([PathAlong(tocopy,r) for r in DependencyList+CreatesList])) and (IsntProtected(destination) or any([PathAlong(destination,r) for r in CreatesList]))
 	if Check:
 		old_copytree(tocopy,destination,symlinks=symlinks)	
 	else: 
@@ -213,7 +216,7 @@ shutil.copytree = system_copytree
 old_mkdir = os.mkdir
 def system_mkdir(DirName,mode=0777):
 	CreatesList = GetDependsCreates()[1]
-	if IsntProtected(DirName) or sum([PathAlong(DirName,r) for r in CreatesList]) > 0:
+	if IsntProtected(DirName,callermodule=callermodule()) or sum([PathAlong(DirName,r) for r in CreatesList]) > 0:
 		old_mkdir(DirName,mode)
 	else:
 		raise BadCheckError(funcname(),None,DirName,[],CreatesList)
@@ -223,7 +226,7 @@ os.mkdir  = system_mkdir
 old_makedirs = os.makedirs
 def system_makedirs(DirName,mode=0777):
 	CreatesList = GetDependsCreates()[1]
-	if IsntProtected(DirName) or sum([PathAlong(DirName,r) for r in CreatesList]) > 0:
+	if IsntProtected(DirName,callermodule=callermodule()) or sum([PathAlong(DirName,r) for r in CreatesList]) > 0:
 		old_makedirs(DirName,mode)
 	else:
 		raise BadCheckError(funcname(),None,DirName,[],CreatesList)
@@ -233,7 +236,7 @@ os.makedirs = system_makedirs
 old_rename = os.rename
 def system_rename(old,new):
 	CreatesList = GetDependsCreates()[1]
-	if (IsntProtected(old) or any([PathAlong(old,r) for r in CreatesList])) and (IsntProtected(new) or any([PathAlong(new,r) for r in CreatesList])):		
+	if (IsntProtected(old,callermodule=callermodule()) or any([PathAlong(old,r) for r in CreatesList])) and (IsntProtected(new,callermodule=callermodule()) or any([PathAlong(new,r) for r in CreatesList])):		
 		old_rename(old,new)
 	else:
 		raise BadCheckError(funcname(),None,[old,new],[],CreatesList)
@@ -242,7 +245,7 @@ os.rename = system_rename
 old_remove = os.remove
 def system_remove(ToDelete):
 	CreatesList = GetDependsCreates()[1]
-	if IsntProtected(ToDelete) or any([PathAlong(ToDelete,r) for r in CreatesList]):
+	if IsntProtected(ToDelete,callermodule=callermodule()) or any([PathAlong(ToDelete,r) for r in CreatesList]):
 		old_remove(ToDelete)
 	else:
 		raise BadCheckError(funcname(),None,ToDelete,[],CreatesList)
@@ -251,7 +254,7 @@ os.remove = system_remove
 old_rmtree = shutil.rmtree
 def system_rmtree(ToDelete,ignore_errors=False,onerror=None):
 	CreatesList = GetDependsCreates()[1]
-	if IsntProtected(ToDelete) or any([PathAlong(ToDelete,r) for r in CreatesList]):
+	if IsntProtected(ToDelete,callermodule=callermodule()) or any([PathAlong(ToDelete,r) for r in CreatesList]):
 		old_rmtree(ToDelete,ignore_errors=ignore_errors,onerror=onerror)
 	else:
 		raise BadCheckError(funcname(),None,ToDelete,[],CreatesList)		
@@ -260,7 +263,7 @@ shutil.rmtree = system_rmtree
 old_exists = os.path.exists
 def system_exists(ToCheck):
 	[DependencyList,CreatesList] = GetDependsCreates()
-	if IsntProtected(ToCheck) or any([PathAlong(ToCheck,r) for r in DependencyList+CreatesList]):
+	if IsntProtected(ToCheck,callermodule=callermodule()) or any([PathAlong(ToCheck,r) for r in DependencyList+CreatesList]):
 		return old_exists(ToCheck)
 	else:
 		raise BadCheckError(funcname(),ToCheck,None,DependencyList+CreatesList,None)
@@ -269,7 +272,7 @@ os.path.exists = system_exists
 old_listdir = os.listdir
 def system_listdir(ToList):
 	[DependencyList,CreatesList] = GetDependsCreates()
-	if IsntProtected(ToList) or any([PathAlong(ToList,r) for r in DependencyList+CreatesList]):
+	if IsntProtected(ToList,callermodule=callermodule()) or any([PathAlong(ToList,r) for r in DependencyList+CreatesList]):
 		return old_listdir(ToList)
 	else:
 		raise BadCheckError(funcname(),ToList,None,DependencyList+CreatesList,None)
@@ -279,7 +282,7 @@ os.listdir = system_listdir
 old_isfile = os.path.isfile	
 def system_isfile(ToCheck):
 	[DependencyList,CreatesList] = GetDependsCreates()
-	if IsntProtected(ToCheck) or any([PathAlong(ToCheck,r) for r in DependencyList+CreatesList]):
+	if IsntProtected(ToCheck,callermodule=callermodule()) or any([PathAlong(ToCheck,r) for r in DependencyList+CreatesList]):
 		return old_isfile(ToCheck)
 	else:
 		BadCheckError(funcname(),ToCheck,None,DependencyList+CreatesList,None)	
@@ -289,7 +292,7 @@ os.path.isfile  = system_isfile
 old_isdir = os.path.isdir
 def system_isdir(ToCheck):
 	[DependencyList,CreatesList] = GetDependsCreates()	
-	if IsntProtected(ToCheck) or any([PathAlong(ToCheck,r) for r in DependencyList+CreatesList]):
+	if IsntProtected(ToCheck,callermodule=callermodule()) or any([PathAlong(ToCheck,r) for r in DependencyList+CreatesList]):
 		return old_isdir(ToCheck)
 	else:
 		BadCheckError(funcname(),ToCheck,None,DependencyList+CreatesList,None)
@@ -299,7 +302,7 @@ os.path.isdir = system_isdir
 old_mtime = os.path.getmtime
 def system_getmtime(ToAssay):
 	[DependencyList,CreatesList] = GetDependsCreates()
-	if IsntProtected(ToAssay) or any([PathAlong(ToAssay,r) for r in DependencyList+CreatesList]):
+	if IsntProtected(ToAssay,callermodule=callermodule()) or any([PathAlong(ToAssay,r) for r in DependencyList+CreatesList]):
 		return old_mtime(ToAssay)
 	else:
 		BadCheckError(funcname(),ToAssay,None,DependencyList+CreatesList,None)
@@ -309,7 +312,7 @@ os.path.getmtime = system_getmtime
 old_atime = os.path.getatime
 def system_getatime(ToAssay):
 	[DependencyList,CreatesList] = GetDependsCreates()	
-	if IsntProtected(ToAssay) or any([PathAlong(ToAssay,r) for r in DependencyList+CreatesList]):
+	if IsntProtected(ToAssay,callermodule=callermodule()) or any([PathAlong(ToAssay,r) for r in DependencyList+CreatesList]):
 		return old_atime(ToAssay)
 	else:
 		BadCheckError(funcname(),ToAssay,None,DependencyList+CreatesList,None)
