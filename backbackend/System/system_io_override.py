@@ -72,7 +72,7 @@ python shells like iPython, which I tend to want to use.)
 '''
 
 import __builtin__, sys, inspect, shutil, os
-from System.Utils import PathAlong, funcname, MakeT, caller, BadCheckError
+from System.Utils import PathAlong, funcname, MakeT, caller, BadCheckError, callermodule
 from os import getcwd
 from os.path import normpath
 
