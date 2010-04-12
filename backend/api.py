@@ -324,13 +324,14 @@ def find(query, hlParams=None,facetParams=None,mltParams = None, **params):
 					
 	params['wt'] = 'json'
 	
+
 	paramstring = processSolrArgList('',params)
 	facetstring = processSolrArgList('facet',facetParams)
 	hlstring = processSolrArgList('hl',hlParams)
 	mltstring = processSolrArgList('mlt',mltParams)
 	
 	URL = 'http://localhost:8983/solr/select?q=' + query + paramstring + facetstring + hlstring + mltstring
-
+	
 	if params['wt'] == 'json':
 		return urllib2.urlopen(URL).read()
 	elif params['wt'] == 'python':
@@ -343,4 +344,4 @@ def processSolrArgList(base,valdict)	:
 	return ('&' + ((base + '=true&') if base and '' not in valdict.keys() else '') + '&'.join([processSolrArg(base,key,valdict[key]) for key in valdict])) if valdict else ''		
 	
 def processSolrArg(base,key,value):
-	return base + ('.' if key and base else '') + key + '=' + urllib.quote(value) if is_string_like(value) else '&'.join([base + '.' + key + '=' + urllib.quote(v) for v in value]) 
+	return base + ('.' if key and base else '') + key + '=' + urllib.quote(value) if is_string_like(value) else '&'.join([base + ('.' if key and base else '') + key + '=' + urllib.quote(v) for v in value]) 
