@@ -164,7 +164,8 @@ def indexCollection(collectionName,incertpath,certpath):
 		print i , 'of', numslices , ': ' , queryText
 		sliceCursor = collection.find(query,timeout=False)
 		dd = d.copy()
-		dd['mongoQuery'] = json.dumps(queryText,default=ju.default)
+		queryID = {'collectionName':collectionName,'query':queryText}
+		dd['mongoID'] = json.dumps(queryID,default=ju.default)
 		dd['mongoText'] = ', '.join([key + '=' + value for (key,value) in queryText.items()])
 		addToIndex(sliceCursor,dd,collection,solr_interface,**ArgDict)
 		i += 1

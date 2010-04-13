@@ -145,7 +145,7 @@
 
  <fields>
    <!-- database slice things --> 
-   <field name="mongoQuery" type="string" indexed="true" stored="true" required="true" />  <!-- mongoQuery is the unique ID!  --> 
+   <field name="mongoID" type="string" indexed="true" stored="true" required="true" />  <!-- mongoID is the unique ID!  --> 
    <field name="mongoText" type="text" indexed="true" stored="true" required = "true"/> 
    <field name="sliceContents" type="text" indexed="true" stored="false" />
    <field name="slicePhrases" type="multiPhraseLoose" indexed="true" stored="false" />
@@ -160,6 +160,7 @@
    <field name="agency" type="agency" indexed="true" stored="true" required="true" />  
    <field name="subagency" type="agency" indexed="true" stored="true" required="true" />
    <field name="dataset" type="text_ws" indexed="true" stored="true" required="true" />
+   <field name="datasetTight" type="agency" indexed="true" stored="true"/>
    <dynamicField name="source_*"  type="agency"  indexed="true"  stored="true"/>
    <field name="source" type="text" indexed="true" stored="true" />
     
@@ -211,7 +212,7 @@
 
 
  <!-- field on which to do uniqueness enforcement-->
- <uniqueKey>mongoQuery</uniqueKey>
+ <uniqueKey>mongoID</uniqueKey>
 
  <!-- field for the QueryParser to use when an explicit fieldname is absent -->
  <defaultSearchField>text</defaultSearchField>
@@ -220,6 +221,7 @@
  <solrQueryParser defaultOperator="OR"/>
 
  <!-- copyField commands-->
+ <copyField source="dataset" dest="datasetTight"/>
  <copyField source="*_acronym" dest="acronyms"/>
  <copyField source="slicePhrases" dest="text"/>
  <copyField source="columnNames" dest="text"/>
