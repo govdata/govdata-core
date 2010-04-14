@@ -132,6 +132,9 @@ def BEA_Parser(page, headerlines=None, FootnoteSplitter = '/', FootnotesFunction
 		header = None
 	
 	names = [n.strip() for n in meta['names']]
+	names = names[:len(F[0])]
+	
+	F = [f[:len(names)] for f in F]
 	if names[1] == '':
 		names[1] = 'Category'
 	
