@@ -312,7 +312,6 @@ def UpdateLinks(ActivatedLinkListSequence, Seed, AU = None, Exceptions = None, S
 				
 	'''
 
-	CallMode = 'DIRECT'
 	ScriptsToCall = ReduceListOfSetsOfScripts([set(l['UpdateScript']) for l in ActivatedLinkListSequence]) 
 	
 	if len(Union(ScriptsToCall)) > 0:
@@ -346,23 +345,26 @@ def UpdateLinks(ActivatedLinkListSequence, Seed, AU = None, Exceptions = None, S
 				if CallMode == 'DIRECT':
 					for (i,j) in enumerate(J):
 						
-						DoOp(i,j,SsName,SsTemp,SsRTStore,CreateDict[j],IsFastDict[j],CallMode,TouchList,DepListJ[j], EmailWhenDone)
+						DoOp(i,j,SsName,SsTemp,SsRTStore,CreateDict[j],IsFastDict[j],CallMode,TouchList,DepListJ[j].tolist(), EmailWhenDone)
 						ResourceUsageDict[j] = {}
 				
 				elif CallMode == 'DRMAA':
 					import drmaa
+
 					Session = drmaa.Session()
 					jobids = {}
 					for (i,j) in enumerate(J):
+
 						jt = Session.createJobTemplate()
 						jt.remoteCommand = PATH_TO_PYTHON
 						jt.workingDirectory = os.getcwd() 
-						argstr = "execfile('../System/initialize_for_production'); import System.Update as U ; U.DoOp(" + ",".join([repr(x) for x in [i,j,SsName,SsTemp,SsRTStore,CreateDict[j],IsFastDict[j],CallMode,TouchList,DepListJ[j], EmailWhenDone]]) + ")"
+						argstr = "execfile('../System/initialize_for_production'); import System.Update as U ; U.DoOp(" + ",".join([repr(x) for x in [i,j,SsName,SsTemp,SsRTStore,CreateDict[j],IsFastDict[j],CallMode,TouchList,DepListJ[j].tolist(), EmailWhenDone]]) + ")"
 						jt.args = ["-c",argstr]
+						print argstr
 						jt.joinFiles = True
 						jt.jobEnvironment = dict([(k,os.environ[k]) for k in ['PYTHONPATH','PATH']])
 						TempSOIS = SsTemp + RUNSTDOUTINSESSION + '_' + j
-						jt.outputPath = ':/home/gotdata/EC2DE/' + TempSOIS[3:]
+						jt.outputPath = ':' + os.environ['DataEnvironmentDirectory'] + '/' + TempSOIS[3:]
 						jt.jobName = j
 						jobids[j] = Session.runJob(jt)
 						print 'Loading job', j , 'with job id', jobids[j]
@@ -412,7 +414,6 @@ def UpdateLinks(ActivatedLinkListSequence, Seed, AU = None, Exceptions = None, S
 def DoOp(i,j,SsName,SsTemp,SsRTStore,CreatesList,IsFast,CallMode,TouchList,DepListj, EmailWhenDone,creates=('../',)):
 
 	Creates = CreatesList
-	DepListj = DepListj.tolist()
 
 	Targets = uniqify(Creates + DepListj)
 
