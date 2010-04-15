@@ -42,7 +42,7 @@ def WgetMultiple(dd, fname, maxtries=5):
 	for i in range(maxtries):
 		wget(link, fname, opstring)
 		F = open(fname,'r').read().strip()
-		if not (F.startswith('<!DOCTYPE HTML') or F == '' or 'servlet error' in F.lower()):
+		if not (F.lower().startswith('<!doctype') or F == '' or 'servlet error' in F.lower()):
 			return
 		else:
 			print 'download of ' + link + ' failed'
@@ -132,9 +132,11 @@ def BEA_Parser(page, headerlines=None, FootnoteSplitter = '/', FootnotesFunction
 		header = None
 	
 	names = [n.strip() for n in meta['names']]
-	names = names[:len(F[0])]
-	
-	F = [f[:len(names)] for f in F]
+
+	if not NEA:
+		names = names[:len(F[0])]
+		F = [f[:len(names)] for f in F]
+
 	if names[1] == '':
 		names[1] = 'Category'
 	

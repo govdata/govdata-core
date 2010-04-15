@@ -30,6 +30,16 @@ if 'OVERWRITEFLAG' not in dir():
 	OVERWRITEFLAG = 1
 #NOTE: In some interactive python interpreters, e.g. IPython, running the system i/o override more than once in an single interpreter session causes problems.   The #OVERWRITEFLAG seen above is used to determine whether the override has been run; if not (e.g. when the OVERWRITEFLAG is NOT present as a variable) the override can be run; otherwise, not. 
 
+
+try:
+        from System.config.PerMachineSetup import PYTHONPATH
+except:
+        print 'PYTHONPATH not set in PerMachineSetup'
+else:
+        for f in PYTHONPATH.split(':'):
+                sys.path.insert(0,f)
+
+
 #execfile some system files in the interpreter so commands are immediately available -- this is totally optional. 
 FilesToLoadOnStartup = ['../System/LinkManagement.py','../System/Update.py','../System/MetaData.py','../System/Storage.py']
 for __file in FilesToLoadOnStartup:

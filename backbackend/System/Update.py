@@ -360,7 +360,7 @@ def UpdateLinks(ActivatedLinkListSequence, Seed, AU = None, Exceptions = None, S
 						jt.workingDirectory = os.getcwd() 
 						argstr = "execfile('../System/initialize_for_production'); import System.Update as U ; U.DoOp(" + ",".join([repr(x) for x in [i,j,SsName,SsTemp,SsRTStore,CreateDict[j],IsFastDict[j],CallMode,TouchList,DepListJ[j].tolist(), EmailWhenDone]]) + ")"
 						jt.args = ["-c",argstr]
-						print argstr
+						
 						jt.joinFiles = True
 						jt.jobEnvironment = dict([(k,os.environ[k]) for k in ['PYTHONPATH','PATH']])
 						TempSOIS = SsTemp + RUNSTDOUTINSESSION + '_' + j
