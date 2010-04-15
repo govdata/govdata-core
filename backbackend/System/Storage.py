@@ -622,7 +622,7 @@ class StoredModulePart():
 				if self.content == other.content:
 					return True
 				else:
-					return cPickle.loads(self.content) == cPickle.loads(other.content) 		
+					return self.reconstitute() == other.reconstitute()
 			else:
 				print 'eqmethod not recognized'
 		else:
