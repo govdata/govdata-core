@@ -32,7 +32,6 @@ class MainHandler(tornado.web.RequestHandler):
 def main():
     tornado.options.parse_command_line()
     http_server = tornado.httpserver.HTTPServer(BetterData())
-    print("Tornado started on %s"%(options.port))
     http_server.listen(options.port)
     tornado.ioloop.IOLoop.instance().start()
 
