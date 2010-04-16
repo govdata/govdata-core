@@ -18,11 +18,11 @@ class GetHandler(tornado.web.RequestHandler):
         self.write("Hello, get")
 
     def post(self):
-        args = eval(self.request.arguments['json'][0])
-        assert 'collectionName' in args.keys()
-        assert 'querySequence' in args.keys()
-        collectionName = args['collectionName']
-        querySequence = args['querySequence']
+        args = self.request.arguments
+        assert 'collectionName' in args.keys() and len(args['collectionName']) == 1
+        assert 'querySequence' in args.keys() and len(args['querySequence']) == 1
+        collectionName = args['collectionName'][0]
+        querySequence = args['querySequence'][0]
         args.pop('collectionName')
         args.pop('querySequence')
         get(collectionName,querySequence,fh=self,**args)
@@ -58,7 +58,7 @@ def get(collectionName,querySequence,timeQuery=None, returnMetadata=False,fh = N
         TimeColNames = ColumnGroups['TimeColNames'] if 'TimeColNames' in ColumnGroups.keys() else []
         TimeColumns = ColumnGroups['TimeColumns'] if 'TimeColumns' in ColumnGroups.keys() else []
 
-        if Q == None:                    
+        if Q == None:                   
             if TimeColumns:
                 querySequence = []
                 results = []
@@ -88,7 +88,7 @@ def get(collectionName,querySequence,timeQuery=None, returnMetadata=False,fh = N
                         if 'fields' in kwargs:
                             kwargs['fields'] = list(retainCols.intersection(kwargs['fields']))
                         else:
-                            kwargs['fields'] = list(retainCols)    
+                            kwargs['fields'] = list(retainCols) 
                     
                         if posargs:
                             posargs[0][tuple(TimeColNamesToReturn)] = {'$exists':True}
@@ -112,7 +112,7 @@ def get(collectionName,querySequence,timeQuery=None, returnMetadata=False,fh = N
         for (action,args) in querySequence:
             if args:
                 if action not in EXPOSED_ACTIONS:
-                    raise ValueError, 'Action type ' + str(action) + ' not recognized or exposed.'                    
+                    raise ValueError, 'Action type ' + str(action) + ' not recognized or exposed.'                  
                 (posargs,kwargs) = getArgs(args)    
                 posargs = tuple([processArg(arg,collection) for arg in posargs])
                 kwargs = dict([(argname,processArg(arg,collection)) for (argname,arg) in kwargs.items()])
@@ -122,7 +122,7 @@ def get(collectionName,querySequence,timeQuery=None, returnMetadata=False,fh = N
             posArgs.append(posargs)
             kwArgs.append(kwargs)
         
-        R = collection    
+        R = collection  
         for (a,p,k) in zip(Actions,posArgs,kwArgs):
             R = getattr(R,a)(*p,**k)    
         
@@ -145,7 +145,7 @@ def get(collectionName,querySequence,timeQuery=None, returnMetadata=False,fh = N
                     
                 if fh:
                     fh.write(json.dumps(r,default=pm.json_util.default) + ',')
-                if returnObj:        
+                if returnObj:       
                     Obj['data'].append(r)
                     
                 if sci and sci in r.keys():
@@ -169,7 +169,7 @@ def get(collectionName,querySequence,timeQuery=None, returnMetadata=False,fh = N
                 Obj['metadata'] = metadata
             
         if fh:
-            fh.write('}')                                    
+            fh.write('}')                                   
         if returnObj:
             return Obj
 
@@ -180,7 +180,7 @@ def getsci(collection):
         sci = None
     subcols = []    
     
-    return     sci,subcols
+    return  sci,subcols
 
 
 def makemetadata(collection,sci,subcols):
@@ -285,7 +285,7 @@ def js_translator(key,value):
     elif key == '$gte':
         return ' >= "' + str(value) + '"'
     elif key == '$lte':
-        return ' <= "' + str(value) + '"'        
+        return ' <= "' + str(value) + '"'       
 
         
 def getArgs(args):
@@ -300,7 +300,7 @@ def getArgs(args):
         posargs = args
         kwargs = {}
     else:
-        raise ValueError, 'querySequence'    
+        raise ValueError, 'querySequence'   
     
     return (posargs,kwargs)
     
@@ -330,19 +330,18 @@ def find(query, hlParams=None,facetParams=None,mltParams = None, **params):
     hlstring = processSolrArgList('hl',hlParams)
     mltstring = processSolrArgList('mlt',mltParams)
     
-    URL = 'http://localhost:8983/solr/select?q=' + urllib.quote(query) + paramstring + facetstring + hlstring + mltstring
-
+    URL = 'http://localhost:8983/solr/select?q=' + query + paramstring + facetstring + hlstring + mltstring
     
     if params['wt'] == 'json':
         return urllib2.urlopen(URL).read()
     elif params['wt'] == 'python':
-        X = ast.literal_eval(urllib2.urlopen(URL).read())
+        X = ast.literal_eval(urllib.urlopen(URL).read())
         #do stuff to X
         return json.dumps(X,default=pm.json_util.default)
     
 
 def processSolrArgList(base,valdict)    :
-    return ('&' + ((base + '=true&') if base and '' not in valdict.keys() else '') + '&'.join([processSolrArg(base,key,valdict[key]) for key in valdict])) if valdict else ''        
+    return ('&' + ((base + '=true&') if base and '' not in valdict.keys() else '') + '&'.join([processSolrArg(base,key,valdict[key]) for key in valdict])) if valdict else ''       
     
 def processSolrArg(base,key,value):
-    return base + ('.' if key and base else '') + key + '=' + urllib.quote(value) if is_string_like(value) else '&'.join([base + ('.' if key and base else '') + key + '=' + urllib.quote(v) for v in value]) 
+    return base + ('.' if key and base else '') + key + '=' + urllib.quote(value) if is_string_like(value) else '&'.join([base + ('.' if key and base else '') + key + '=' + urllib.quote(v) for v in value])

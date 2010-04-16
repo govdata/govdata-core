@@ -451,7 +451,7 @@ def MakeMongoSource(metafile, docfile, seriesfile, filelistfile, sourcedir, outd
 				print '. . . writing block', blocknum
 				OUT = open(outdir + str(blocknum) + '.pickle','w')
 				pickle.dump(recs,OUT)
-				Hashes[blocknum] =  hashlib.sha1(open(outdir + str(blocknum) + '.pickle').read()).digest()
+				Hashes[blocknum] =  hashlib.sha1(str(recs)).hexdigest()
 				OUT.close()
 				blocknum += 1
 				recs = []
@@ -461,7 +461,7 @@ def MakeMongoSource(metafile, docfile, seriesfile, filelistfile, sourcedir, outd
 		print '. . . writing block', blocknum
 		OUT = open(outdir + str(blocknum) + '.pickle','w')
 		pickle.dump(recs,OUT)
-		Hashes[blocknum] =  hashlib.sha1(open(outdir + str(blocknum) + '.pickle').read()).digest()
+		Hashes[blocknum] =  hashlib.sha1(str(recs)).hexdigest()
 		OUT.close()
 		blocknum += 1
 		recs = []

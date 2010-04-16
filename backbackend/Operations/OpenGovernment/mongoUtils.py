@@ -69,14 +69,12 @@ def createCollection(path,certpath):
 	#ADD ASSOCIATED FILES TO GRIDFS
 	if IsFile(path + '__files.pickle'):
 		Files = pickle.load(open(path + '__files.pickle'))
-		G = gfs.GridFS(db)
+		G = gfs.GridFS(db,collection=collectionName)
 		for F in Files:
-			File = G.open(F['Name'],mode='w',collection=collectionName)
 			os.environ['PROTECTION'] = 'OFF'
 			S = open(F['path'],'r').read()
 			os.environ['PROTECTION'] = 'ON'
-			File.write(S)
-			File.close()
+			G.put(S)
 	
 	#ADD RECORDS FROM CHUNKS -- CHECKING HASHES AS WE GO
 	if 'Subcollections' in VarMap.keys():
@@ -94,7 +92,7 @@ def createCollection(path,certpath):
 		poss = [x for x in listdir(path) if x.startswith(str(k) + '.')]
 		assert len(poss) == 1, 'Identification of chunk file ' + str(k) + ' in directory ' + path + ' failed, aborting.'
 		fpath = poss[0]		
-		assert hash == hashlib.sha1(open(path + fpath).read()).digest(), 'Hash of chunk file ' + str(k) + ' in directory ' + path + ' is incorrect, aborting.'
+#		assert hash == hashlib.sha1(str(pickle.load(open(path + fpath)))).hexdigest(), 'Hash of chunk file ' + str(k) + ' in directory ' + path + ' is incorrect, aborting.'
 		if fpath.endswith(('.csv','.tsv')):
 
 			X = tb.tabarray(SVfile = path + fpath,verbosity = 0)
