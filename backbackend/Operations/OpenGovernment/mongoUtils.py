@@ -81,10 +81,15 @@ def createCollection(path,certpath):
 		sc = VarMap['Subcollections']
 	else:
 		sc = None
-	if 'TimeColumns' in AllMeta['ColumnGroups']:
+	if 'TimeColumns' in AllMeta['ColumnGroups'].keys():
 		tcs = [VarMap[tc] for tc in AllMeta['ColumnGroups']['TimeColumns']]
 	else:
 		tcs = []
+	
+	if 'SpaceColumns' in AllMeta['ColumnGroups'].keys():
+		spcs = [VarMap[spc] for spc in AllMeta['ColumnGroups']['SpaceColumns']]
+	else:
+		spcs = []
 		
 	for k in M['Hashes'].keys():
 		print 'Adding chunk', k
@@ -106,6 +111,10 @@ def createCollection(path,certpath):
 					if tc in X.dtype.names:
 						tci = X.dtype.names.index(tc)
 						newx[tci] = TimeFormatter(newx[tci])
+				for spc in spcs:
+					if spc in X.dtype.names:
+						spci = X.dtype.names.index(spc)
+						newx[spci] = eval(newx[spci])
 						
 				collection.insert(dict(zip(names,newx)))
 				

@@ -384,19 +384,22 @@ def MakeMongoSource(metafile, docfile, seriesfile, filelistfile, sourcedir, outd
 	M = tb.io.getmetadata(seriesfile)[0]
 	getnames = M['coloring']['NewNames']
 	names = M['names']
-	headerlines = M['headerlines']
-	getcols = [names.index(x) for x in getnames]
+	spaceCodes = [inferSpaceCode(n) for n in names]
 	
-	for (i,g) in enumerate(getnames):
-		g = g.split('_name')[0]
-		g = g.split('_text')[0]
-		g = g[0].upper() + g[1:]
-		getnames[i] = g
-		
-	NAMES = ['Subcollections', 'Series'] + getnames
+	headerlines = M['headerlines']
+	getcols = [names.index(x) for (x,y) in zip(names,spaceCodes) if y == None and x in getnames]
+	spacecols = [(names.index(x),y) for (x,y) in zip(names,spaceCodes) if y != None]
+	fipscols = [(j,y) for (j,y) in spacecols  if y.startswith('f.')]
+	nonfipscols = [(j,y) for (j,y) in spacecols  if not y.startswith('f.')]
+	
+	goodNames = [nameProcessor(x) for x in names]
+	NAMES = ['Subcollections', 'Series'] + [goodNames[i] for i in getcols] + (['Location'] if spacecols else [])
+	
+	labelcols = [goodNames[i] for i in getcols] + (['Location'] if spacecols else [])
+	
 	TIMECOLS = []
 
-	getinds = range(2,2+len(getnames))
+	getinds = range(2,2+len(getcols) + (1 if spacecols else 0))
 	
 	BLOCKSIZE = 2500
 	blocknum = 0
@@ -424,7 +427,7 @@ def MakeMongoSource(metafile, docfile, seriesfile, filelistfile, sourcedir, outd
 				else:
 					sline = G.readline().strip('\n')
 			slinesplit = sline.split('\t')
-			servals = [('0',[ColNo]),('1',ser)] + zip([str(x)  for x in getinds], [slinesplit[j].strip() for j in getcols])
+			servals = [('0',[ColNo]),('1',ser)] + zip([str(x)  for x in getinds], [slinesplit[j].strip() for j in getcols] + ([dict(([(y,slinesplit[j])  for (j,y) in nonfipscols] if nonfipscols else []) + ([('f',dict([(y.split('.')[1],slinesplit[j])  for (j,y) in fipscols]))]  if fipscols else []))] if spacecols else []))
 			while dline:
 				dlinesplit = [x.strip() for x in dline.split('\t')]
 				if dlinesplit[0] == ser:
@@ -443,6 +446,7 @@ def MakeMongoSource(metafile, docfile, seriesfile, filelistfile, sourcedir, outd
 					ser = dlinesplit[0]
 					break
 					
+							
 			servals = dict(servals)
 			recs.append(servals)
 			del(servals)		
@@ -466,10 +470,10 @@ def MakeMongoSource(metafile, docfile, seriesfile, filelistfile, sourcedir, outd
 		blocknum += 1
 		recs = []
 	
-	D['ColumnGroups'] = {'TimeColNames': TIMECOLS, 'LabelColumns': getnames }
+	D['ColumnGroups'] = {'TimeColNames': TIMECOLS, 'LabelColumns': labelcols }
 	D['UniqueIndexes'] = [['Series']]
 	D['VARIABLES'] = NAMES
-	D['sliceCols'] = [g for g in getnames	if g.lower() not in ['footnote','seasonal','msa','periodicity']]
+	D['sliceCols'] = [g for g in labelcols if g.lower() not in ['footnote','seasonal','periodicity','location']] + (['Location.' + x for x in dict(spacecols).values() if x != 'f'] if spacecols else [])
 	
 	SubCols[''] = D
 	
@@ -505,6 +509,14 @@ def tval(year,per):
 	else:
 		raise ValueError, 'Time period format of ' + per + ' not recognized.'
 
+def nameProcessor(g):
+
+	g = g.split('_name')[0]
+	g = g.split('_text')[0]
+	g = g[0].upper() + g[1:]
+	return g
+
+
 #test=-=-=-=-=
 @activate(lambda x : (x[0],x[1],x[2],x[3],x[4]),lambda x : x[5])
 def MakeMongoSourceFlat(metafile, docfile, seriesfile, filelistfile, sourcedir, outdir):
@@ -533,6 +545,7 @@ def MakeMongoSourceFlat(metafile, docfile, seriesfile, filelistfile, sourcedir, 
 	M = tb.io.getmetadata(seriesfile)[0]
 	getnames = M['coloring']['NewNames']
 	names = M['names']
+	
 	headerlines = M['headerlines']
 	getcols = [names.index(x) for x in getnames]
 	
@@ -616,3 +629,22 @@ def MakeMongoSourceFlat(metafile, docfile, seriesfile, filelistfile, sourcedir, 
 	pickle.dump({'Subcollections':SubCols,'Hashes':Hashes},OUT)
 	OUT.close()	
 
+def inferSpaceCode(name):
+	parts = uniqify(name.lower().split('_') + name.lower().split(' '))
+	if 'msa' in parts and not 'code' in parts:
+		return 'm'
+	elif 'state' in parts and not 'code' in parts:
+		return 's'
+	elif 'county' in parts and not 'code' in parts:
+		return 'c'
+	elif 'fips' in parts and 'text' in parts:
+		return 'X'
+	elif 'area' in parts and 'code' not in parts:
+		return 'X'
+	elif 'fips' in parts and 'state' not in parts and 'county' not in parts:
+		return 'f.X'
+	elif 'state' in parts and ('code' in parts or 'fips' in parts):
+		return 'f.s'
+	elif 'county' in parts and ('code' in parts or 'fips' in parts):
+		return 'f.c'
+	

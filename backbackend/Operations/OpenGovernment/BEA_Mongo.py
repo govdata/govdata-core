@@ -286,6 +286,10 @@ def GDPByStateAreaCollectionsObjects(depends_on = (sourceroot + 'REA_GDPByState/
 			Z = X[0]
 		Z.coloring['IndustryHierarchy'] = Z.coloring['Categories']
 		Z.coloring.pop('Categories')
+		Z.renamecol('State','Location')
+		Z = Z.addcols(['{"s":' + repr(z['Location']) + ',"f":{"s":' + repr(z['FIPS']) + '}}' for z in Z],names = ['Location'])
+		Z = Z.deletecols(['FIPS'])
+		
 		Z.coloring['TimeColNames'] = Z.coloring['Data']
 		Z.coloring.pop('Data')
 		for j in range(len(Z.coloring['TimeColNames'])):
@@ -303,7 +307,7 @@ def GDPByStateAreaCollectionsObjects(depends_on = (sourceroot + 'REA_GDPByState/
 				else:
 					print 'metadata type for key', k , 'in table', t, 'not recognized.'
 
-		Z.coloring['LabelColumns'] =  ['State','Industry','Component']		
+		Z.coloring['LabelColumns'] =  ['Location','Industry','Component']		
 		for k in Z.coloring.keys():
 			if k in ColGroups.keys():
 				ColGroups[k] = uniqify(ColGroups[k] + Z.coloring[k])
@@ -338,12 +342,16 @@ def GDPByStateAreaCollectionsObjects(depends_on = (sourceroot + 'REA_GDPByState/
 		X = tb.tabarray(SVfile = inpath + l)
 		X.renamecol('industry_id','IndustryCode')
 		X.renamecol('component_id','ComponentCode')
-		X1 = X.deletecols('component_name')
-		X1.metadata = X.metadata
-		X = X1	
+		X.renamecol('area_name','Metropolitan Area')
 		X.renamecol('ParsedComponent','Component')
 		X.renamecol('industry_name','Industry')
-		X.renamecol('area_name','Metropolitan Area')
+		
+		X1 = X.deletecols('component_name')
+		X1 = X1.addcols(['{"m":' + repr(x['Metropolitan Area']) + ',"f":{"m":' + repr(x['FIPS']) + '}}' for x in X],names=['Location'])
+		X1 = X1.deletecols(['FIPS','Metropolitan Area'])
+		X1.metadata = X.metadata
+		X = X1	
+		
 		X.metadata['description'] = '--'.join(X.metadata['description'].split('--')[2:]).strip()
 
 		for k in X.metadata.keys():
@@ -359,7 +367,7 @@ def GDPByStateAreaCollectionsObjects(depends_on = (sourceroot + 'REA_GDPByState/
 			name = X.coloring['TimeColNames'][j]
 			X.renamecol(name,nea_dateparse(name))
 
-		X.coloring['LabelColumns'] = ['Metropolitan Area','Industry','Component']	
+		X.coloring['LabelColumns'] = ['Location','Industry','Component']	
 		for k in X.coloring.keys():
 			if k in ColGroups.keys():
 				ColGroups[k] = uniqify(ColGroups[k] + X.coloring[k])
@@ -384,13 +392,14 @@ def GDPByStateAreaCollectionsObjects(depends_on = (sourceroot + 'REA_GDPByState/
 	AllMeta = {}
 	AllMeta['Source'] = [('Agency',{'Name':'Department of Commerce','ShortName':'DOC'}),('Subagency',{'Name':'Bureau of Economic Analysis','ShortName':'BEA'}),('Program','Regional Economic Accounts'), ('Dataset','Regional GDP Data')]
 	AllMeta['TopicHierarchy']  = ('Agency','Subagency','Program','Dataset','Category')
-	AllMeta['UniqueIndexes'] = [['FIPS','IndustryCode','ComponentCode','IndClass']]
+	AllMeta['UniqueIndexes'] = [['Location','IndustryCode','ComponentCode','IndClass']]
+	ColGroups['SpaceColumns'] = ['Location']
 	AllMeta['ColumnGroups'] = ColGroups
 	AllMeta['DateFormat'] = 'YYYYqmm'
 	AllMeta['VARIABLES'] = VARS
 	
-	AllMeta['sliceCols'] = [['State', 'Metropolitan Area', 'IndustryHierarchy']	,['State', 'Metropolitan Area','Component'],['IndustryHierarchy','Component']]
-	AllMeta['phraseCols'] = ['State', 'Component', 'IndClass', 'Metropolitan Area', 'IndustryHierarchy','Industry','Units','FIPS','Units']	 
+	AllMeta['sliceCols'] = [['Location.s', 'Location.m', 'IndustryHierarchy'] ,['Location.s', 'Location.m','Component'],['IndustryHierarchy','Component']]
+	AllMeta['phraseCols'] = ['Component', 'IndClass', 'IndustryHierarchy','Industry','Units','Units']	 
 
 	
 	Subcollections[''] = AllMeta
@@ -439,16 +448,22 @@ def PersonalIncomeCollectionObject(depends_on = (sourceroot + 'REA_LocalAreaPers
 		subjcols = [len(X)*[sub] for sub in subj]
 		subjnames = ['Level_' + str(j) for j in range(len(subjcols))]
 		
+		
 		X1 = X.addcols([[table]*len(X),[line]*len(X),[table + ',C']*len(X)] + subjcols,names=['Table','Line','Subcollections'] + subjnames)
+		X1.renamecol('County','Location')
+		X1 = X1.addcols(['{"c":' + repr(','.join(x.split(',')[:-1]).strip()) + ',"S":' + repr( x.split(',')[-1].strip()) +',"f":{"c":' + repr(f) + '}}' for (f,x) in X1[['FIPS','Location']]],names = ['Location'])
+		X1 = X1.deletecols(['FIPS'])
+		
 		X1.metadata = X.metadata
 		X = X1
 		X.coloring['SubjectHierarchy'] = subjnames
+		
 		X.coloring['TimeColNames'] = X.coloring['Data']
 		X.coloring.pop('Data')
 		for j in range(len(X.coloring['TimeColNames'])):
 			name = X.coloring['TimeColNames'][j]
 			X.renamecol(name,PI_dateparse(name))
-		X.coloring['LabelColumns'] = ['County','Table','Line']	
+		X.coloring['LabelColumns'] = ['Location','Table','Line']	
 	
 		for k in X.coloring.keys():
 			if k in ColGroups.keys():
@@ -510,15 +525,15 @@ def PersonalIncomeCollectionObject(depends_on = (sourceroot + 'REA_LocalAreaPers
 		X = tb.tabarray(SVfile = depends_on[2] + l)
 		t = X['Table'][0]
 		X1 = X.deletecols(['First Year']).addcols(len(X)*[t + ',SQ'],names=['Subcollections'])
+		X1 = X1.addcols(['{"s":' + repr(x) + ',"f":{"s":' + repr(f) + '}}' for (f,x) in X1[['State FIPS','State Name']]],names = ['Location'])
+		X1 = X1.deletecols(['State FIPS','State Name'])				
 		X1.metadata = X.metadata
 		X = X1
-		X.renamecol('State FIPS','FIPS')
+		
 		X.renamecol('Line Code','LineCode')
 		X.renamecol('Line Title','Line')
-		X.renamecol('State Name','State')
 		X.renamecol('Line Title Footnotes', 'Line Footnotes')
-		
-		
+
 		if 'Categories' in X.coloring.keys():
 			X.coloring['SubjectHierarchy'] = X.coloring['Categories']
 			X.coloring.pop('Categories')		
@@ -527,7 +542,7 @@ def PersonalIncomeCollectionObject(depends_on = (sourceroot + 'REA_LocalAreaPers
 		for j in range(len(X.coloring['TimeColNames'])):
 			name = X.coloring['TimeColNames'][j]
 			X.renamecol(name,PI_dateparse(name))
-		X.coloring['LabelColumns'] = ['State','Table','Line']			
+		X.coloring['LabelColumns'] = ['Location','Table','Line']			
 	
 		for k in X.coloring.keys():
 			if k in ColGroups.keys():
@@ -556,7 +571,6 @@ def PersonalIncomeCollectionObject(depends_on = (sourceroot + 'REA_LocalAreaPers
 				AllMeta[k] = Metadict[tlist[0]][k]
 										
 		Subcollections[t] = AllMeta
-		Subcollections[t]['__query__'] = {'Table':t}		
 			
 	tlist = uniqify(A1['Table'])
 	AllKeys = uniqify(ListUnion([Subcollections[l].keys() for l in tlist]))
@@ -585,12 +599,12 @@ def PersonalIncomeCollectionObject(depends_on = (sourceroot + 'REA_LocalAreaPers
 		X = tb.tabarray(SVfile = l)
 		t = X['Table'][0]
 		X1 = X.deletecols(['First Year']).addcols(len(X)*[t + ',SA'],names=['Subcollections'])
+		X1 = X1.addcols(['{"s":' + repr(x) + ',"f":{"s":' + repr(f) + '}}' for (f,x) in X1[['State FIPS','State Name']]],names = ['Location'])
+		X1 = X1.deletecols(['State FIPS','State Name'])	
 		X1.metadata = X.metadata
 		X = X1
-		X.renamecol('State FIPS','FIPS')
 		X.renamecol('Line Code','LineCode')
 		X.renamecol('Line Title','Line')
-		X.renamecol('State Name','State')
 		X.renamecol('Line Title Footnotes', 'Line Footnotes')
 		
 		if 'Categories' in X.coloring.keys():
@@ -601,7 +615,7 @@ def PersonalIncomeCollectionObject(depends_on = (sourceroot + 'REA_LocalAreaPers
 		for j in range(len(X.coloring['TimeColNames'])):
 			name = X.coloring['TimeColNames'][j]
 			X.renamecol(name,PI_dateparse(name))
-		X.coloring['LabelColumns'] = ['State','Table','Line']			
+		X.coloring['LabelColumns'] = ['Location','Table','Line']			
 		
 		for k in X.coloring.keys():
 			if k in ColGroups.keys():
@@ -656,12 +670,12 @@ def PersonalIncomeCollectionObject(depends_on = (sourceroot + 'REA_LocalAreaPers
 		X = tb.tabarray(SVfile = p)
 		t = X['Table'][0]
 		X1 = X.deletecols(['First Year']).addcols(len(X)*[t + ',SA_S,SA'],names=['Subcollections'])
+		X1 = X1.addcols(['{"s":' + repr(x) + ',"f":{"s":' + repr(f) + '}}' for (f,x) in X1[['State FIPS','State Name']]],names = ['Location'])
+		X1 = X1.deletecols(['State FIPS','State Name'])			
 		X1.metadata = X.metadata
 		X = X1
-		X.renamecol('State FIPS','FIPS')
 		X.renamecol('Line Code','LineCode')
 		X.renamecol('Line Title','Line')
-		X.renamecol('State Name','State')
 		X.renamecol('Line Title Footnotes', 'Line Footnotes')
 
 		if 'Categories' in X.coloring.keys():
@@ -672,7 +686,7 @@ def PersonalIncomeCollectionObject(depends_on = (sourceroot + 'REA_LocalAreaPers
 		for j in range(len(X.coloring['TimeColNames'])):
 			name = X.coloring['TimeColNames'][j]
 			X.renamecol(name,PI_dateparse(name))
-		X.coloring['LabelColumns'] = ['State','Table','Line']			
+		X.coloring['LabelColumns'] = ['Location','Table','Line']			
 		
 		for k in X.coloring.keys():
 			if k in ColGroups.keys():
@@ -708,13 +722,14 @@ def PersonalIncomeCollectionObject(depends_on = (sourceroot + 'REA_LocalAreaPers
 	AllMeta = {}
 	AllMeta['Source'] = [('Agency',{'Name':'Department of Commerce','ShortName':'DOC'}),('Subagency',{'Name':'Bureau of Economic Analysis','ShortName':'BEA'}),('Program','Regional Economic Accounts'), ('Dataset','Personal Income')]
 	AllMeta['TopicHierarchy']  = ('Agency','Subagency','Dataset','Category','Subcategory','SubjectHierarchy')
-	AllMeta['UniqueIndexes'] = [['FIPS','Table','LineCode']]
+	AllMeta['UniqueIndexes'] = [['Location','Table','LineCode']]
+	ColGroups['SpaceColumns'] = ['Location']
 	AllMeta['ColumnGroups'] = ColGroups
 	AllMeta['DateFormat'] = 'YYYYqmm'
 	AllMeta['VARIABLES'] = VARS
 		
-	AllMeta['sliceCols'] = ['County','State','Table','SubjectHierarchy']	
-	AllMeta['phraseCols'] = ['County','State','Table','SubjectHierarchy','Line','FIPS','LineCode']	
+	AllMeta['sliceCols'] = ['Location.c','Location.S','Location.s','Table','SubjectHierarchy']	
+	AllMeta['phraseCols'] = ['Table','SubjectHierarchy','Line','LineCode']	
 	
 	Subcollections[''] = AllMeta
 	
