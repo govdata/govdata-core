@@ -1,5 +1,5 @@
 import pymongo.son as son
-from common.utils import is_string_like, ListUnion, uniqify
+from common.utils import is_string_like, ListUnion, uniqify, Flatten
 
 TIME_CODE_MAP = [('Y','Year',None),('h','Half',range(1,3)),('q','Quarter',range(1,5)),('m','Month',range(1,13)),('d','DayOfMonth',range(1,32)),('U','WeekOfYear',range(1,53)),('w','DayOfWeek',range(1,8)),('j','DayOfYear',range(1,366)),('H','HourOfDay',range(1,25)),('M','MinuteOfHour',range(0,60)),('S','Second',range(0,60)),('Z','TimeZone',None)]
 (TIME_CODES,TIME_DIVISIONS,TIME_RANGES) = zip(*TIME_CODE_MAP)
@@ -64,15 +64,6 @@ def applyHierarchy(H,bdict):
 			F.update(applyHierarchy(H[1],bdict))
 		return (H[0],F)
 	
-def Flatten(L):
-	S = []
-	for l in L:
-		if isinstance(l,list) or isinstance(l,tuple):
-			S += Flatten(l)
-		else:
-			S.append(l)
-	return S
-
 def tObjFlatten(tObj):
 	S = {}
 	for l in tObj.keys():
@@ -180,6 +171,42 @@ def convertToDT(tObj,convertMode = 'Low'):
 
 	return datetime.date(*tlist)
 	
+def convertToSolrDT(tObj,convertMode = 'Low'):
+	DT = convertToDT(tObj,convertMode=convertMode)
+	return DT.strftime('%Y-%m-%d') + ('T00:00:00.999Z' if convertMode == 'Low' else 'T23:59:59.999Z')
+
+
+def queryToSolr(timeQuery):
+	F = mongotimeformatter(timeQuery['format'])
+	for k in timeQuery.keys():
+		if k != 'format':
+			timeQuery[k] = F(timeQuery[k])
+		
+	if timeQuery.keys() == ['format']:
+		divisions = [TIME_DIVISIONS[x] for x in uniqify(timeQuery['format'])]
+		
+		fq = 'DateDivisions:' + (divisions[0] if len(divisions) == 1 else '(' + ' '.join(divisions) + ')')
+	
+	else:
+		if 'on' in timeQuery.keys():
+			start = timeQuery['on']
+			end = timeQuery['on']
+		else:
+			start = timeQuery['start'] if 'start' in timeQuery.keys() else None
+			end = timeQuery['end'] if 'end' in timeQuery.keys() else None
+			
+		start = convertToSolrDT(start,convertMode='High') if start else None
+		end = convertToSolrDT(end) if end else None
+
+		fq = []
+		if start:
+			fq.append('begin_date:[* TO ' + start + ']')
+		if end:
+			fq.append('end_date:[' + end + ' TO *]')
+			
+	return fq
+
+	
 def phrase(tObj,convertMode = 'Low'):
 	dateObj = convertToDT(tObj,convertMode = convertMode)
 	ftObj = tObjFlatten(tObj)
@@ -189,3 +216,58 @@ def phrase(tObj,convertMode = 'Low'):
 	if 'q' in ftObj.keys():
 		H = 'Q' + str(ftObj['q']) + ' ' + H
 	return H
+
+def processQuery(timeQuery,OverallTime):
+	ot = OverallTime['date']
+	otf = OverallTime['format']
+	
+	if 'format' in timeQuery.keys():
+		tQF = timeQuery['format']
+	else:
+		tQF = otf
+	
+	rtF = [i for i in range(len(tQF)) if tQF[i] in otf]
+	if rtF:
+		rtQ = {}
+		ktF = [i for i in range(len(tQF)) if tQF[i] not in otf]
+		for k in timeQuery.keys():
+			if rtF:
+				rtQ[k] = ''.join([timeQuery[k][i] for i in rtF])
+			if ktF:
+				timeQuery[k] = ''.join([timeQuery[k][i] for i in ktF])
+			else:
+				timeQuery.pop(k)
+				
+		if 'on' in rtQ.keys():
+			rtQ['begin'] = rtQ['on']
+			rtQ['end'] = rtQ['on']
+		
+		F1 = mongotimeformatter(rtQ['format'])
+		for k in rtQ:
+			if k != 'format':
+				rtQ[k] = F1(rtQ[k])
+		F2 = mongotimeformatter(otf)
+		OT = F2(ot)
+		if 'begin' in rtQ.keys() and 'end' not in rtQ.keys():
+			OK = OT >= rtQ['begin']
+		elif 'end' in rtQ.keys() and 'begin' not in rtQ.keys():
+			OK = OT <= rtQ['end']
+		elif 'end' in rtQ.keys() and 'begin' in rtQ.keys():
+			OK = rtQ['begin'] <= OT <= rtQ['end']
+			
+	else:
+		OK = True
+		
+	return OK
+	
+def reverse(format):
+	fbreaks = [0] + [i for i in range(1,len(format)) if format[i] != format[i-1]] + [len(format)]
+	fblocks = zip(fbreaks[:-1],fbreaks[1:])
+	fs = [format[b[0]] for b in fblocks]
+	ls = [b[1] - b[0] for b in fblocks]
+
+	def F(tObj):
+		t = tObjFlatten(tObj)
+		return ''.join([('0'*( len(l) - len(str(t[f])) ) + str(t[f])) if f in t.keys() else len(l)*'X' for (l,f) in zip(ls,fs)])
+			
+	return F

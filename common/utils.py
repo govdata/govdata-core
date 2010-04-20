@@ -118,3 +118,12 @@ def createCertificate(path,msg,tol=10000000000):
 	F = open(path,'w')
 	F.write(msg + ' Random certificate: ' + str(random.randint(0,tol)))
 	F.close()
+
+def Flatten(L):
+	S = []
+	for l in L:
+		if isinstance(l,list) or isinstance(l,tuple):
+			S += Flatten(l)
+		else:
+			S.append(l)
+	return S
