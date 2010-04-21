@@ -153,6 +153,10 @@ def indexCollection(collectionName,incertpath,certpath):
 			timeColInd = getNums(collection,collection.ColumnGroups['TimeColumns'])
 			ArgDict['timeColInd'] = timeColInd
 	
+	#overall location
+	#get divisions and phrases from OverallLocation and SpaceColNames
+
+	
 	d = {}
 	Source = collection.Source
 	SourceNameDict = son.SON([(k,Source[k]['Name'] if isinstance(Source[k],dict) else Source[k]) for k in Source.keys()])
