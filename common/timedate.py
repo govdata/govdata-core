@@ -1,5 +1,5 @@
 import pymongo.son as son
-from common.utils import is_string_like, ListUnion, uniqify, Flatten
+from common.utils import is_string_like, ListUnion, uniqify, Flatten, rgetattr
 
 TIME_CODE_MAP = [('Y','Year',None),('h','Half',range(1,3)),('q','Quarter',range(1,5)),('m','Month',range(1,13)),('d','DayOfMonth',range(1,32)),('U','WeekOfYear',range(1,53)),('w','DayOfWeek',range(1,8)),('j','DayOfYear',range(1,366)),('H','HourOfDay',range(1,25)),('M','MinuteOfHour',range(0,60)),('S','Second',range(0,60)),('Z','TimeZone',None)]
 (TIME_CODES,TIME_DIVISIONS,TIME_RANGES) = zip(*TIME_CODE_MAP)
@@ -116,14 +116,6 @@ def generateQueries(DateFormat,timeQuery):
 
 		
 		return Q
-
-def rgetattr(r,a):
-	for aa in a:
-		if aa in r.keys():
-			r = r[aa]
-		else:
-			return None
-	return r
 	
 def getPathsTo(m,H):
 	if isinstance(H,list):
@@ -185,7 +177,7 @@ def queryToSolr(timeQuery):
 	if timeQuery.keys() == ['format']:
 		divisions = [TIME_DIVISIONS[x] for x in uniqify(timeQuery['format'])]
 		
-		fq = 'DateDivisions:' + (divisions[0] if len(divisions) == 1 else '(' + ' '.join(divisions) + ')')
+		fq = 'dateDivisions:' + (divisions[0] if len(divisions) == 1 else '(' + ' AND '.join(divisions) + ')')
 	
 	else:
 		if 'on' in timeQuery.keys():
@@ -205,6 +197,19 @@ def queryToSolr(timeQuery):
 			fq.append('end_date:[' + end + ' TO *]')
 			
 	return fq
+	
+	
+def makemin(old,new):
+	if old:
+		return min(new,old)
+	else:
+		return new
+		
+def makemax(old,new):
+	if old:
+		return max(new,old)
+	else:
+		return new
 
 	
 def phrase(tObj,convertMode = 'Low'):
@@ -217,7 +222,7 @@ def phrase(tObj,convertMode = 'Low'):
 		H = 'Q' + str(ftObj['q']) + ' ' + H
 	return H
 
-def processQuery(timeQuery,OverallTime):
+def checkQuery(timeQuery,OverallTime):
 	ot = OverallTime['date']
 	otf = OverallTime['format']
 	

@@ -10,6 +10,7 @@ import pymongo.json_util
 from common.utils import IsFile, listdir, is_string_like, ListUnion, Flatten
 from common.mongo import Collection
 import common.timedate as td
+import common.location as loc
 
 
 
@@ -44,7 +45,7 @@ class FindHandler(tornado.web.RequestHandler):
 
 EXPOSED_ACTIONS = ['find','find_one','group','skip','limit','sort','count','distinct']
 
-def get(collectionName,querySequence,timeQuery=None, returnMetadata=False,fh = None,returnObj = True,processor = None):
+def get(collectionName,querySequence,timeQuery=None, spaceQuery = None, returnMetadata=False,fh = None,returnObj = True,processor = None):
 	
 	collection = Collection(collectionName)
 	vars = collection.VARIABLES
@@ -53,7 +54,7 @@ def get(collectionName,querySequence,timeQuery=None, returnMetadata=False,fh = N
 
 	if timeQuery:
 		if hasattr(collection,'OverallDate'):
-			OK = td.processQuery(timeQuery, collection.OverallDate)
+			OK = td.checkQuery(timeQuery, collection.OverallDate)
 		
 			if not OK:
 				querySequence = []
@@ -66,11 +67,11 @@ def get(collectionName,querySequence,timeQuery=None, returnMetadata=False,fh = N
 			DateFormat = ''
 	
 		if querySequence and timeQuery:
-			Q = td.generateQueries(DateFormat,timeQuery)
+			tQ = td.generateQueries(DateFormat,timeQuery)
 			TimeColNames = ColumnGroups['TimeColNames'] if 'TimeColNames' in ColumnGroups.keys() else []
 			TimeColumns = ColumnGroups['TimeColumns'] if 'TimeColumns' in ColumnGroups.keys() else []
 	
-			if Q == None:					
+			if tQ == None:					
 				if TimeColumns:
 					querySequence = []
 					results = []
@@ -81,39 +82,69 @@ def get(collectionName,querySequence,timeQuery=None, returnMetadata=False,fh = N
 				if TimeColNames:
 					timeFormatter = td.mongotimeformatter(DateFormat)
 					TimeColSONs = [timeFormatter(a) for a in TimeColNames]
-					TimeColNamesToReturn = [a for (a,b) in zip(TimeColNames,TimeColSONs) if actQueries(Q,b)]
+					TimeColNamesToReturn = [a for (a,b) in zip(TimeColNames,TimeColSONs) if actQueries(tQ,b)]
 					if len(TimeColNamesToReturn) == len(TimeColNames):
 						TimeColNamesToReturn = 'ALL'
 				else:
 					TimeColNamesToReturn = 'ALL'
+	else:
+		tQ = None
+		TimeColNamesToReturn = 'ALL'
 	
-			if querySequence:
-				for (i,(action,args)) in enumerate(querySequence):
-					if action in ['find','find_one']:
-						if args:
-							(posargs,kwargs) = getArgs(args)
-						else:
-							posargs = () ; kwargs = {}
+	if querySequence and spaceQuery:
+		if hasattr(collection,'OverallLocation'):
+			OK = loc.checkQuery(spaceQuery, collection.OverallLocation)
+		
+			if not OK:
+				querySequence = []
+				results = []
+				metdata = None
+		
+		if querySequence and spaceQuery:
+			sQ = loc.generateQueries(spaceQuery)
+			SpaceColNames = ColumnGroups['SpaceColNames'] if 'SpaceColNames' in ColumnGroups.keys() else []
+			SpaceColumns = ColumnGroups['SpaceColumns'] if 'SpaceColumns' in ColumnGroups.keys() else []
 	
-						if TimeColNamesToReturn != 'ALL':
-							retainCols = set(vars).difference(set(ColumnGroups['TimeColNames']).difference(TimeColNamesToReturn))
-							if 'fields' in kwargs:
-								kwargs['fields'] = list(retainCols.intersection(kwargs['fields']))
-							else:
-								kwargs['fields'] = list(retainCols) 
+			if SpaceColNames:					
+				SpaceColNamesToReturn = [a for a in SpaceColNames if actQueries(sQ,a)]
+				if len(SpaceColNamesToReturn) == len(SpaceColNames):
+					SpaceColNamesToReturn = 'ALL'
+			else:
+				SpaceColNamesToReturn = 'ALL'
+	else:
+		sQ = None
+		SpaceColNamesToReturn = 'ALL'
+
 						
-							if posargs:
-								posargs[0][tuple(TimeColNamesToReturn)] = {'$exists':True}
-							else:
-								posargs = ({tuple(TimeColNamesToReturn) : {'$exists':True}},)
-						
+	if querySequence and (sQ or tQ):
+		for (i,(action,args)) in enumerate(querySequence):
+			if action in ['find','find_one']:
+				if args:
+					(posargs,kwargs) = getArgs(args)
+				else:
+					posargs = () ; kwargs = {}
+
+				if TimeColNamesToReturn != 'ALL' or SpaceColNamesToReturn != 'ALL' :
+					remove = (TimeColNames if TimeColNamesToReturn != 'ALL' else []) + SpaceColNames if SpaceColNamesToReturn != 'ALL' else []
+					retain = (TimeColNamesToReturn if TimeColNamesToReturn != 'ALL' else []) + (SpaceColNamesToReturn if SpaceColNamesToReturn != 'ALL' else [])
+					retainCols = set(vars).difference(set(remove).difference(retain))
+					
+					kwargs['fields'] = list(retainCols.intersection(kwargs['fields'])) if 'fields' in kwargs else list(retainCols) 
+			
+					posargs = setArgTuple(posargs,tuple(retain),{'$exists':True})
+												
+				if tQ and TimeColumns:
+					for p in tQ.keys():
+						for t in TimeColumns:
+							posargs = setArgTuple(posargs,t + '.' + '.'.join(p),tQ[p])
 							
-						if TimeColumns:
-							for p in Q.keys():
-								for t in TimeColumns:
-									posargs[0][t + '.' + '.'.join(p)] = Q[p]
-								
-						querySequence[i] = (action,[posargs,kwargs])
+				if sQ and SpaceColumns:
+					for p in sQ.keys():
+						for t in SpaceColumns:
+							posargs = setArgTuple(posargs,t + '.' + '.'.join(p),sQ[p])
+						
+				querySequence[i] = (action,[posargs,kwargs])					
+				
 
 	if querySequence:
 	
@@ -184,6 +215,14 @@ def get(collectionName,querySequence,timeQuery=None, returnMetadata=False,fh = N
 			fh.write('}')									
 		if returnObj:
 			return Obj
+
+
+def setArgTuple(t,k,v):
+	if t:
+		t[0][k] = v
+	else:
+		t = ({k:v},)
+	return t
 
 def getsci(collection):
 	if 'Subcollections' in collection.VARIABLES:
@@ -322,7 +361,7 @@ def getArgs(args):
 #=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 import urllib2,urllib
-def find(query, timeQuery = None, hlParams=None,facetParams=None,mltParams = None, **params):
+def find(query, timeQuery = None, spaceQuery = None, hlParams=None,facetParams=None,mltParams = None, **params):
 
 	if 'qt' not in params.keys():
 		params['qt'] = 'dismax'
@@ -338,6 +377,14 @@ def find(query, timeQuery = None, hlParams=None,facetParams=None,mltParams = Non
 			params['fq'] = fq
 		else:
 			params['fq'] = Flatten([params['fq'],fq])
+			
+	if spaceQuery:
+		fq = loc.queryToSolr(spaceQuery)
+		if 'fq' not in params.keys():
+			params['fq'] = fq
+		else:
+			params['fq'] = Flatten([params['fq'],fq])
+			
 
 	if facetParams == None:
 		facetParams = {'field':['agency','subagency','dataset','dateDivisions']}
@@ -349,7 +396,7 @@ def find(query, timeQuery = None, hlParams=None,facetParams=None,mltParams = Non
 	hlstring = processSolrArgList('hl',hlParams)
 	mltstring = processSolrArgList('mlt',mltParams)
 	
-	URL = 'http://localhost:8983/solr/select?q=' + query + paramstring + facetstring + hlstring + mltstring
+	URL = 'http://localhost:8983/solr/select?q=' + urllib.quote(query) + paramstring + facetstring + hlstring + mltstring
 	
 	if params['wt'] == 'json':
 		return urllib2.urlopen(URL).read()

@@ -208,7 +208,8 @@
    <field name="datePhrases" type="datePhrases" indexed="true" stored="false"  />
    
    <!-- SPACE -->
-   <field name="spatialDivisions" type="text" indexed="true" stored="true"  />
+   <field name="spatialDivisions" type="multiPhraseLoose" indexed="true" stored="true"  />
+   <field name="commonLocation" type="spacePhrases" indexed="true" stored="true"  />
    <field name="spatialPhrases" type="spacePhrases" indexed="true" stored="false"  /> 
    
    

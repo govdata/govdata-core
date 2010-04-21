@@ -471,10 +471,13 @@ def MakeMongoSource(metafile, docfile, seriesfile, filelistfile, sourcedir, outd
 		recs = []
 	
 	D['ColumnGroups'] = {'TimeColNames': TIMECOLS, 'LabelColumns': labelcols }
+	if spacecols:
+		D['ColumnGroups']['SpaceColumns'] = ['Location']
 	D['UniqueIndexes'] = [['Series']]
 	D['VARIABLES'] = NAMES
-	D['sliceCols'] = [g for g in labelcols if g.lower() not in ['footnote','seasonal','periodicity','location']] + (['Location.' + x for x in dict(spacecols).values() if x != 'f'] if spacecols else [])
-	
+	D['sliceCols'] = [g for g in labelcols if g.lower().split('.')[0] not in ['footnote','seasonal','periodicity','location']] + (['Location.' + x for x in dict(spacecols).values() if not x.startswith('f.')] if spacecols else [])
+		
+
 	SubCols[''] = D
 	
 	OUT = open(outdir+'__metadata.pickle','w')

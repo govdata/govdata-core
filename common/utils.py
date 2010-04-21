@@ -78,6 +78,24 @@ def ListUnion(ListOfLists):
 	return u
 
 
+def rgetattr(r,a):
+	for aa in a:
+		if aa in r.keys():
+			r = r[aa]
+		else:
+			return None
+	return r
+	
+	
+def rhasattr(r,a):
+	for aa in a:
+		if aa in r.keys():
+			r = r[aa]
+		else:
+			return False
+	return True
+
+
 def uniqify(seq, idfun=None): 
 	'''
 	Relatively fast pure python uniqification function that preservs ordering

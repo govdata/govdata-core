@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 
 from common.mongo import Collection, cleanCollection
-from common.utils import IsFile, listdir, is_string_like, ListUnion, uniqify,createCertificate
+from common.utils import IsFile, listdir, is_string_like, ListUnion, uniqify,createCertificate, rgetattr,rhasattr
 import common.timedate as td
+import common.location as loc
 import backend.api as api
 import solr
 import itertools
@@ -25,14 +26,15 @@ def expand(r):
 	return [tuple([(k,v) for (k,v) in r if is_string_like(v)] + zip(L,x)) for x in I]
 	
 def getQueryList(collectionName,keys):
+	keys = [str(x) for x in keys]
 	if keys:
 		collection = Collection(collectionName)
 		R = api.get(collectionName,[('find',[(dict([(k,{'$exists':True}) for k in keys]),),{'fields':list(keys)}])])['data']
-		colnames = [k for k in keys if k in collection.VARIABLES]
+		colnames = [k for k in keys if k.split('.')[0] in collection.VARIABLES]
 		colgroups = [k for k in keys if k in collection.ColumnGroups]
 		T= ListUnion([collection.ColumnGroups[k] for k in colgroups])
 		R = [son.SON([(collection.VARIABLES[int(k)],r[k]) for k in r.keys() if k.isdigit() and r[k]]) for r in R]
-		R = [[(k,r[k]) for k in keys if k in r.keys() if k not in T] + [(g,[r[k] for k in collection.ColumnGroups[g] if k in r.keys() and r[k]]) for g in colgroups ] for r in R]
+		R = [[(k,rgetattr(r,k.split('.'))) for k in keys if  rhasattr(r,k.split('.')) if k not in T] + [(g,[r[k] for k in collection.ColumnGroups[g] if k in r.keys() and r[k]]) for g in colgroups ] for r in R]
 		return uniqify(ListUnion([expand(r) for r in R]))
 	else:
 		return [()]
@@ -58,25 +60,35 @@ def makeQueryDB(collectionName,incertpath,certpath, hashSlices=True):
 	cleanCollection(col)
 	col.ensure_index('hash',unique=True,dropDups=True)
 	
-	for sliceCols in sliceColTuples:
+
+	for (sind,sliceCols) in enumerate(sliceColTuples):
 		Q = getQueryList(collectionName,sliceCols)
 		for (i,q) in enumerate(Q):
 			q = son.SON(q)
+			pq = processQuery(q)
 			if hashSlices:
-				print i ,'of', len(Q)
+				print i ,'of', len(Q) , 'in list', sind , 'of', len(sliceColTuples)
 				R = api.get(collectionName,[('find',[(q,),{'fields':['_id']}])])['data']
 				count = len(R)
 				if count > 0:
 					hash = hashlib.sha1(''.join([str(r['_id']) for r in R])).hexdigest()
 					if col.find_one({'hash':hash}):
-						col.update({'hash':hash},{'$push':{'queries':q}})
+						col.update({'hash':hash},{'$push':{'queries':pq}},safe=True)
 					else:
-						col.insert({'hash':hash,'queries':[q],'count':count})
+						col.insert({'hash':hash,'queries':[pq],'count':count},safe=True)
 			else:
-				col.insert({'hash':q,'queries':[q]})
+				col.insert({'hash':pq,'queries':[pq]})
 				
 	createCertificate(certpath,'Slice database for ' + collectionName + ' written.')
 	
+
+def processQuery(q):
+	return son.SON([(k.replace('.','__'),v) for (k,v) in q.items()])
+
+
+def unProcessQuery(q):
+	return son.SON([(k.replace('__','.'),v) for (k,v) in q.items()])
+
 
 def subqueries(q):
 	K = q.keys()
@@ -106,19 +118,22 @@ def indexCollection(collectionName,incertpath,certpath):
 		contentCols = collection.contentCols
 	else:
 		contentCols = sliceCols
-	contentColNums = getNums(collection,contentCols)
+	contentColNums = getStrs(collection,contentCols)
 	ArgDict['contentColNums'] = contentColNums
 	if hasattr(collection,'phraseCols'):
 		phraseCols = collection.phraseCols
 	else:
 		phraseCols = contentCols
-	phraseColNums = getNums(collection,phraseCols)
+	phraseColNums = getStrs(collection,phraseCols)
 	ArgDict['phraseCols'] = phraseCols
 	ArgDict['phraseColNums'] = phraseColNums
 	
 	if hasattr(collection,'DateFormat'):
 		DateFormat = collection.DateFormat
 		ArgDict['DateFormat'] = DateFormat
+		ArgDict['OverallDateFormat'] = DateFormat
+		timeFormatter = td.mongotimeformatter(DateFormat)
+		ArgDict['timeFormatter'] = timeFormatter
 	else:
 		DateFormat = ''
 		
@@ -128,35 +143,54 @@ def indexCollection(collectionName,incertpath,certpath):
 		ArgDict['OverallDate'] = od
 		OverallDateFormat = odf + DateFormat
 		ArgDict['OverallDateFormat'] = OverallDateFormat
+		timeFormatter = td.mongotimeformatter(OverallDateFormat)
+		ArgDict['timeFormatter'] = timeFormatter
+
+		OD = timeFormatter(OverallDate +'X'*len(DateFormat))
+		ArgDict['dateDivisions'] = td.getLowest(OD)
+		ArgDict['datePhrases'] = [td.phrase(OD)]
+		ArgDict['mindate'] = OD
+		ArgDict['maxdate'] = OD				
+		
 		if DateFormat:
 			reverseTimeFormatter = td.reverse(DateFormat)
 			ArgDict['reverseTimeFormatter'] = reverseTimeFormatter
+			
 	else:
 		od = ''
-		OverallDateFormat = DateFormat
-		
-	if OverallDateFormat:
-		timeFormatter = td.mongotimeformatter(OverallDateFormat)
-		ArgDict['timeFormatter'] = timeFormatter
-		
-		if 'TimeColNames' in collection.ColumnGroups.keys():
-			TimeColNamesInd = getNums(collection,collection.ColumnGroups['TimeColNames'])
-			tcs = [timeFormatter(ot + t) for t in collection.ColumnGroups['TimeColNames']]
-			ArgDict['timeCols'] = tcs
-			timeColNameDivisions = [[td.TIME_DIVISIONS[x] for x in td.getLowest(tc)] for tc in tcs] 
-			timeColPhrases = [td.phrase(t) for t in tcs]
-			ArgDict['TimeColNamesInd'] = TimeColNamesInd
-			ArgDict['timeColNameDivisions'] = timeColNameDivisions
-			ArgDict['timeColPhrases'] = timeColPhrases
-	
-		if 'TimeColumns' in collection.ColumnGroups.keys():
-			timeColInd = getNums(collection,collection.ColumnGroups['TimeColumns'])
-			ArgDict['timeColInd'] = timeColInd
-	
-	#overall location
-	#get divisions and phrases from OverallLocation and SpaceColNames
+					
+	if 'TimeColNames' in collection.ColumnGroups.keys():
+		TimeColNamesInd = getNums(collection,collection.ColumnGroups['TimeColNames'])
+		tcs = [timeFormatter(od + t) for t in collection.ColumnGroups['TimeColNames']]
+		ArgDict['timeCols'] = tcs 
+		ArgDict['timeColNameInds'] = TimeColNamesInd
+		ArgDict['timeColNameDivisions'] = [[td.TIME_DIVISIONS[x] for x in td.getLowest(tc)] for tc in tcs] 
+		ArgDict['timeColNamePhrases'] = [td.phrase(t) for t in tcs]
 
-	
+	if 'TimeColumns' in collection.ColumnGroups.keys():
+		ArgDict['timeColInds'] = getNums(collection,collection.ColumnGroups['TimeColumns'])
+			
+	#overall location
+	if hasattr(collection,'OverallLocation'):
+		ol = Collection.OverallLocation
+		ArgDict['OverallLocation'] = ol
+		ArgDict['spatialDivisions'] = loc.divisions(ol)
+		ArgDict['spatialPhrases'] = [loc.phrase(ol)]
+	else:
+		ol = None
+		
+	#get divisions and phrases from OverallLocation and SpaceColNames
+	if 'SpaceColNames' in collection.ColumnGroups.keys():
+		spaceColNames = collection.ColumnGroups['SpaceColNames']
+		ArgDict['spaceColNames'] = [loc.integrate(ol,x) for x in spaceColNames]
+		ArgDict['spaceColNameInds'] = getNums(collection,spaceColNames)
+		ArgDict['spaceColNameDivisions'] = [loc.divisions(x) for x in SpaceColNames]
+		ArgDict['spaceColNamePhrases'] = [loc.phrase(x) for x in SpaceColNames]
+		
+	if 'SpaceColumns' in collection.ColumnGroups.keys():
+		ArgDict['spaceColInds'] = getNums(collection,collection.ColumnGroups['SpaceColumns'])
+
+		
 	d = {}
 	Source = collection.Source
 	SourceNameDict = son.SON([(k,Source[k]['Name'] if isinstance(Source[k],dict) else Source[k]) for k in Source.keys()])
@@ -181,7 +215,7 @@ def indexCollection(collectionName,incertpath,certpath):
 	numslices = sliceDB.count()
 	i = 1
 	for sliceData in sliceDB.find(timeout=False):
-		queryText = min(sliceData['queries'])
+		queryText = unProcessQuery(min(sliceData['queries']))
 		query = api.processArg(queryText,collection)
 		print i , 'of', numslices , ': ' , queryText
 		sliceCursor = collection.find(query,timeout=False)
@@ -206,32 +240,51 @@ def getNums(collection,namelist):
 			numlist.append([collection.VARIABLES.index(m) for m in collection.ColumnGroups[n]])
 	return numlist
 	
+def getStrs(collection,namelist):
+	numlist = []
+	for n in namelist:
+		if n.split('.')[0] in collection.VARIABLES:
+			numlist.append(str(collection.VARIABLES.index(n.split('.')[0])) + '.'.join(n.split('.')[1:]))
+		else:
+			numlist.append([str(collection.VARIABLES.index(m)) for m in collection.ColumnGroups[n]])
+	return numlist
+		
 	
-def addToIndex(R,d,collection,solr_interface,contentColNums = None, phraseCols = None, phraseColNums = None,DateFormat = None,TimeColNamesInd = None,timeColNameDivisions = None,timeColPhrases=None,timeColInd=None,timeCols=None,subColInd = None,OverallDate = '', OverallDateFormat = '', timeFormatter = None,reverseTimeFormatter = None):
 	
+def addToIndex(R,d,collection,solr_interface,contentColNums = None, phraseCols = None, phraseColNums = None,DateFormat = None,timeColNameInds = None,timeColNameDivisions = None,timeColNamePhrases=None,timeColInds=None,timeCols=None,subColInd = None,OverallDate = '', OverallDateFormat = '', timeFormatter = None,reverseTimeFormatter = None,dateDivisions=None,datePhrases=None,mindate = None,maxdate = None,OverallLocation = None, spatialDivisions=None, spatialPhrases=None,spaceColNames = None, spaceColNameInds = None, spaceColNameDivisions = None, spaceColNamePhrases = None, spaceColInds = None):
+		
 	d['sliceContents'] = []
 	d['slicePhrases'] = []
 	colnames = []
 	d['volume'] = 0
-	mindate = None
-	maxdate = None
 	Subcollections = []
+	if dateDivisions == None:
+		dateDivisions = []
+	else:
+		dateDivisions = dateDivisions[:]
+	if datePhrases == None:
+		datePhrases = []
+	else:
+		datePhrases = datePhrases[:]
+	if spatialDivisions == None:
+		spatialDivisions = []
+	else:
+		spatialDivisions = spatialDivisions[:]
+	if spatialPhrases == None:
+		spatialPhrases = []
+	else:
+		spatialPhrases = spatialPhrases[:]
+	commonLocation = OverallLocation	
+		
 	
-	if OverallDate:
-		od = timeFormatter(OverallDate +'X'*len(DateFormat))
-		dateDivisions += td.getLowest(od)
-		datePhrases.append(td.phrase(od))		 
-		mindate = od
-		maxdate = od
-
 	for (i,r) in enumerate(R):
 
 		if i/10000 == i/float(10000):
 			print '. . . at', i
-			
-		d['sliceContents'].append( ' '.join(ListUnion([([str(r[str(x)])] if str(x) in r.keys() else []) if isinstance(x,int) else [str(r[str(xx)]) for xx in x if str(xx) in r.keys()] for x in contentColNums])))
+				
+		d['sliceContents'].append( ' '.join(ListUnion([([str(rgetattr(r,x.split('.')))] if rhasattr(r,x.split('.')) else []) if is_string_like(x) else [str(rgetattr(r,xx.split('.'))) for xx in x if rhasattr(r,xx.split('.'))] for x in contentColNums])))
 		
-		sP = ListUnion([([s + ':' + str(r[str(x)])] if str(x) in r.keys() else []) if isinstance(x,int) else [s + ':' +	 str(r[str(xx)]) for xx in x if str(xx) in r.keys()] for (s,x) in zip(phraseCols,phraseColNums)])
+		sP = ListUnion([([s + ':' + str(rgetattr(r,x.split('.')))] if rhasattr(r,x.split('.')) else []) if is_string_like(x) else [s + ':' + str(rgetattr(r,xx.split('.'))) for xx in x if rhasattr(r,xx.split('.'))] for (s,x) in zip(phraseCols,phraseColNums)])
 		for ssP in sP:
 			if ssP not in d['slicePhrases']:
 				d['slicePhrases'].append(ssP)
@@ -242,20 +295,25 @@ def addToIndex(R,d,collection,solr_interface,contentColNums = None, phraseCols =
 		if subColInd:
 			Subcollections += r[str(subColInd)]
 				
-		if timeColInd:
-			for (k,x) in zip(collection.ColumnGroups['TimeColumns'],timeColInd):
+		if timeColInds:
+			for x in timeColInds:
 				if str(x) in r.keys():
 					time = r[str(x)]
 					if OverallDate:
 						time = timeFormatter(OverallDate + reverseTimeFormatter(time))
 					dateDivisions += td.getLowest(time)
-					datePhrases.append(td.phrase(time))		   
-					if mindate:
-						mindate = min(mindate,time)
-						maxdate = max(maxdate,time)
-					else:
-						mindate = time
-						maxdate = time
+					datePhrases.append(td.phrase(time))		
+					mindate = td.makemin(mindate,time)
+					maxdate = td.makemax(maxdate,time)
+		if spaceColInds:
+			for x in spaceColInds:
+				if str(x) in r.keys():
+					location = loc.integrate(OverallLocation,r[str(x)])
+					commonLocation = loc.intersect(commonLocation,r[str(x)]) if commonLocation != None else r[str(x)]
+					spatialDivisions += loc.divisions(location)
+					spatialPhrases.append(loc.phrase(location))
+				
+					
 	
 	d['sliceContents'] = ' '.join(d['sliceContents'])
 	Subcollections = uniqify(Subcollections)
@@ -266,21 +324,32 @@ def addToIndex(R,d,collection,solr_interface,contentColNums = None, phraseCols =
 	if OverallDateFormat:
 		d['dateFormat'] = OverallDateFormat
 		
-		dateDivisions = []
-		datePhrases = []
 		if 'TimeColNames' in collection.ColumnGroups.keys():
-			K = [k for (k,j) in enumerate(TimeColNamesInd) if str(j) in colnames]
+			K = [k for (k,j) in enumerate(timeColNameInds) if str(j) in colnames]
 			dateDivisions += uniqify(ListUnion([timeColNameDivisions[k] for k in K]))
-			d['begin_date'] = td.convertToDT(min([timeCols[k] for k in K]))
-			d['end_date'] = td.convertToDT(max([timeCols[k] for k in K]),convertMode='High')
-			datePhrases += uniqify([timeColPhrases[k] for k in K])
+			mindate = td.makemin(mindate,min([timeCols[k] for k in K]))
+			maxdate = td.makemax(maxdate,max([timeCols[k] for k in K]))			
+			datePhrases += uniqify([timeColNamePhrases[k] for k in K])
 		
-		if 'TimeColumns' in collection.ColumnGroups.keys():
-			d['begin_date'] = td.convertToDT(mindate)
-			d['end_date'] = td.convertToDT(maxdate,convertMode='High')
-		
+		d['begin_date'] = td.convertToDT(mindate)
+		d['end_date'] = td.convertToDT(maxdate,convertMode='High')
 		d['dateDivisions'] = ' '.join(uniqify(dateDivisions))
 		d['datePhrases'] = '|||'.join(datePhrases)
+
+	
+	if 'SpaceColNames' in collection.ColumnGroups.keys():
+		K = [k for (k,j) in enumerate(spaceColNameInds) if str(j) in colnames]
+		spatialDivisions += uniqify(ListUnion([spaceColNameDivisions[k] for k in K]))
+		spatialPhrases += uniqify([spaceColPhrases[k] for k in K])	
+		for k in K:
+			commonLocation = spaceColNames[k] if commonLocation == None else loc.intersect(commonLocation,spaceColNames[k])
+
+		
+	if spatialDivisions:
+		d['spatialDivisions'] = '|||'.join(uniqify(spatialDivisions))
+		d['spatialPhrases'] = '|||'.join(spatialPhrases)
+		if commonLocation:
+			d['commonLocation'] = loc.phrase(commonLocation)
 	
 	
 	#metadata
@@ -302,7 +371,6 @@ def addToIndex(R,d,collection,solr_interface,contentColNums = None, phraseCols =
 	
 	
 	solr_interface.add(**d)
-	#solr_interface.add(d)
 
 def coerceToFormat(md,format):
 	if format == 'tplist':
