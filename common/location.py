@@ -62,6 +62,8 @@ SPACE_HIERARCHY_RELATIONS = [('O','C'),
 
 import networkx as nx
 SPACE_HIERARCHY_GRAPH = nx.DiGraph()
+for g in SPACE_CODES:
+	SPACE_HIERARCHY_GRAPH.add_node(g)
 for g in SPACE_HIERARCHY_RELATIONS:
 	if is_string_like(g[1]):
 		SPACE_HIERARCHY_GRAPH.add_edge(*g)
