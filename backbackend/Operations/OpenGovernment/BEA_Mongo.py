@@ -451,7 +451,7 @@ def PersonalIncomeCollectionObject(depends_on = (sourceroot + 'REA_LocalAreaPers
 		
 		X1 = X.addcols([[table]*len(X),[line]*len(X),[table + ',C']*len(X)] + subjcols,names=['Table','Line','Subcollections'] + subjnames)
 		X1.renamecol('County','Location')
-		X1 = X1.addcols(['{"c":' + repr(','.join(x.split(',')[:-1]).strip()) + ',"S":' + repr( x.split(',')[-1].strip()) +',"f":{"c":' + repr(f) + '}}' for (f,x) in X1[['FIPS','Location']]],names = ['Location'])
+		X1 = X1.addcols(['{"c":' + repr(','.join(x.split(',')[:-1]).strip()) + ',"S":' + repr( x.split(',')[-1].strip()) +',"f":{"c":' + repr(f[2:]) + ',"s":' + repr(f[:2]) + '}}' for (f,x) in X1[['FIPS','Location']]],names = ['Location'])
 		X1 = X1.deletecols(['FIPS'])
 		
 		X1.metadata = X.metadata

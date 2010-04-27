@@ -4,7 +4,7 @@ from django.http import HttpResponse
 import location.models as models
 import common.location as loc
 import geojson, json
-from common.utils import Rgetattr, uniqify, ListUnion
+from common.utils import Rgetattr, Rhasattr, uniqify, ListUnion, dictListUniqify
 
 def main(request):
 	return HttpResponse(str(request))
@@ -73,7 +73,7 @@ def geodbGuts(g,level_code):
  		code = loc.LEVEL_CODES[level_code]
  		returnVals = [name,code]
 
-	results = [dict([(a,str(Rgetattr(x,a.split('.')))) for a in returnVals ]) for x in results]
+	results = [dict([(a,str(Rgetattr(x,a.split('.')))) for a in returnVals if Rhasattr(x,a.split('.'))]) for x in results]
  
 	return results
 	
@@ -82,15 +82,16 @@ def fips(request):
 
 	g = request.GET
 	
-	return HttpResponse(json.dumps(fipsGuts(g)))
+	h = dict(g.items())
+
+	return HttpResponse(json.dumps(fipsHierarchy(h)))
 
 	
 def fipsGuts(g):
 	
 	keys = set([k for k in g])
 	
-	lowest = [k for k in keys if len(keys.intersection(loc.SPACE_HIERARCHY[k])) == 1]
-					
+	lowest = loc.getLowest(keys)					
 	assert len(lowest) == 1	
 	level_code = lowest[0]
 	
@@ -120,11 +121,73 @@ def fipsGuts(g):
 		
 	return R
 	
+	
+def fipsHierarchy(g,action = 'contains'):
 
+	if 'action' in g:
+		action = g['action']
+		g.pop('action')
+		
+	keys = set([k for k in g])
+	lowest = loc.getLowest(keys)
+	assert len(lowest) == 1	
+	level_code = lowest[0]
+
+	H = [x for x in loc.SPACE_HIERARCHY_R[level_code] if loc.LEVEL_CODES[x]]
+
+	D = {'method':'filter'}
+	codes = keys.intersection(H)
+	querylist =  [{'field': loc.LEVEL_CODES[code],  'query' : g[code]} for code in codes]
+	D['querylist'] = querylist	
+	D['return'] = ','.join([loc.LEVEL_CODES[code] for code in H] + [loc.LEVEL_NAMES[level_code],'geom'])
+	
+	R = dictListUniqify(geodbGuts(D,level_code))
+	
+	Gdict = {}
+	for r in R:
+		rmg = tuple([(k,v) for (k,v) in r.items() if k != 'geom'])
+		if rmg not in Gdict.keys():
+			Gdict[rmg] = [r['geom']]
+		else:
+			if r['geom'] not in Gdict[rmg]:
+				Gdict[rmg].append(r['geom'])
+	
+	U = [h for h in H if h != level_code]
+	
+	H = []
+	for x in Gdict.keys():
+		for y in Gdict[x]:
+			V = [dict(x + (('geom',{level_code:y}),))]
+			for u in U:
+				newV = []
+				for v in V:
+					d = {'method':'filter', 'querylist': [{'field':'geom','type':action,'query':gg} for gg in v['geom'].values()], 'return':'name,code,geom'} 
+					R = dictListUniqify(geodbGuts(d,u))
+		
+					for r in R:
+						h = v.copy()
+						h['geom'] = {level_code:y}
+						for k in r.keys():
+							if k != 'geom':	
+								h[k] = r[k]
+							else:
+								h['geom'][u] = r['geom']
+						newV.append(h)
+				V = newV
+			
+					
+			H += V		
+
+	for h in H:
+		h.pop('geom')
+		
+	H = dictListUniqify(H)
+	
+	return H
+	
 def regions(request,level_code):
 	g = request.GET
 	return HttpResponse(json.dumps(regionsGuts(g,level_code)))
-	
 	
 def regionsGuts(g,level_code):
 	

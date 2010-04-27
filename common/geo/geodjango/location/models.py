@@ -208,3 +208,59 @@ CensusTracts_mapping = {
 CensusTractspath = os.path.abspath(os.path.join(os.path.dirname(__file__),'../../../../backbackend/Data/ShapeFiles/CensusTracts/'))
 
 CensusTracts_shp = [CensusTractspath + '/' + x for x in os.listdir(CensusTractspath) if x.endswith('.shp')]
+
+
+class CensusRegions(models.Model):
+    area = models.FloatField()
+    perimeter = models.FloatField()
+    rg99_d00_field = models.FloatField()
+    rg99_d00_i = models.FloatField()
+    census_region_code = models.CharField(max_length=1)
+    census_region_name = models.CharField(max_length=90)
+    lsad = models.CharField(max_length=2)
+    lsad_trans = models.CharField(max_length=50)
+    geom = models.MultiPolygonField(srid=4326)
+    objects = models.GeoManager()
+
+# Auto-generated `LayerMapping` dictionary for CensusRegions model
+CensusRegions_mapping = {
+    'area' : 'AREA',
+    'perimeter' : 'PERIMETER',
+    'rg99_d00_field' : 'RG99_D00_',
+    'rg99_d00_i' : 'RG99_D00_I',
+    'census_region_code' : 'REGION',
+    'census_region_name' : 'NAME',
+    'lsad' : 'LSAD',
+    'lsad_trans' : 'LSAD_TRANS',
+    'geom' : 'MULTIPOLYGON',
+}
+
+
+CensusRegions_shp = os.path.abspath(os.path.join(os.path.dirname(__file__),'../../../../backbackend/Data/ShapeFiles/CensusRegions/'))
+
+class CensusDivisions(models.Model):
+    area = models.FloatField()
+    perimeter = models.FloatField()
+    dv99_d00_field = models.FloatField()
+    dv99_d00_i = models.FloatField()
+    census_division_code = models.CharField(max_length=1)
+    census_division_name = models.CharField(max_length=90)
+    lsad = models.CharField(max_length=2)
+    lsad_trans = models.CharField(max_length=50)
+    geom = models.MultiPolygonField(srid=4326)
+    objects = models.GeoManager()
+
+# Auto-generated `LayerMapping` dictionary for CensusDivisions model
+CensusDivisions_mapping = {
+    'area' : 'AREA',
+    'perimeter' : 'PERIMETER',
+    'dv99_d00_field' : 'DV99_D00_',
+    'dv99_d00_i' : 'DV99_D00_I',
+    'census_division_code': 'DIVISION',
+    'census_division_name' : 'NAME',
+    'lsad' : 'LSAD',
+    'lsad_trans' : 'LSAD_TRANS',
+    'geom' : 'MULTIPOLYGON',
+}
+
+CensusDivisions_shp = os.path.abspath(os.path.join(os.path.dirname(__file__),'../../../../backbackend/Data/ShapeFiles/CensusDivisions/'))

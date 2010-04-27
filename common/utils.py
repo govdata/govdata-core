@@ -104,6 +104,19 @@ def rhasattr(r,a):
 			return False
 	return True
 
+	
+def dictListUniqify(D):
+	D = uniqify([tuple(x.items()) for x in D])
+	return [dict(d) for d in D]
+	
+	
+def Rhasattr(r,a):
+	for aa in a:
+		if hasattr(r,aa):
+			r = getattr(r,aa)
+		else:
+			return False
+	return True
 
 def uniqify(seq, idfun=None): 
 	'''

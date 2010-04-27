@@ -14,6 +14,7 @@ SPACE_CODE_MAP = [('a','Address',None,None,None),
 ('c','County','USCounties','county_code','county_name'),
 ('C','country',None,None,None),
 ('d','Public Use Microdata Area -- 1%',None,None,None),
+('D','Census Division','CensusDivisions','census_division_code','census_division_name'),
 ('e','Public Use Microdata Area -- 5%',None,None,None),
 ('f','FIPS',None,None,None),
 ('g','Congressional District',None,None,None),
@@ -29,7 +30,7 @@ SPACE_CODE_MAP = [('a','Address',None,None,None),
 ('p','Postal Code',None,None,None),
 ('q','School District -- Elementary',None,None,None),
 ('Q','School District -- Secondary',None,None,None),
-('r','Region',None,None,None),
+('r','Census Region','CensusRegions','census_region_code','census_region_name'),
 ('S','State Abbreviation',None,None,None),
 ('s','State','USStates','state_code','state_name'),
 ('t','Town',None,None,None),
@@ -56,7 +57,7 @@ def convertToCodes(x):
 	m =  dict([(iLEVEL_CODES[l],x[l]) for l in x.keys() if l in iLEVEL_CODES.keys()])
 	return dict(n + ([('f',m)]  if m else []))
 
-SPACE_HIERARCHY_RELATIONS = [('O','C'),
+SPACE_RELATIONS = [('O','C'),
 ('C','s'),
 ('s',('S','=')),
 ('s','c'),
@@ -68,29 +69,40 @@ SPACE_HIERARCHY_RELATIONS = [('O','C'),
 ('c','T'),
 ('s','l'),
 ('s','L'),
-('s','A')
+('s','A'),
+('r','D'),
+('D','s'),
+('C','r'),
 ]
 
 import networkx as nx
-SPACE_HIERARCHY_GRAPH = nx.DiGraph()
-for g in SPACE_CODES:
-	SPACE_HIERARCHY_GRAPH.add_node(g)
-for g in SPACE_HIERARCHY_RELATIONS:
-	if is_string_like(g[1]):
-		SPACE_HIERARCHY_GRAPH.add_edge(*g)
-	else:
-		SPACE_HIERARCHY_GRAPH.add_edge(g[0],g[1][0])
-SPACE_HIERARCHY = dict([(o,v.keys()) for (o,v) in nx.all_pairs_shortest_path(SPACE_HIERARCHY_GRAPH).items()])
+def makeHierarchy(V,E):
 
-SPACE_HIERARCHY_GRAPH_R = nx.DiGraph()
-for g in SPACE_CODES:
-	SPACE_HIERARCHY_GRAPH_R.add_node(g)
-for g in SPACE_HIERARCHY_RELATIONS:
-	if is_string_like(g[1]):
-		SPACE_HIERARCHY_GRAPH_R.add_edge(g[1],g[0])
-	else:
-		SPACE_HIERARCHY_GRAPH_R.add_edge(g[1][0],g[0])		
-SPACE_HIERARCHY_R = dict([(o,v.keys()) for (o,v) in nx.all_pairs_shortest_path(SPACE_HIERARCHY_GRAPH_R).items()])
+	G = nx.DiGraph()
+	for v in V:
+		G.add_node(v)
+	for e in E:
+		if is_string_like(e[0]):
+			s = e[0]
+		else:
+			s = e[0][0]
+		if is_string_like(e[1]):
+			t = e[1]
+		else:
+			t = e[1][0]
+		G.add_edge(s,t)
+			
+	H = dict([(o,v.keys()) for (o,v) in nx.all_pairs_shortest_path(G).items()])	
+	T = nx.topological_sort(G)
+	for k in H.keys():
+		H[k] = [j for j in T if j in H[k]]
+	
+	return [G,H]
+		
+
+[SPACE_HIERARCHY_GRAPH,SPACE_HIERARCHY] = makeHierarchy(SPACE_CODES,SPACE_RELATIONS)
+[SPACE_HIERARCHY_GRAPH_R,SPACE_HIERARCHY_R] = makeHierarchy(SPACE_CODES,[(y,x) for (x,y) in SPACE_RELATIONS])
+
 		
 def divisions(l):
 	assert set(l.keys()) <= set(SPACE_DIVISIONS.keys()), 'Unrecognized spatial key codes.'
@@ -98,6 +110,10 @@ def divisions(l):
 	
 def phrase(l):
 	return ', '.join([SPACE_DIVISIONS[x] + '=' + y  for (x,y) in l.items() if x != 'f'] + ([SPACE_DIVISIONS[x] + ' FIPS=' + y for (x,y) in l['f'].items()] if 'f' in l.keys() else []))
+	
+def modPhrase(l):
+	return ' '.join(['"' + SPACE_DIVISIONS[x] + '=' + y + '"' for (x,y) in l.items() if x != 'f'] + (['"' + SPACE_DIVISIONS[x] + ' FIPS=' + y + '"' for (x,y) in l['f'].items()] if 'f' in l.keys() else []))
+	
 	
 	
 def integrate(l1,l2):
@@ -176,15 +192,26 @@ def convertQS(sq):
 
 	return dict(zip(nFIPS,['']*len(nFIPS)) + ([('f',dict(zip(FIPS,['']*len(FIPS))))] if FIPS else []))
 
-
+def getLowest(keys):
+	return [k for k in keys if len(keys.intersection(SPACE_HIERARCHY[k])) == 1]
+	
 def SpaceComplete(x):
 	if 'f' in x.keys():
-		iFIPS = [c for c in x['f'].keys() if c not in x.keys()]
-		if iFIPS:
-			X = convertToCodes(eval(urllib2.urlopen('http://localhost:8000/fips/?' + '&'.join([c + '=' + x['f'][c] for c in iFIPS])).read())[0])
-			x['f'] = X['f']
-			for c in iFIPS:
-				x[c] = X[c]
+		x = x.copy()
+		iFIPS = ListUnion([SPACE_HIERARCHY_R[c] for c in x['f'].keys()])
+		iFIPS = [c for c in iFIPS if c not in x.keys()]
+		Cset = [c + '=' + x['f'][c] for c in x['f'].keys() if uniqify(x['f'][c]) != ['0']]
+		if iFIPS and Cset:
+			X = eval(urllib2.urlopen('http://localhost:8000/fips/?' + '&'.join(Cset)).read())
+			if len(X) == 1:
+				X = convertToCodes(X[0])
+				x['f'] = X['f']
+				for c in X.keys():
+					if c not in x.keys():
+						x[c] = X[c]
+			
+		return x
+					
 
 def queryToSolr(spaceQuery):
 
@@ -196,15 +223,15 @@ def queryToSolr(spaceQuery):
 	elif hasattr(spaceQuery,'keys'):
 		if 'bounds' in spaceQuery.keys():
 			level = spaceQuery['level']
-			phrases = [phrase(convertToCodes(x)) for x in eval(urllib2.urlopen('http://localhost:8000/regions/' + level + '/?bounds=' + spaceQuery['bounds']).read())]
+			phrases = [modPhrase(convertToCodes(x)) for x in eval(urllib2.urlopen('http://localhost:8000/regions/' + level + '/?bounds=' + spaceQuery['bounds']).read())]
 		
 		elif 'radius' in spaceQuery.keys():
 			level = spaceQuery['level']
-			phrases = [phrase(convertToCodes(x)) for x in eval(urllib2.urlopen('http://localhost:8000/regions/' + level + '/?radius=' + spaceQuery['radius'] + '&center=' + spaceQuery['center'] + ('&units=' + spaceQuery['units'] if 'units' in spaceQuery.keys() else '')).read())]
+			phrases = [modPhrase(convertToCodes(x)) for x in eval(urllib2.urlopen('http://localhost:8000/regions/' + level + '/?radius=' + spaceQuery['radius'] + '&center=' + spaceQuery['center'] + ('&units=' + spaceQuery['units'] if 'units' in spaceQuery.keys() else '')).read())]
 		else:
 			spaceQuery = spaceQuery.copy()
 			SpaceComplete(spaceQuery)
-			phrases = [phrase(spaceQuery)]
+			phrases = [modPhrase(spaceQuery)]
 					
 		return 'commonLocation:' + '(' + ' OR '.join(phrases) + ')' 
 

@@ -650,4 +650,6 @@ def inferSpaceCode(name):
 		return 'f.s'
 	elif 'county' in parts and ('code' in parts or 'fips' in parts):
 		return 'f.c'
+	elif 'msa' in parts and ('code' in parts or 'fips' in parts):
+		return 'f.m'
 	

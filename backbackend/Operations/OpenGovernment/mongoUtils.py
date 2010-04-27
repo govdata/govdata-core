@@ -92,6 +92,7 @@ def createCollection(path,certpath):
 	else:
 		spcs = []
 		
+	SpaceCache = {}	
 	for k in M['Hashes'].keys():
 		print 'Adding chunk', k
 		hash = M['Hashes'][k]
@@ -116,7 +117,12 @@ def createCollection(path,certpath):
 					if spc in X.dtype.names:
 						spci = X.dtype.names.index(spc)
 						newx[spci] = eval(newx[spci])
-						loc.SpaceComplete(newx[spci])
+						t = getT(newx[spci])
+						if t in SpaceCache.keys():
+							newx[spci] = SpaceCache[t].copy()
+						else:
+							newx[spci] = loc.SpaceComplete(newx[spci])
+							SpaceCache[t] = newx[spci].copy()
 
 				collection.insert(dict(zip(names,newx)))
 				
@@ -127,8 +133,14 @@ def createCollection(path,certpath):
 					if tc in c.keys():
 						c[tc] = TimeFormatter(c[tc])
 				for spc in spcs:
-					if spc in c.keys()
-						loc.SpaceComplete(c[spc])
+					if spc in c.keys():
+						t = getT(c[spc])
+						if t in SpaceCache.keys():
+							c[spc] = SpaceCache[t].copy()
+						else:
+							c[spc] = loc.SpaceComplete(c[spc])
+							SpaceCache[t] = c[spc].copy()
+
 				
 				collection.insert(c)
 		else:
@@ -137,3 +149,5 @@ def createCollection(path,certpath):
 	connection.disconnect()
 	createCertificate(certpath,'Collection ' + collectionName + ' written to DB.')
 	
+def getT(x):
+	return tuple([(k,v) for (k,v) in x.items() if k != 'f'])

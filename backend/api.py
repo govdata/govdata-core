@@ -32,9 +32,9 @@ class GetHandler(tornado.web.RequestHandler):
 class FindHandler(tornado.web.RequestHandler):
 	def get(self):
 		args = self.request.arguments
-		assert 'query' in args.keys() and len(args['query']) == 1
-		query = args['query'][0]
-		args.pop('query')
+		assert 'q' in args.keys() and len(args['q']) == 1
+		query = args['q'][0]
+		args.pop('q')
 		self.write(find(query,**args))
 
 
@@ -385,7 +385,6 @@ def find(query, timeQuery = None, spaceQuery = None, hlParams=None,facetParams=N
 		else:
 			params['fq'] = Flatten([params['fq'],fq])
 			
-
 	if facetParams == None:
 		facetParams = {'field':['agency','subagency','dataset','dateDivisions']}
 					
