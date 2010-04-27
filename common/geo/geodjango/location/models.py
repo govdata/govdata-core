@@ -184,8 +184,8 @@ class CensusTracts(models.Model):
     perimeter = models.FloatField()
     state_code = models.CharField(max_length=2)
     county_code = models.CharField(max_length=3)
-    tract_code = models.CharField(max_length=6)
-    tract_name = models.CharField(max_length=90)
+    census_tract_code = models.CharField(max_length=6)
+    census_tract_name = models.CharField(max_length=90)
     lsad = models.CharField(max_length=2)
     lsad_trans = models.CharField(max_length=50)
     geom = models.MultiPolygonField(srid=4326)
@@ -197,8 +197,8 @@ CensusTracts_mapping = {
     'perimeter' : 'PERIMETER',
     'state_code' : 'STATE',
     'county_code' : 'COUNTY',
-    'tract_code' : 'TRACT',
-    'tract_name' : 'NAME',
+    'census_tract_code' : 'TRACT',
+    'census_tract_name' : 'NAME',
     'lsad' : 'LSAD',
     'lsad_trans' : 'LSAD_TRANS',
     'geom' : 'MULTIPOLYGON',

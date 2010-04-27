@@ -86,6 +86,15 @@ def rgetattr(r,a):
 			return None
 	return r
 	
+def Rgetattr(r,a):
+	for aa in a:
+		if hasattr(r,aa):
+			r = getattr(r,aa)
+		else:
+			return None
+	return r
+
+
 	
 def rhasattr(r,a):
 	for aa in a:

@@ -1,5 +1,6 @@
 import pymongo.son as son
 from common.utils import is_string_like, ListUnion, uniqify, Flatten, rhasattr,rgetattr
+import urllib2
 
 #see http://www.census.gov/population/www/metroareas/metrodef.html
 #see http://www.census.gov/geo/www/ansi/ansi.html for FIPS
@@ -8,42 +9,52 @@ from common.utils import is_string_like, ListUnion, uniqify, Flatten, rhasattr,r
 #see http://wiki.openstreetmap.org/wiki/Karlsruhe_Schema
 #see http://wiki.openstreetmap.org/wiki/Map_Features#Places
 
-SPACE_CODE_MAP = [('a','Address',),
-('A','Area Code'),
-('c','County'),
-('C','country'),
-('d','Public Use Microdata Area -- 1%'),
-('e','Public Use Microdata Area -- 5%'),
-('f','FIPS'),
-('g','Congressional District'),
-('I','Incoporated Place'),
-('i','Island'),
-('j','County Subdivision'),
-('k','School District -- Unified'),
-('l','State Legislative District -- Lower'),
-('L','State Legislative District -- Upper'),
-('m','Metropolitan/Micropolitan Statistical Area'),
-('n','New England City and Town Area'),
-('O','Continent'),
-('p','Postal Code'),
-('q','School District -- Elementary'),
-('Q','School District -- Secondary'),
-('r','Region'),
-('S','State Code'),
-('s','State'),
-('t','Town'),
-('T','Census Tract'),
-('u','Urban Area'),
-('v','Voting District'),
-('V','Village'),
-('W','City'),
-('X','Undefined'),
-('Z','5-Digit ZCTA'),
-('z','3-Digit ZCTA'),
+SPACE_CODE_MAP = [('a','Address',None,None,None),
+('A','Area Code',None,None,None),
+('c','County','USCounties','county_code','county_name'),
+('C','country',None,None,None),
+('d','Public Use Microdata Area -- 1%',None,None,None),
+('e','Public Use Microdata Area -- 5%',None,None,None),
+('f','FIPS',None,None,None),
+('g','Congressional District',None,None,None),
+('I','Incoporated Place',None,None,None),
+('i','Island',None,None,None),
+('j','County Subdivision',None,None,None),
+('k','School District -- Unified',None,None,None),
+('l','State Legislative District -- Lower',None,None,None),
+('L','State Legislative District -- Upper',None,None,None),
+('m','Metropolitan/Micropolitan Statistical Area','CBSA','cbsa_code','cbsa_name'),
+('n','New England City and Town Area',None,None,None),
+('O','Continent',None,None,None),
+('p','Postal Code',None,None,None),
+('q','School District -- Elementary',None,None,None),
+('Q','School District -- Secondary',None,None,None),
+('r','Region',None,None,None),
+('S','State Abbreviation',None,None,None),
+('s','State','USStates','state_code','state_name'),
+('t','Town',None,None,None),
+('T','Census Tract','CensusTracts','census_tract_code','census_tract_name'),
+('u','Urban Area',None,None,None),
+('v','Voting District',None,None,None),
+('V','Village',None,None,None),
+('W','City',None,None,None),
+('X','Undefined',None,None,None),
+('Z','ZCTA5','FiveDigitZCTAs','zcta5_code','zcta5_name'),
+('z','ZCTA3',None,None,None),
 ]
 
-(SPACE_CODES,SPACE_DIVISIONS) = zip(*SPACE_CODE_MAP)
+(SPACE_CODES,SPACE_DIVISIONS,SPACE_DB_TABLES,LEVEL_CODES,LEVEL_NAMES) = zip(*SPACE_CODE_MAP)
 SPACE_DIVISIONS = dict(zip(SPACE_CODES,SPACE_DIVISIONS))
+SPACE_DB_TABLES = dict(zip(SPACE_CODES,SPACE_DB_TABLES))
+LEVEL_CODES = dict(zip(SPACE_CODES,LEVEL_CODES))
+LEVEL_NAMES = dict(zip(SPACE_CODES,LEVEL_NAMES))
+iLEVEL_CODES = dict([(y,x) for (x,y) in LEVEL_CODES.items()])
+iLEVEL_NAMES = dict([(y,x) for (x,y) in LEVEL_NAMES.items()])
+
+def convertToCodes(x):
+	n = [(iLEVEL_NAMES[l],x[l]) for l in x.keys() if l in iLEVEL_NAMES.keys()]
+	m =  dict([(iLEVEL_CODES[l],x[l]) for l in x.keys() if l in iLEVEL_CODES.keys()])
+	return dict(n + ([('f',m)]  if m else []))
 
 SPACE_HIERARCHY_RELATIONS = [('O','C'),
 ('C','s'),
@@ -54,7 +65,7 @@ SPACE_HIERARCHY_RELATIONS = [('O','C'),
 ('c','i'),
 ('s','z'),
 ('z','Z'),
-('z','T'),
+('c','T'),
 ('s','l'),
 ('s','L'),
 ('s','A')
@@ -69,8 +80,17 @@ for g in SPACE_HIERARCHY_RELATIONS:
 		SPACE_HIERARCHY_GRAPH.add_edge(*g)
 	else:
 		SPACE_HIERARCHY_GRAPH.add_edge(g[0],g[1][0])
-		
 SPACE_HIERARCHY = dict([(o,v.keys()) for (o,v) in nx.all_pairs_shortest_path(SPACE_HIERARCHY_GRAPH).items()])
+
+SPACE_HIERARCHY_GRAPH_R = nx.DiGraph()
+for g in SPACE_CODES:
+	SPACE_HIERARCHY_GRAPH_R.add_node(g)
+for g in SPACE_HIERARCHY_RELATIONS:
+	if is_string_like(g[1]):
+		SPACE_HIERARCHY_GRAPH_R.add_edge(g[1],g[0])
+	else:
+		SPACE_HIERARCHY_GRAPH_R.add_edge(g[1][0],g[0])		
+SPACE_HIERARCHY_R = dict([(o,v.keys()) for (o,v) in nx.all_pairs_shortest_path(SPACE_HIERARCHY_GRAPH_R).items()])
 		
 def divisions(l):
 	assert set(l.keys()) <= set(SPACE_DIVISIONS.keys()), 'Unrecognized spatial key codes.'
@@ -156,6 +176,16 @@ def convertQS(sq):
 
 	return dict(zip(nFIPS,['']*len(nFIPS)) + ([('f',dict(zip(FIPS,['']*len(FIPS))))] if FIPS else []))
 
+
+def SpaceComplete(x):
+	if 'f' in x.keys():
+		iFIPS = [c for c in x['f'].keys() if c not in x.keys()]
+		if iFIPS:
+			X = convertToCodes(eval(urllib2.urlopen('http://localhost:8000/fips/?' + '&'.join([c + '=' + x['f'][c] for c in iFIPS])).read())[0])
+			x['f'] = X['f']
+			for c in iFIPS:
+				x[c] = X[c]
+
 def queryToSolr(spaceQuery):
 
 	if isinstance(spaceQuery,list) or isinstance(spaceQuery,tuple):
@@ -164,9 +194,17 @@ def queryToSolr(spaceQuery):
 		return fq
 		
 	elif hasattr(spaceQuery,'keys'):
-	
-		return 'commonLocation:' + phrase(spaceQuery)
-	
+		if 'bounds' in spaceQuery.keys():
+			level = spaceQuery['level']
+			phrases = [phrase(convertToCodes(x)) for x in eval(urllib2.urlopen('http://localhost:8000/regions/' + level + '/?bounds=' + spaceQuery['bounds']).read())]
 		
-			
-	
+		elif 'radius' in spaceQuery.keys():
+			level = spaceQuery['level']
+			phrases = [phrase(convertToCodes(x)) for x in eval(urllib2.urlopen('http://localhost:8000/regions/' + level + '/?radius=' + spaceQuery['radius'] + '&center=' + spaceQuery['center'] + ('&units=' + spaceQuery['units'] if 'units' in spaceQuery.keys() else '')).read())]
+		else:
+			spaceQuery = spaceQuery.copy()
+			SpaceComplete(spaceQuery)
+			phrases = [phrase(spaceQuery)]
+					
+		return 'commonLocation:' + '(' + ' OR '.join(phrases) + ')' 
+

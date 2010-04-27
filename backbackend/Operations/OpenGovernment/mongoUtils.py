@@ -7,6 +7,7 @@ import tabular as tb
 from common.utils import IsFile, listdir, is_string_like, ListUnion,createCertificate
 from common.mongo import cleanCollection
 import common.timedate as td
+import common.location as loc
 from System.Protocols import activate
 
 MONGOSOURCES_PATH = '../Data/OpenGovernment/MongoSources/'
@@ -115,7 +116,8 @@ def createCollection(path,certpath):
 					if spc in X.dtype.names:
 						spci = X.dtype.names.index(spc)
 						newx[spci] = eval(newx[spci])
-						
+						loc.SpaceComplete(newx[spci])
+
 				collection.insert(dict(zip(names,newx)))
 				
 		elif fpath.endswith('.pickle'):
@@ -124,6 +126,10 @@ def createCollection(path,certpath):
 				for tc in tcs:
 					if tc in c.keys():
 						c[tc] = TimeFormatter(c[tc])
+				for spc in spcs:
+					if spc in c.keys()
+						loc.SpaceComplete(c[spc])
+				
 				collection.insert(c)
 		else:
 			print 'Type of chunk file', fpath, 'not recognized.' 

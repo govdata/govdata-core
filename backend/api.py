@@ -11,7 +11,7 @@ from common.utils import IsFile, listdir, is_string_like, ListUnion, Flatten
 from common.mongo import Collection
 import common.timedate as td
 import common.location as loc
-
+import urllib2,urllib
 
 
 class GetHandler(tornado.web.RequestHandler):
@@ -360,7 +360,7 @@ def getArgs(args):
 #FIND
 #=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-import urllib2,urllib
+
 def find(query, timeQuery = None, spaceQuery = None, hlParams=None,facetParams=None,mltParams = None, **params):
 
 	if 'qt' not in params.keys():
