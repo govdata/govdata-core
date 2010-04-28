@@ -3,7 +3,7 @@
 from django.http import HttpResponse
 import location.models as models
 import common.location as loc
-import geojson, json
+import json
 from common.utils import Rgetattr, Rhasattr, uniqify, ListUnion, dictListUniqify
 
 def main(request):
