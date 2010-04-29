@@ -211,7 +211,7 @@ def regionsGuts(g,level_code):
 		D['type'] = 'distance_lte'
 		D['query'] = 'POINT(' + x + ' ' + y + ')'
 		if 'units' in g:
-			D['units'] = g['units']
+			D['units'] = str(g['units'])
 	
 	R = uniqify([tuple(x.items()) for x in geodbGuts(D,level_code)])
 	R = [dict([(k,v) for (k,v) in r if v != 'None']) for r in R]

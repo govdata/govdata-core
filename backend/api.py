@@ -19,14 +19,12 @@ class GetHandler(tornado.web.RequestHandler):
 		self.write("Hello, get")
 
 	def post(self):
-		args = self.request.arguments
-		assert 'collectionName' in args.keys() and len(args['collectionName']) == 1
-		assert 'querySequence' in args.keys() and len(args['querySequence']) == 1
-		collectionName = args['collectionName'][0]
-		querySequence = args['querySequence'][0]
-		args.pop('collectionName')
-		args.pop('querySequence')
-		get(collectionName,querySequence,fh=self,**args)
+		args = json.loads(self.request.body)
+		args = dict([(str(x),y) for (x,y) in args.items()])
+		collectionName = args.pop('collectionName')
+		querySequence = args.pop('querySequence')
+		get(collectionName,querySequence,returnObj=False,fh=self,**args)
+
 		
 		
 class FindHandler(tornado.web.RequestHandler):
@@ -36,6 +34,14 @@ class FindHandler(tornado.web.RequestHandler):
 		query = args['q'][0]
 		args.pop('q')
 		self.write(find(query,**args))
+
+	def post(self):
+                args = json.loads(self.request.body)
+		args = dict([(str(x),y) for (x,y) in args.items()])
+		query = args.pop('q')
+		self.write(find(query,**args))
+		
+
 
 
 #=-=-=-=-=-=-=-=-=-=-=-=-=-
