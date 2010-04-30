@@ -14,9 +14,13 @@ MONGOSOURCES_PATH = '../Data/OpenGovernment/MongoSources/'
 
 @activate(lambda x : x[0],lambda x : x[1])
 def createCollection(path,certpath):
+    """adds data from text file format into mongo.   path is name of textfile folder path -- and containing directory name is used to create collection name
+
+    """
 
 	path += '/' if path[-1] != '/' else ''	
-	
+
+	#loads metadata
 	M = pickle.load(open(path + '__metadata.pickle'))
 	
 	assert 'Subcollections' in M.keys(), 'No subcollection metadata found, aborting'
@@ -27,7 +31,7 @@ def createCollection(path,certpath):
 	Variables = AllMeta['VARIABLES']
 	VarMap = dict(zip(Variables,[str(x) for x in range(len(Variables))]))
 
-
+    #establishes conneciton to "govdata" database
 	connection =  pm.Connection()
 	db = connection['govdata']
 	collectionName = path.split('/')[-2]
@@ -99,8 +103,9 @@ def createCollection(path,certpath):
 		poss = [x for x in listdir(path) if x.startswith(str(k) + '.')]
 		assert len(poss) == 1, 'Identification of chunk file ' + str(k) + ' in directory ' + path + ' failed, aborting.'
 		fpath = poss[0]		
-#		assert hash == hashlib.sha1(str(pickle.load(open(path + fpath)))).hexdigest(), 'Hash of chunk file ' + str(k) + ' in directory ' + path + ' is incorrect, aborting.'
-		if fpath.endswith(('.csv','.tsv')):
+		#		assert hash == hashlib.sha1(str(pickle.load(open(path + fpath)))).hexdigest(), 'Hash of chunk file ' + str(k) + ' in directory ' + path + ' is incorrect, aborting.'
+	    
+		if fpath.endswith(('.csv','.tsv')): #handles situation when source text file is csv
 
 			X = tb.tabarray(SVfile = path + fpath,verbosity = 0)
 			names = X.dtype.names
@@ -109,11 +114,11 @@ def createCollection(path,certpath):
 				if sc in X.dtype.names:
 					sci = X.dtype.names.index(sc)
 					newx[sci] = newx[sci].split(',')
-				for tc in tcs: 
+				for tc in tcs: #handling time formatting
 					if tc in X.dtype.names:
 						tci = X.dtype.names.index(tc)
 						newx[tci] = TimeFormatter(newx[tci])
-				for spc in spcs:
+				for spc in spcs:  #space formatting and completiong
 					if spc in X.dtype.names:
 						spci = X.dtype.names.index(spc)
 						newx[spci] = eval(newx[spci])
@@ -123,24 +128,25 @@ def createCollection(path,certpath):
 						else:
 							newx[spci] = loc.SpaceComplete(newx[spci])
 							SpaceCache[t] = newx[spci].copy()
+						#TODO: geocoding would be added here 
 
 				collection.insert(dict(zip(names,newx)))
 				
-		elif fpath.endswith('.pickle'):
+		elif fpath.endswith('.pickle'):   #this is used when the source data is a pickle, containing dictionaries of things to be added as mongo documents
 			Chunk = pickle.load(open(path +  fpath))
 			for c in Chunk:
-				for tc in tcs:
+				for tc in tcs:   #time handling 
 					if tc in c.keys():
 						c[tc] = TimeFormatter(c[tc])
 				for spc in spcs:
-					if spc in c.keys():
+					if spc in c.keys():   #space
 						t = getT(c[spc])
 						if t in SpaceCache.keys():
 							c[spc] = SpaceCache[t].copy()
 						else:
 							c[spc] = loc.SpaceComplete(c[spc])
 							SpaceCache[t] = c[spc].copy()
-
+                #TODO:  geocoding also inserted here 
 				
 				collection.insert(c)
 		else:

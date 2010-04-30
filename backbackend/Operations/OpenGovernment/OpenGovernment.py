@@ -1,3 +1,6 @@
+"""This module sets initializes directory structure at high level and has some very basic common parsing utilities. 
+"""
+
 import numpy as np
 import tabular as tb
 import Operations.OpenGovernment.mongoUtils as mU
@@ -65,7 +68,9 @@ def gethierarchy(x,f,postprocessor = None):
 	
 
 def backendProtocol(collectionName,certdir = None, createCertDir = False, createPath = None, slicePath = None, indexPath = None, hashSlices=True, write = True,ID = None):
-	
+	"""This protocol is the workflow for getting source data into the backend.  It sets up three steps:  1) add collection to DB
+	2) makes the queryDB and 3) indexing the collection.    It writes certificates at each step to reflect completion in the filesystem. 
+	"""
 	if ID == None:
 		ID = collectionName
 	if ID and not ID.endswith('_'):

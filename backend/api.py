@@ -52,7 +52,24 @@ class FindHandler(tornado.web.RequestHandler):
 EXPOSED_ACTIONS = ['find','find_one','group','skip','limit','sort','count','distinct']
 
 def get(collectionName,querySequence,timeQuery=None, spaceQuery = None, returnMetadata=False,fh = None,returnObj = True,processor = None):
-	
+	"""
+	collectionName : String => collection name e.g. BEA_NIPA
+	querySequence : List[Pair[action,args]] => mongo db action read pymongo docs e.g. 
+		case args switch {
+			tuple => (pymongoargs,) args is a positional args to be sent to action e.g. single element tuple
+			dict => args is the dictionary of keyword arguments
+			two element list => [tuple,dict] first position element Tuple and second is keyword dictionary 
+		}
+		e.g.
+			tuple -> [("find",({"Topic":"Employment"},))]
+	timeQuery : Dict => {"format": ?, "begin": ?, "end": ?, "on": ?} begin, end, on are dates in "fomat" format
+	spaceQuery : Dict => {"s": ?, "c": ?, "f": {"s", "c"}}
+               : List => ["s", "c", "f.s"]
+	returnMetadata : Boolean => to return meta data
+	fh : Boolean => file handle to write to
+	returnObj : Boolean => store and return computed object
+	processor : lambda => processor applied to each row (TODO: fully implement this)
+	"""
 	collection = Collection(collectionName)
 	vars = collection.VARIABLES
 	ColumnGroups = collection.ColumnGroups
@@ -170,7 +187,7 @@ def get(collectionName,querySequence,timeQuery=None, spaceQuery = None, returnMe
 				kwargs = {}
 			posArgs.append(posargs)
 			kwArgs.append(kwargs)
-		
+		# Here is where the real stuff happens the other stuff is preprocessing the query
 		R = collection	
 		for (a,p,k) in zip(Actions,posArgs,kwArgs):
 			R = getattr(R,a)(*p,**k)	
@@ -285,6 +302,7 @@ def actionAct(a,v,o):
 		
 
 def processArg(arg,collection):
+	"""Translates the arg to human readable to collections"""
 	V = collection.VARIABLES
 	C = collection.ColumnGroups
 	if is_string_like(arg):
@@ -368,7 +386,15 @@ def getArgs(args):
 
 
 def find(query, timeQuery = None, spaceQuery = None, hlParams=None,facetParams=None,mltParams = None, **params):
-
+	"""
+		query : String => the query to solr
+		timeQuery => see get
+		spaceQuery => see get
+		hlParams => highlighting solr
+		facetParams => faceting solr
+		mltParams => mlt more like this solr thing
+		params: String|List => other params to solr
+	"""
 	if 'qt' not in params.keys():
 		params['qt'] = 'dismax'
 	if 'sort' not in params.keys():

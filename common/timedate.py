@@ -5,9 +5,11 @@ TIME_CODE_MAP = [('Y','Year',None),('h','Half',range(1,3)),('q','Quarter',range(
 (TIME_CODES,TIME_DIVISIONS,TIME_RANGES) = zip(*TIME_CODE_MAP)
 TIME_DIVISIONS = dict(zip(TIME_CODES,TIME_DIVISIONS))
 TIME_RANGES = dict(zip(TIME_CODES,TIME_RANGES))
+# For each code it gives you a hierarchical list of direct descendents in order
 TIME_HIERARCHY_RELATIONS = dict([('Y',['h','q','m','U','j']),('m',['d']),('d',['H']),('H',['M']),('M',['S']),('U',['w']),('w',['H']),('j',['H'])])
 
 def getHierarchy(f):
+	"""Converts a string format into a time hierarchy object template"""
 	H = []
 	f = list(f)
 	assert set(f) <= set(TIME_CODES), 'Some codes are not recognized.'
@@ -23,6 +25,7 @@ def getHierarchy(f):
 	
 	
 def getHierarchyBelow(tc,f):
+	"""Recursive Helper function for getHierarchy"""
 	if tc not in TIME_HIERARCHY_RELATIONS.keys():
 		return (tc,)
 	else:
@@ -35,6 +38,7 @@ def getHierarchyBelow(tc,f):
 	
 
 def mongotimeformatter(format):
+	"""Returns the anonymous format function"""
 	fbreaks = [0] + [i for i in range(1,len(format)) if format[i] != format[i-1]] + [len(format)]
 	fblocks = zip(fbreaks[:-1],fbreaks[1:])
 	fs = [format[b[0]] for b in fblocks]
@@ -43,6 +47,7 @@ def mongotimeformatter(format):
 						
 						
 def getFunc(H,fs,fblocks):
+	"""Helper for mongotimeformatter"""
 	def F(x):
 		Bdict = dict([(f,x[a:b]) for (f,(a,b)) in zip(fs,fblocks)])
 		return applyHierarchy(H,Bdict)
@@ -50,6 +55,7 @@ def getFunc(H,fs,fblocks):
 	
 	
 def applyHierarchy(H,bdict):
+	"""Helper for getFunc"""
 	if isinstance(H,list):
 		L = [applyHierarchy(h,bdict) for h in H]
 		return son.SON([l for l in L if l[1]])
@@ -65,6 +71,7 @@ def applyHierarchy(H,bdict):
 		return (H[0],F)
 	
 def tObjFlatten(tObj):
+	"""Flattens a Time object from hierachical to flat"""
 	S = {}
 	for l in tObj.keys():
 		if hasattr(tObj[l],'keys'):
@@ -72,7 +79,11 @@ def tObjFlatten(tObj):
 			S.update(tObjFlatten(tObj[l]))
 	return S
 
-def generateQueries(DateFormat,timeQuery):	
+def generateQueries(DateFormat,timeQuery):
+	"""Converts nice DateFormat string and simple query format for time and generate mongo icky
+	DateFormat : String e.g. YYYYmmdd
+	timeQuery : Dict keys = format, begin, end, on
+	These are not necessary"""
 	timeQueryFormat = timeQuery['format'] if 'format' in timeQuery.keys() else DateFormat
 	tQFset = set(timeQueryFormat)
 	tFset = set(DateFormat)
@@ -118,6 +129,7 @@ def generateQueries(DateFormat,timeQuery):
 		return Q
 	
 def getPathsTo(m,H):
+	"""Helper for generateQueries"""
 	if isinstance(H,list):
 		L =  ListUnion([getPathsTo(m,h) for h in H])
 		return [l for l in L if l]
@@ -132,6 +144,7 @@ def getPathsTo(m,H):
 				return [()]
 
 def getLowest(tObj):
+	"""Helper which for any given time object gets the lowest relevant level(s)"""
 	lowest =[]
 	for k in tObj.keys():
 		if hasattr(tObj[k],'keys'):
@@ -146,6 +159,7 @@ def getLowest(tObj):
 import datetime
 
 def convertToDT(tObj,convertMode = 'Low'):
+	"""Convert to python DateTime format"""
 	assert convertMode in ['Low','High']
 	ftObj = tObjFlatten(tObj)
 	tlist = []
@@ -164,11 +178,15 @@ def convertToDT(tObj,convertMode = 'Low'):
 	return datetime.date(*tlist)
 	
 def convertToSolrDT(tObj,convertMode = 'Low'):
+	"""Convert to solr DateTime format
+	it only handles year month day not hour minute second"""
 	DT = convertToDT(tObj,convertMode=convertMode)
 	return DT.strftime('%Y-%m-%d') + ('T00:00:00.999Z' if convertMode == 'Low' else 'T23:59:59.999Z')
 
 
 def queryToSolr(timeQuery):
+	"""converts timeQuery for use in find ie solr"""
+	#TODO: query between march and december fails handle things that don't start with year
 	F = mongotimeformatter(timeQuery['format'])
 	for k in timeQuery.keys():
 		if k != 'format':
@@ -213,6 +231,7 @@ def makemax(old,new):
 
 	
 def phrase(tObj,convertMode = 'Low'):
+	"""Constructs human readable phrase from mongo dateObject"""
 	dateObj = convertToDT(tObj,convertMode = convertMode)
 	ftObj = tObjFlatten(tObj)
 	X =  [('w', '%A' ), ('m','%B') , ('d', '%d'), ('Y','%Y')]
@@ -223,6 +242,8 @@ def phrase(tObj,convertMode = 'Low'):
 	return H
 
 def checkQuery(timeQuery,OverallTime):
+	"""compares timeQuery to OverallTime and if they match then returns nil
+	Otherwise it removes the unnessary timeQuery properites to match to the correct remaining format"""
 	ot = OverallTime['date']
 	otf = OverallTime['format']
 	

@@ -41,7 +41,7 @@ def getQueryList(collectionName,keys):
 
 @activate(lambda x : x[1],lambda x : x[2])
 def makeQueryDB(collectionName,incertpath,certpath, hashSlices=True):
-	
+	"""Make the query database"""
 	collection = Collection(collectionName)
 	sliceCols = collection.sliceCols
 	if is_string_like(sliceCols[0]):
@@ -104,7 +104,7 @@ STANDARD_META_FORMATS = {'keywords':'tplist','last_modified':'dt','dateReleased'
 
 @activate(lambda x : x[1],lambda x : x[2])
 def indexCollection(collectionName,incertpath,certpath):
-
+	"""index collection object"""
 	ArgDict = {}
 	
 	collection = Collection(collectionName)

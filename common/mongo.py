@@ -1,6 +1,9 @@
 import pymongo as pm
 	
 class Collection(pm.collection.Collection):
+    """Extends the pymongo collection object for the special case of govdata collections, meaning attaching stuff from 
+    from the metadata collection as well as the slices from the query database. 
+    """
 	
 	def __init__(self,name,connection = None):
 		if connection == None:

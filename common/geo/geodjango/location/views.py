@@ -10,7 +10,11 @@ def main(request):
 	return HttpResponse(str(request))
 	
 def geodb(request,level_code):
-
+	"""General geodb lookup function
+	Supports all meaningful queries in the geos api
+	models.$level.objects.$method($field__$type=$query)
+	e.g.
+		models.USStates.objects.filter(geom__contains="POINT(-73 40)")"""
 	if request.method == 'GET':
 		g = request.GET
 	elif request.method == 'POST':
@@ -20,7 +24,7 @@ def geodb(request,level_code):
 	
 	
 def geodbGuts(g,level_code):
-
+	"""General geodb lookup function Helper"""
 	level = loc.SPACE_DB_TABLES[level_code]
 	
 	methodstr = g['method']
@@ -79,7 +83,8 @@ def geodbGuts(g,level_code):
 	
 
 def fips(request):
-
+	"""Takes nice fibs make ugly query using geodb
+	Does the complete at different levels"""
 	g = request.GET
 	
 	h = dict(g.items())
@@ -88,7 +93,7 @@ def fips(request):
 
 	
 def fipsGuts(g):
-	
+	"""Not really used (deprecated)"""
 	keys = set([k for k in g])
 	
 	lowest = loc.getLowest(keys)					
@@ -123,7 +128,7 @@ def fipsGuts(g):
 	
 	
 def fipsHierarchy(g,action = 'contains'):
-
+	"""Guts function for fips"""
 	if 'action' in g:
 		action = g['action']
 		g.pop('action')
@@ -186,6 +191,15 @@ def fipsHierarchy(g,action = 'contains'):
 	return H
 	
 def regions(request,level_code):
+	"""Region takes bounding box or radius and returns the relevant geodb query
+	request = bounds, level_code = space_size
+	bounds -> {west, south, east, north}
+	e.g.
+		bounding box :
+			{"bounds":"-75,40,-73,43"}
+		radius center:
+			{"radius":"10", "center":"-75,40", "units":"km"}
+	"""
 	g = request.GET
 	return HttpResponse(json.dumps(regionsGuts(g,level_code)))
 	

@@ -77,7 +77,7 @@ SPACE_RELATIONS = [('O','C'),
 
 import networkx as nx
 def makeHierarchy(V,E):
-
+	"""Convert hierarchy into a network graph and creates a dictionary of ordered list to describe the hiearchy"""
 	G = nx.DiGraph()
 	for v in V:
 		G.add_node(v)
@@ -105,18 +105,20 @@ def makeHierarchy(V,E):
 
 		
 def divisions(l):
+	"""Converts space object (dict) into the levels auto expands FIPS codes"""
 	assert set(l.keys()) <= set(SPACE_DIVISIONS.keys()), 'Unrecognized spatial key codes.'
 	return [SPACE_DIVISIONS[x] for x in l.keys() if x != 'f'] + ([SPACE_DIVISIONS[x] +  ' FIPS' for x in l['f']] if 'f' in l.keys() else [])
 	
 def phrase(l):
+	"""Human readable phrase"""
 	return ', '.join([SPACE_DIVISIONS[x] + '=' + y  for (x,y) in l.items() if x != 'f'] + ([SPACE_DIVISIONS[x] + ' FIPS=' + y for (x,y) in l['f'].items()] if 'f' in l.keys() else []))
 	
 def modPhrase(l):
+	"""phrase for phrase matching indexing"""
 	return ' '.join(['"' + SPACE_DIVISIONS[x] + '=' + y + '"' for (x,y) in l.items() if x != 'f'] + (['"' + SPACE_DIVISIONS[x] + ' FIPS=' + y + '"' for (x,y) in l['f'].items()] if 'f' in l.keys() else []))
-	
-	
-	
+
 def integrate(l1,l2):
+	"""Combines two space objects"""
 	if not l1:
 		return l2
 	elif not l2:
@@ -133,6 +135,7 @@ def integrate(l1,l2):
 		
 		
 def intersect(l1,l2):
+	"""Intersects two space objects"""
 	I = dict([(k,l1[k]) for k in set(l1.keys()).intersection(l2.keys())])
 	
 	for (k,v) in l2.items():
@@ -152,7 +155,7 @@ def intersect(l1,l2):
 	
 	
 def generateQueries(spaceQuery):	
-
+	"""Generates queries for get in mongo"""
 	Q = {}
 	if isinstance(spaceQuery,list) or isinstance(spaceQuery,tuple):
 		for x in uniqify(spaceQuery):
@@ -166,6 +169,8 @@ def generateQueries(spaceQuery):
 	return Q
 
 def checkQuery(spaceQuery,ol):
+	"""compares spaceQuery to ol and if they match then returns nil
+	Otherwise it removes the unnessary spaceQuery properites to match to the correct remaining format"""
 	if isinstance(spaceQuery,list) or isinstance(spaceQuery,tuple):
 		for k in spaceQuery:
 			if rhasattr(ol,k.split('.')):
@@ -196,6 +201,7 @@ def getLowest(keys):
 	return [k for k in keys if len(keys.intersection(SPACE_HIERARCHY[k])) == 1]
 	
 def SpaceComplete(x):
+	"""FIPS -> names and upwards when possible"""
 	if 'f' in x.keys():
 		x = x.copy()
 		iFIPS = ListUnion([SPACE_HIERARCHY_R[c] for c in x['f'].keys()])
@@ -214,7 +220,7 @@ def SpaceComplete(x):
 					
 
 def queryToSolr(spaceQuery):
-
+	"""Make query to solr"""
 	if isinstance(spaceQuery,list) or isinstance(spaceQuery,tuple):
 		div = ['"' + x + '"' for x in  divisions(convertQS(spaceQuery))]
 		fq = 'spatialDivisions:' + (div[0] if len(div) == 1 else '(' + ' AND '.join(div) + ')')
