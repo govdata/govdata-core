@@ -53,9 +53,9 @@ iLEVEL_CODES = dict([(y,x) for (x,y) in LEVEL_CODES.items()])
 iLEVEL_NAMES = dict([(y,x) for (x,y) in LEVEL_NAMES.items()])
 
 def convertToCodes(x):
-	n = [(iLEVEL_NAMES[l],x[l]) for l in x.keys() if l in iLEVEL_NAMES.keys()]
-	m =  dict([(iLEVEL_CODES[l],x[l]) for l in x.keys() if l in iLEVEL_CODES.keys()])
-	return dict(n + ([('f',m)]  if m else []))
+    n = [(iLEVEL_NAMES[l],x[l]) for l in x.keys() if l in iLEVEL_NAMES.keys()]
+    m =  dict([(iLEVEL_CODES[l],x[l]) for l in x.keys() if l in iLEVEL_CODES.keys()])
+    return dict(n + ([('f',m)]  if m else []))
 
 SPACE_RELATIONS = [('O','C'),
 ('C','s'),
@@ -77,167 +77,167 @@ SPACE_RELATIONS = [('O','C'),
 
 import networkx as nx
 def makeHierarchy(V,E):
-	"""Convert hierarchy into a network graph and creates a dictionary of ordered list to describe the hiearchy"""
-	G = nx.DiGraph()
-	for v in V:
-		G.add_node(v)
-	for e in E:
-		if is_string_like(e[0]):
-			s = e[0]
-		else:
-			s = e[0][0]
-		if is_string_like(e[1]):
-			t = e[1]
-		else:
-			t = e[1][0]
-		G.add_edge(s,t)
-			
-	H = dict([(o,v.keys()) for (o,v) in nx.all_pairs_shortest_path(G).items()])	
-	T = nx.topological_sort(G)
-	for k in H.keys():
-		H[k] = [j for j in T if j in H[k]]
-	
-	return [G,H]
-		
+    """Convert hierarchy into a network graph and creates a dictionary of ordered list to describe the hiearchy"""
+    G = nx.DiGraph()
+    for v in V:
+        G.add_node(v)
+    for e in E:
+        if is_string_like(e[0]):
+            s = e[0]
+        else:
+            s = e[0][0]
+        if is_string_like(e[1]):
+            t = e[1]
+        else:
+            t = e[1][0]
+        G.add_edge(s,t)
+            
+    H = dict([(o,v.keys()) for (o,v) in nx.all_pairs_shortest_path(G).items()]) 
+    T = nx.topological_sort(G)
+    for k in H.keys():
+        H[k] = [j for j in T if j in H[k]]
+    
+    return [G,H]
+        
 
 [SPACE_HIERARCHY_GRAPH,SPACE_HIERARCHY] = makeHierarchy(SPACE_CODES,SPACE_RELATIONS)
 [SPACE_HIERARCHY_GRAPH_R,SPACE_HIERARCHY_R] = makeHierarchy(SPACE_CODES,[(y,x) for (x,y) in SPACE_RELATIONS])
 
-		
+        
 def divisions(l):
-	"""Converts space object (dict) into the levels auto expands FIPS codes"""
-	assert set(l.keys()) <= set(SPACE_DIVISIONS.keys()), 'Unrecognized spatial key codes.'
-	return [SPACE_DIVISIONS[x] for x in l.keys() if x != 'f'] + ([SPACE_DIVISIONS[x] +  ' FIPS' for x in l['f']] if 'f' in l.keys() else [])
-	
+    """Converts space object (dict) into the levels auto expands FIPS codes"""
+    assert set(l.keys()) <= set(SPACE_DIVISIONS.keys()), 'Unrecognized spatial key codes.'
+    return [SPACE_DIVISIONS[x] for x in l.keys() if x != 'f'] + ([SPACE_DIVISIONS[x] +  ' FIPS' for x in l['f']] if 'f' in l.keys() else [])
+    
 def phrase(l):
-	"""Human readable phrase"""
-	return ', '.join([SPACE_DIVISIONS[x] + '=' + y  for (x,y) in l.items() if x != 'f'] + ([SPACE_DIVISIONS[x] + ' FIPS=' + y for (x,y) in l['f'].items()] if 'f' in l.keys() else []))
-	
+    """Human readable phrase"""
+    return ', '.join([SPACE_DIVISIONS[x] + '=' + y  for (x,y) in l.items() if x != 'f'] + ([SPACE_DIVISIONS[x] + ' FIPS=' + y for (x,y) in l['f'].items()] if 'f' in l.keys() else []))
+    
 def modPhrase(l):
-	"""phrase for phrase matching indexing"""
-	return ' '.join(['"' + SPACE_DIVISIONS[x] + '=' + y + '"' for (x,y) in l.items() if x != 'f'] + (['"' + SPACE_DIVISIONS[x] + ' FIPS=' + y + '"' for (x,y) in l['f'].items()] if 'f' in l.keys() else []))
+    """phrase for phrase matching indexing"""
+    return ' '.join(['"' + SPACE_DIVISIONS[x] + '=' + y + '"' for (x,y) in l.items() if x != 'f'] + (['"' + SPACE_DIVISIONS[x] + ' FIPS=' + y + '"' for (x,y) in l['f'].items()] if 'f' in l.keys() else []))
 
 def integrate(l1,l2):
-	"""Combines two space objects"""
-	if not l1:
-		return l2
-	elif not l2:
-		return l1
-	else:
-		D = l1.copy()
-		for (k,v) in l2.items():
-			if is_string_like(v):
-				D[k] = v
-			else:
-				assert is_instance(v,dict)
-				D[k].update(v)
-		return D
-		
-		
+    """Combines two space objects"""
+    if not l1:
+        return l2
+    elif not l2:
+        return l1
+    else:
+        D = l1.copy()
+        for (k,v) in l2.items():
+            if is_string_like(v):
+                D[k] = v
+            else:
+                assert is_instance(v,dict)
+                D[k].update(v)
+        return D
+        
+        
 def intersect(l1,l2):
-	"""Intersects two space objects"""
-	I = dict([(k,l1[k]) for k in set(l1.keys()).intersection(l2.keys())])
-	
-	for (k,v) in l2.items():
-		if k in I.keys() and v != I[k]:
-			if is_string_like(v):
-				for j in SPACE_HIERARCHY[k]:
-					if j in I.keys():
-						I.pop(j)
-			else:
-				D = intersect(I[k],v)
-				if D:
-					I[k] = D
-				else:
-					I.pop(k)
-		
-	return I
-	
-	
-def generateQueries(spaceQuery):	
-	"""Generates queries for get in mongo"""
-	Q = {}
-	if isinstance(spaceQuery,list) or isinstance(spaceQuery,tuple):
-		for x in uniqify(spaceQuery):
-			Q[tuple(x.split('.'))] = {'$exists':True}
-	
-	elif hasattr(spaceQuery,'keys'):
-		spaceQuery = convertSQ(spaceQuery)
-		for x in spaceQuery.keys():
-			Q[tuple(x.split('.'))] = spaceQuery[x]
-			
-	return Q
+    """Intersects two space objects"""
+    I = dict([(k,l1[k]) for k in set(l1.keys()).intersection(l2.keys())])
+    
+    for (k,v) in l2.items():
+        if k in I.keys() and v != I[k]:
+            if is_string_like(v):
+                for j in SPACE_HIERARCHY[k]:
+                    if j in I.keys():
+                        I.pop(j)
+            else:
+                D = intersect(I[k],v)
+                if D:
+                    I[k] = D
+                else:
+                    I.pop(k)
+        
+    return I
+    
+    
+def generateQueries(spaceQuery):    
+    """Generates queries for get in mongo"""
+    Q = {}
+    if isinstance(spaceQuery,list) or isinstance(spaceQuery,tuple):
+        for x in uniqify(spaceQuery):
+            Q[tuple(x.split('.'))] = {'$exists':True}
+    
+    elif hasattr(spaceQuery,'keys'):
+        spaceQuery = convertSQ(spaceQuery)
+        for x in spaceQuery.keys():
+            Q[tuple(x.split('.'))] = spaceQuery[x]
+            
+    return Q
 
 def checkQuery(spaceQuery,ol):
-	"""compares spaceQuery to ol and if they match then returns nil
-	Otherwise it removes the unnessary spaceQuery properites to match to the correct remaining format"""
-	if isinstance(spaceQuery,list) or isinstance(spaceQuery,tuple):
-		for k in spaceQuery:
-			if rhasattr(ol,k.split('.')):
-				spaceQuery.pop(k)
-				
-		return True
-	elif hasattr(spaceQuery,'keys'):
-		spaceQuery = convertSQ(spaceQuery)
-		OK = True
-		for k in spaceQuery.keys():
-			sq = spaceQuery[k]
-			if rhasattr(ol,k.split('.')):
-				spaceQuery.pop(k)
-				if rgetattr(ol,k.split('.')) != sq:
-					OK = False
-		return OK
-			
+    """compares spaceQuery to ol and if they match then returns nil
+    Otherwise it removes the unnessary spaceQuery properites to match to the correct remaining format"""
+    if isinstance(spaceQuery,list) or isinstance(spaceQuery,tuple):
+        for k in spaceQuery:
+            if rhasattr(ol,k.split('.')):
+                spaceQuery.pop(k)
+                
+        return True
+    elif hasattr(spaceQuery,'keys'):
+        spaceQuery = convertSQ(spaceQuery)
+        OK = True
+        for k in spaceQuery.keys():
+            sq = spaceQuery[k]
+            if rhasattr(ol,k.split('.')):
+                spaceQuery.pop(k)
+                if rgetattr(ol,k.split('.')) != sq:
+                    OK = False
+        return OK
+            
 def convertSQ(sq):
-	return dict([(k,v) for (k,v) in sq.items() if k != 'f'] + ([('f.' + k,v) for (k,v) in sq['f'].items() ]  if 'f' in sq.keys() else []))
-	
+    return dict([(k,v) for (k,v) in sq.items() if k != 'f'] + ([('f.' + k,v) for (k,v) in sq['f'].items() ]  if 'f' in sq.keys() else []))
+    
 def convertQS(sq):
-	nFIPS = [k for k  in sq if not k.startswith('f.')]
-	FIPS = [k[2:] for k in sq if k.startswith('f.')]
+    nFIPS = [k for k  in sq if not k.startswith('f.')]
+    FIPS = [k[2:] for k in sq if k.startswith('f.')]
 
-	return dict(zip(nFIPS,['']*len(nFIPS)) + ([('f',dict(zip(FIPS,['']*len(FIPS))))] if FIPS else []))
+    return dict(zip(nFIPS,['']*len(nFIPS)) + ([('f',dict(zip(FIPS,['']*len(FIPS))))] if FIPS else []))
 
 def getLowest(keys):
-	return [k for k in keys if len(keys.intersection(SPACE_HIERARCHY[k])) == 1]
-	
+    return [k for k in keys if len(keys.intersection(SPACE_HIERARCHY[k])) == 1]
+    
 def SpaceComplete(x):
-	"""FIPS -> names and upwards when possible"""
-	if 'f' in x.keys():
-		x = x.copy()
-		iFIPS = ListUnion([SPACE_HIERARCHY_R[c] for c in x['f'].keys()])
-		iFIPS = [c for c in iFIPS if c not in x.keys()]
-		Cset = [c + '=' + x['f'][c] for c in x['f'].keys() if uniqify(x['f'][c]) != ['0']]
-		if iFIPS and Cset:
-			X = eval(urllib2.urlopen('http://localhost:8000/fips/?' + '&'.join(Cset)).read())
-			if len(X) == 1:
-				X = convertToCodes(X[0])
-				x['f'] = X['f']
-				for c in X.keys():
-					if c not in x.keys():
-						x[c] = X[c]
-			
-	return x
-					
+    """FIPS -> names and upwards when possible"""
+    if 'f' in x.keys():
+        x = x.copy()
+        iFIPS = ListUnion([SPACE_HIERARCHY_R[c] for c in x['f'].keys()])
+        iFIPS = [c for c in iFIPS if c not in x.keys()]
+        Cset = [c + '=' + x['f'][c] for c in x['f'].keys() if uniqify(x['f'][c]) != ['0']]
+        if iFIPS and Cset:
+            X = eval(urllib2.urlopen('http://localhost:8000/fips/?' + '&'.join(Cset)).read())
+            if len(X) == 1:
+                X = convertToCodes(X[0])
+                x['f'] = X['f']
+                for c in X.keys():
+                    if c not in x.keys():
+                        x[c] = X[c]
+            
+    return x
+                    
 
 def queryToSolr(spaceQuery):
-	"""Make query to solr"""
-	if isinstance(spaceQuery,list) or isinstance(spaceQuery,tuple):
-		div = ['"' + x + '"' for x in  divisions(convertQS(spaceQuery))]
-		fq = 'spatialDivisions:' + (div[0] if len(div) == 1 else '(' + ' AND '.join(div) + ')')
-		return fq
-		
-	elif hasattr(spaceQuery,'keys'):
-		if 'bounds' in spaceQuery.keys():
-			level = spaceQuery['level']
-			phrases = [modPhrase(convertToCodes(x)) for x in eval(urllib2.urlopen('http://localhost:8000/regions/' + level + '/?bounds=' + spaceQuery['bounds']).read())]
-		
-		elif 'radius' in spaceQuery.keys():
-			level = spaceQuery['level']
-			phrases = [modPhrase(convertToCodes(x)) for x in eval(urllib2.urlopen('http://localhost:8000/regions/' + level + '/?radius=' + spaceQuery['radius'] + '&center=' + spaceQuery['center'] + ('&units=' + spaceQuery['units'] if 'units' in spaceQuery.keys() else '')).read())]
-		else:
-			spaceQuery = spaceQuery.copy()
-			SpaceComplete(spaceQuery)
-			phrases = [modPhrase(spaceQuery)]
-					
-		return 'commonLocation:' + '(' + ' OR '.join(phrases) + ')' 
+    """Make query to solr"""
+    if isinstance(spaceQuery,list) or isinstance(spaceQuery,tuple):
+        div = ['"' + x + '"' for x in  divisions(convertQS(spaceQuery))]
+        fq = 'spatialDivisions:' + (div[0] if len(div) == 1 else '(' + ' AND '.join(div) + ')')
+        return fq
+        
+    elif hasattr(spaceQuery,'keys'):
+        if 'bounds' in spaceQuery.keys():
+            level = spaceQuery['level']
+            phrases = [modPhrase(convertToCodes(x)) for x in eval(urllib2.urlopen('http://localhost:8000/regions/' + level + '/?bounds=' + spaceQuery['bounds']).read())]
+        
+        elif 'radius' in spaceQuery.keys():
+            level = spaceQuery['level']
+            phrases = [modPhrase(convertToCodes(x)) for x in eval(urllib2.urlopen('http://localhost:8000/regions/' + level + '/?radius=' + spaceQuery['radius'] + '&center=' + spaceQuery['center'] + ('&units=' + spaceQuery['units'] if 'units' in spaceQuery.keys() else '')).read())]
+        else:
+            spaceQuery = spaceQuery.copy()
+            SpaceComplete(spaceQuery)
+            phrases = [modPhrase(spaceQuery)]
+                    
+        return 'commonLocation:' + '(' + ' OR '.join(phrases) + ')' 
 
