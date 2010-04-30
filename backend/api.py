@@ -36,7 +36,7 @@ class FindHandler(tornado.web.RequestHandler):
         self.write(find(query,**args))
 
     def post(self):
-                args = json.loads(self.request.body)
+        args = json.loads(self.request.body)
         args = dict([(str(x),y) for (x,y) in args.items()])
         query = args.pop('q')
         self.write(find(query,**args))
