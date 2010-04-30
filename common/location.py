@@ -216,7 +216,7 @@ def SpaceComplete(x):
 					if c not in x.keys():
 						x[c] = X[c]
 			
-		return x
+	return x
 					
 
 def queryToSolr(spaceQuery):
