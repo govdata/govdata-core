@@ -21,7 +21,7 @@ class Collection(pm.collection.Collection):
             self.slices = db[slicesname]
             
         versionsname = '__' + name + '__VERSIONS__'
-        if versions in db.collection_names():
+        if versionsname in db.collection_names():
             self.versions = db[versionsname]
             currentVersion = max(self.versions.distinct('__versionNumber__'))
             self.currentVersion = currentVersion
@@ -33,7 +33,7 @@ class Collection(pm.collection.Collection):
             self.metadata = dict([(l['__name__'],l) for l in self.metaCollection.find()])
         
     def subcollection_names(self):
-        return self.meta.keys()
+        return self.metadata.keys()
         
     def __getattr__(self,name):
         try:

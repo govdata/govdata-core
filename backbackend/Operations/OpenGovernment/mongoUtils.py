@@ -4,7 +4,7 @@ import pymongo as pm
 import gridfs as gfs
 import cPickle as pickle
 import tabular as tb
-from common.utils import IsFile, listdir, is_string_like, ListUnion,createCertificate
+from common.utils import IsFile, listdir, is_string_like, ListUnion,createCertificate, uniqify
 from common.mongo import cleanCollection
 import common.timedate as td
 import common.location as loc
@@ -156,11 +156,11 @@ def createCollection(path,certpath):
 
 
     
-@activate(lambda x : x[0],lambda x : x[1])
+@activate(lambda x : MONGOSOURCES_PATH + x[0] + '/',lambda x : x[1])
 def updateCollection(collectionName,certpath):
     """incremental version of createCollection
     """
-    path = MONGO_SOURCES_PATH + collectionName
+    path = MONGOSOURCES_PATH + collectionName + '/'
    
     #loads metadata
     metadata = pickle.load(open(path + '__metadata.pickle'))
@@ -171,6 +171,7 @@ def updateCollection(collectionName,certpath):
     
     assert 'VARIABLES' in AllMeta.keys(), 'No variable information provided, aborting.'
     Variables = AllMeta['VARIABLES']
+    newVarMap =  dict(zip(Variables,[str(x) for x in range(len(Variables))])) 
 
     connection =  pm.Connection()
     db = connection['govdata']
@@ -181,15 +182,15 @@ def updateCollection(collectionName,certpath):
     
     collection = db[collectionName]
     metacollection = db[metaCollectionName]
-    versions = db[versionName]      
+    versions = db[versionName]        
     queryDeltaDB = db[queryDeltaName]
-    cleanCollection(queryDeltaDB) 
+
 
     assert 'UniqueIndexes' in AllMeta.keys(), 'No unique indexes specified'
     uniqueIndexes =  AllMeta['UniqueIndexes']
     uniqueIndexes += ['__versionNumber__']
 
-    if collectionName in db.collectionNames():
+    if collectionName in db.collection_names():
         versionNumber = max(versions.distinct('__versionNumber__')) + 1
         storedAllMetadata = metacollection.find_one({'__name__':'','__versionNumber__':versionNumber-1})
         storedVariables = storedAllMetadata['totalVariables']
@@ -197,7 +198,7 @@ def updateCollection(collectionName,certpath):
         newVars = [x for x in Variables if not x in storedVariables]
         totalVariables = storedVariables  + newVars
         varReMap = dict([(str(Variables.index(x)),str(totalVariables.index(x))) for x in oldVars] + [(str(Variables.index(x)),str(len(storedVariables) + i)) for (i,x) in enumerate(newVars)])  
-        totalVarMap = dict(zip(totalVariables,[str(x) for x in range(len(totalVariables))]))   
+        VarMap = dict(zip(totalVariables,[str(x) for x in range(len(totalVariables))]))   
         
         #check things and clean if wrong
         
@@ -210,35 +211,35 @@ def updateCollection(collectionName,certpath):
         totalVariables = specialKeys + Variables
         L = len(Variables)
         varReMap =dict([(str(x),str(x + len(specialKeys))) for x in range(L)])
-        totalVarMap = dict(zip(totalVariables,[str(x) for x in range(len(totalVariables))]))   
-        
+        VarMap = dict(zip(totalVariables,[str(x) for x in range(len(totalVariables))]))   
         
         IndexCols = ['Subcollections']
         if 'ColumnGroups' in AllMeta.keys():
-            for k in ['sliceCols','IndexColumns','LabelColumns','TimeColumns','SpaceColumns']:
+            for k in ['IndexColumns','LabelColumns','TimeColumns','SpaceColumns']:
                 if k in AllMeta['ColumnGroups'].keys():
                     IndexCols += AllMeta['ColumnGroups'][k]
-        IndexCols = uniqify(IndexCols)
+        IndexCols = uniqify(IndexCols + ListUnion(AllMeta['sliceCols']))
+
         for col in IndexCols:
             if col in VarMap.keys() and col not in uniqueIndexes:
                 collection.ensure_index(VarMap[col])
         
-        cols = zip([VarMap[c] for c in uniqueIndexes],[pm.DESCENDING]*len(UniqueIndexes))
+        cols = zip([VarMap[c] for c in uniqueIndexes],[pm.DESCENDING]*len(uniqueIndexes))
         collection.ensure_index(cols,unique=True,dropDups=True)
     
-        metacollection.ensure_index(['__name__','__versionNumber__'], unique=True)
+        metacollection.ensure_index([('__name__',pm.DESCENDING),('__versionNumber__',pm.DESCENDING)], unique=True)
           
-    vNInde = totalVariables.index('__versionNumber__')
-    retInd = totalVariables.index('__retained__')
-    aKInd = totalVariables.index('__addedKeys__')
+    vNInd = str(totalVariables.index('__versionNumber__'))
+    retInd = str(totalVariables.index('__retained__'))
+    aKInd = str(totalVariables.index('__addedKeys__'))
   
     if 'DateFormat' in AllMeta.keys():
         TimeFormatter = td.mongotimeformatter(AllMeta['DateFormat'])
     
     AllMeta['totalVariables'] = totalVariables
     AllMeta['Source'] = pm.son.SON(AllMeta['Source'])
-    for k in M['Subcollections'].keys():
-        x = M['Subcollections'][k]
+    for k in metadata['Subcollections'].keys():
+        x = metadata['Subcollections'][k]
         x['__name__'] = k
         x['__versionNumber__'] = versionNumber
         id = metacollection.insert(x,safe=True)
@@ -256,23 +257,23 @@ def updateCollection(collectionName,certpath):
             G.put(S)   
             
     if 'Subcollections' in VarMap.keys():
-        sc = VarMap['Subcollections']
+        sc = newVarMap['Subcollections']
     else:
         sc = None
+    print sc
     if 'TimeColumns' in AllMeta['ColumnGroups'].keys():
-        tcs = [VarMap[tc] for tc in AllMeta['ColumnGroups']['TimeColumns']]
+        tcs = [newVarMap[tc] for tc in AllMeta['ColumnGroups']['TimeColumns']]
     else:
         tcs = []
     
     if 'SpaceColumns' in AllMeta['ColumnGroups'].keys():
-        spcs = [VarMap[spc] for spc in AllMeta['ColumnGroups']['SpaceColumns']]
+        spcs = [newVarMap[spc] for spc in AllMeta['ColumnGroups']['SpaceColumns']]
     else:
         spcs = []
         
     SpaceCache = {}             
-    for k in M['Hashes'].keys():
+    for k in metadata['Hashes'].keys():
         print 'Adding chunk', k
-        hash = M['Hashes'][k]
         poss = [x for x in listdir(path) if x.startswith(str(k) + '.')]
         assert len(poss) == 1, 'Identification of chunk file ' + str(k) + ' in directory ' + path + ' failed, aborting.'
         fpath = poss[0]     
@@ -302,10 +303,8 @@ def updateCollection(collectionName,certpath):
                         #TODO: geocoding would be added here 
                 c = dict(zip(names,newx))
               
-                ID = processRecord(c,collection,totalVarMap,varReMap,uniqueIndexes,versionNumber,vNInd,retInd,aKind)
-                if ID:
-                    queryDeltaDB.insert({'recNum':ID})
-                    
+                ID = processRecord(c,collection,VarMap,varReMap,uniqueIndexes,versionNumber,vNInd,retInd,aKInd)
+
         elif fpath.endswith('.pickle'):
             Chunk = pickle.load(open(path +  fpath))
             for c in Chunk:
@@ -321,16 +320,8 @@ def updateCollection(collectionName,certpath):
                             c[spc] = loc.SpaceComplete(c[spc])
                             SpaceCache[t] = c[spc].copy()
                 
-                ID = processRecord(c,collection,totalVarMap,varReMap,uniqueIndexes,versionNumber,vNInd,retInd,aKind)
-                if ID:
-                    queryDeltaDB.insert({'recNum':ID})
-                        
-    #put in all things in vN-1 with no retained key in queryDeltaDB 
-    H = collection.find({'__retained__':{'$exists':False},'__versionNumber__':versionNumber-1},fields=['_id'])
-    for h in H:
-        queryDeltaDB.insert({'recNum':h['_id']})
+                ID = processRecord(c,collection,VarMap,varReMap,uniqueIndexes,versionNumber,vNInd,retInd,aKInd)
 
-    
     ts = td.Now()
     newVersion = {'__versionNumber__': versionNumber, '__timeStamp__':ts}
     versions.insert(newVersion)
@@ -338,30 +329,38 @@ def updateCollection(collectionName,certpath):
                     
 def processRecord(c,collection,VarMap,varReMap,uniqueIndexes,versionNumber,vNInd,retInd,aKInd):
 
-        c = dict([(varReMap(k),c[k]) for k in c.keys()])
+        c = dict([(varReMap[k],c[k]) for k in c.keys()])
         c[vNInd] = versionNumber
-        s = dict([(VarMap[k],c[k]) for k in uniqueIndexes])
+        s = dict([(VarMap[k],c[VarMap[k]]) for k in uniqueIndexes])
         s[vNInd] -= 1
         
         H = collection.find_one(s)
-
+       
         if not H: 
             id=collection.insert(c)     
             return id
 
         else:
-            if H != c:
-                diff = dict([(k,H[k]) for k in H.keys() if k not in c.keys() or H[k] != c[k] if k != '_id' and k != vNInd])
-                if diff:
-                    diff[vNInd] = H[vNInd]
-                    diff[retInd] = True
-                newkeys = [k for k in c.keys() if k not in H.keys()]
-                if newkeys:
-                    diff[aKInd] = newkeys
-                    
-                collection.update(s,diff)               
-                return H['_id']
-
-        
+			collection.insert(c)
+			diff = dict([(k,H[k]) for k in H.keys() if k != '_id' and k != vNInd and (k not in c.keys() or notEqual(H[k],c[k])) ])
+			if diff:
+				diff[vNInd] = H[vNInd]
+				diff[retInd] = True
+			newkeys = [k for k in c.keys() if k not in H.keys()]
+			if newkeys:
+				diff[aKInd] = newkeys
+			
+			if diff:
+				collection.update(s,diff)             
+			else:
+				collection.remove(s)
+				
+			return H['_id']
+			
+import numpy
+isnan = numpy.isnan
+def notEqual(x,y):
+	return x != y and not (isnan(x) and isnan(y))
+	
 def getT(x):
     return tuple([(k,v) for (k,v) in x.items() if k != 'f'])

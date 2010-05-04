@@ -80,6 +80,58 @@ def makeQueryDB(collectionName,incertpath,certpath, hashSlices=True):
                 col.insert({'hash':pq,'queries':[pq]})
                 
     createCertificate(certpath,'Slice database for ' + collectionName + ' written.')
+
+
+@activate(lambda x : x[1],lambda x : x[2])
+def updateQueryDB(collectionName,incertpath,certpath, hashSlices=True):
+    """Make the query database"""
+    collection = Collection(collectionName)
+    currentVersion = collection.currentVersion
+
+    sliceCols = collection.sliceCols
+    if is_string_like(sliceCols[0]):
+        sliceColList = [sliceCols]
+    else:
+        sliceColList = sliceCols
+    sliceColU = uniqify(ListUnion(sliceColList))
+    OK = dict([(x,x in collection.ColumnGroups.keys() or len(api.get(collectionName,[('distinct',(x,))])['data']) > 1) for x in sliceColU])
+    sliceColList = [tuple([x for x in sliceColU if x in sc and OK[x]]) for sc in sliceColList]
+
+    sliceColTuples = uniqify(ListUnion([subTuples(sc) for sc in sliceColList]))
+    
+    connection = pm.Connection()
+    db = connection['govdata']
+    sliceDBname = '__' + collectionName + '__SLICES__'
+    sliceCollection = db[sliceDBname]
+
+    if sliceDBname not in db.collection_names():
+        sliceCollection.ensure_index([('hash',pm.DESCENDING),('__versionNumber__',pm.DESCENDING)],unique=True,dropDups=True)
+        atVersion =     -1
+    else:
+        atVersion = max(sliceCollection.distinct('__versionNumber__'))
+    
+    queryGenerators = getQueryGenerators(collectionName,atVersion,currentVersion)
+   
+    for (sind,sliceCols) in enumerate(sliceColTuples):
+        Q = getUpdateQueryList(queryGenerators,sliceCols)
+        for (i,q) in enumerate(Q):
+            q = son.SON(q)
+            pq = processQuery(q)
+            if hashSlices:
+                print i ,'of', len(Q) , 'in list', sind , 'of', len(sliceColTuples)
+                R = api.get(collectionName,[('find',[(q,),{'fields':['_id']}])])['data']
+                count = len(R)
+                if count > 0:
+                    hash = hashlib.sha1(''.join([str(r['_id']) for r in R])).hexdigest()
+                    if sliceCollection.find_one({'hash':hash}):
+                        sliceCollection.update({'hash':hash},{'$push':{'queries':pq}},safe=True)
+                    else:
+                        sliceCollection.insert({'hash':hash,'queries':[pq],'count':count},safe=True)
+            else:
+                sliceCollection.insert({'hash':pq,'queries':[pq]})
+                
+    createCertificate(certpath,'Slice database for ' + collectionName + ' written.')
+
     
 
 def processQuery(q):

@@ -273,7 +273,7 @@ def getsci(collection):
 
 
 def makemetadata(collection,sci,subcols):
-    metadataInd = {'':('All',collection.meta[''])}
+    metadataInd = {'':('All',collection.metadata[''])}
     metalist = {}
     if sci:
         for (ID,scs) in subcols:            
@@ -281,14 +281,15 @@ def makemetadata(collection,sci,subcols):
                 if sc in metalist.keys():
                     metalist[sc].append(ID)
                 else:
-                    metalist[sc] = ID
+                    metalist[sc] = [ID]
+
         for k in collection.subcollection_names():
             if k in metalist.keys():
                 if len(metalist[k]) == len(subcols):
                     metadataInd[k] = 'All'
                 else:
                     metadataInd[k] = metalist[k]
-    metadata = dict([(k,(metadataInd[k],collection.meta[k])) for k in metadataInd.keys()])
+    metadata = dict([(k,(metadataInd[k],collection.metadata[k])) for k in metadataInd.keys()])
     return metadata
 
 def actQueries(Q,O):
