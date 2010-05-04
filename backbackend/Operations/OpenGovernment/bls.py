@@ -473,7 +473,7 @@ def MakeMongoSource(metafile, docfile, seriesfile, filelistfile, sourcedir, outd
 	D['ColumnGroups'] = {'TimeColNames': TIMECOLS, 'LabelColumns': labelcols }
 	if spacecols:
 		D['ColumnGroups']['SpaceColumns'] = ['Location']
-	D['UniqueIndexes'] = [['Series']]
+	D['UniqueIndexes'] = ['Series']
 	D['VARIABLES'] = NAMES
 	D['sliceCols'] = [g for g in labelcols if g.lower().split('.')[0] not in ['footnote','seasonal','periodicity','location']] + (['Location.' + x for x in dict(spacecols).values() if not x.startswith('f.')] if spacecols else [])
 		
@@ -623,7 +623,7 @@ def MakeMongoSourceFlat(metafile, docfile, seriesfile, filelistfile, sourcedir, 
 		recs = []		
 
 	D['ColumnGroups'] = {'TimeColumns':['Date'], 'LabelColumns': getnames }
-	D['UniqueIndexes'] = [['Series','Date']]
+	D['UniqueIndexes'] = ['Series','Date']
 	D['VARIABLES'] = NAMES
 	
 	SubCols[''] = D

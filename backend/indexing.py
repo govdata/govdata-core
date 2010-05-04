@@ -30,10 +30,10 @@ def getQueryList(collectionName,keys):
     if keys:
         collection = Collection(collectionName)
         R = api.get(collectionName,[('find',[(dict([(k,{'$exists':True}) for k in keys]),),{'fields':list(keys)}])])['data']
-        colnames = [k for k in keys if k.split('.')[0] in collection.VARIABLES]
+        colnames = [k for k in keys if k.split('.')[0] in collection.totalVariables]
         colgroups = [k for k in keys if k in collection.ColumnGroups]
         T= ListUnion([collection.ColumnGroups[k] for k in colgroups])
-        R = [son.SON([(collection.VARIABLES[int(k)],r[k]) for k in r.keys() if k.isdigit() and r[k]]) for r in R]
+        R = [son.SON([(collection.totalVariables[int(k)],r[k]) for k in r.keys() if k.isdigit() and r[k]]) for r in R]
         R = [[(k,rgetattr(r,k.split('.'))) for k in keys if  rhasattr(r,k.split('.')) if k not in T] + [(g,[r[k] for k in collection.ColumnGroups[g] if k in r.keys() and r[k]]) for g in colgroups ] for r in R]
         return uniqify(ListUnion([expand(r) for r in R]))
     else:
@@ -205,8 +205,8 @@ def indexCollection(collectionName,incertpath,certpath):
         d['source_' + str(k).lower() + '_acronym'] = SourceAbbrevDict[k]
     d['source'] = ' '.join(SourceNameDict.values() + SourceAbbrevDict.values())            
     
-    if 'Subcollections' in collection.VARIABLES:
-        ArgDict['subColInd'] = collection.VARIABLES.index('Subcollections')
+    if 'Subcollections' in collection.totalVariables:
+        ArgDict['subColInd'] = collection.totalVariables.index('Subcollections')
         
     #solr_interface = sunburnt.SolrInterface("http://localhost:8983", pathToSchema())
     solr_interface = solr.SolrConnection("http://localhost:8983/solr")
@@ -234,19 +234,19 @@ def indexCollection(collectionName,incertpath,certpath):
 def getNums(collection,namelist):
     numlist = []
     for n in namelist:
-        if n in collection.VARIABLES:
-            numlist.append(collection.VARIABLES.index(n))
+        if n in collection.totalVariables:
+            numlist.append(collection.totalVariables.index(n))
         else:
-            numlist.append([collection.VARIABLES.index(m) for m in collection.ColumnGroups[n]])
+            numlist.append([collection.totalVariables.index(m) for m in collection.ColumnGroups[n]])
     return numlist
     
 def getStrs(collection,namelist):
     numlist = []
     for n in namelist:
-        if n.split('.')[0] in collection.VARIABLES:
-            numlist.append(str(collection.VARIABLES.index(n.split('.')[0])) + '.'.join(n.split('.')[1:]))
+        if n.split('.')[0] in collection.totalVariables:
+            numlist.append(str(collection.totalVariables.index(n.split('.')[0])) + '.'.join(n.split('.')[1:]))
         else:
-            numlist.append([str(collection.VARIABLES.index(m)) for m in collection.ColumnGroups[n]])
+            numlist.append([str(collection.totalVariables.index(m)) for m in collection.ColumnGroups[n]])
     return numlist
         
     
@@ -317,7 +317,7 @@ def addToIndex(R,d,collection,solr_interface,contentColNums = None, phraseCols =
     
     d['sliceContents'] = ' '.join(d['sliceContents'])
     Subcollections = uniqify(Subcollections)
-    d['columnNames'] = [collection.VARIABLES[int(x)] for x in colnames if x.isdigit()]
+    d['columnNames'] = [collection.totalVariables[int(x)] for x in colnames if x.isdigit()]
     d['dimension'] = len(d['columnNames'])
     #time/date
         

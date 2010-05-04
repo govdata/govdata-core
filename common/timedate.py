@@ -1,5 +1,7 @@
 import pymongo.son as son
 from common.utils import is_string_like, ListUnion, uniqify, Flatten, rgetattr
+import datetime
+import time
 
 TIME_CODE_MAP = [('Y','Year',None),('h','Half',range(1,3)),('q','Quarter',range(1,5)),('m','Month',range(1,13)),('d','DayOfMonth',range(1,32)),('U','WeekOfYear',range(1,53)),('w','DayOfWeek',range(1,8)),('j','DayOfYear',range(1,366)),('H','HourOfDay',range(1,25)),('M','MinuteOfHour',range(0,60)),('S','Second',range(0,60)),('Z','TimeZone',None)]
 (TIME_CODES,TIME_DIVISIONS,TIME_RANGES) = zip(*TIME_CODE_MAP)
@@ -35,7 +37,11 @@ def getHierarchyBelow(tc,f):
             return (tc,[getHierarchyBelow(hh,f) for hh in h])
         else:
             return (tc,)
-    
+
+def Now():
+	ts = time.strftime('%Y%m%d%H%M%S')
+	F = mongotimeformatter('YYYYmmddHHMMSS')
+	return F(ts)
 
 def mongotimeformatter(format):
     """Returns the anonymous format function"""
@@ -154,9 +160,6 @@ def getLowest(tObj):
                 lowest += getLowest(tObj[k])
     return lowest
 
-#import mx  
-#import mx.DateTime as DateTime
-import datetime
 
 def convertToDT(tObj,convertMode = 'Low'):
     """Convert to python DateTime format"""

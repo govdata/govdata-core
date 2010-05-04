@@ -51,7 +51,7 @@ class FindHandler(tornado.web.RequestHandler):
 
 EXPOSED_ACTIONS = ['find','find_one','group','skip','limit','sort','count','distinct']
 
-def get(collectionName,querySequence,timeQuery=None, spaceQuery = None, returnMetadata=False,fh = None,returnObj = True,processor = None):
+def get(collectionName,querySequence,timeQuery=None, spaceQuery = None, returnMetadata=False,fh = None,returnObj = True,processor = None,versionNumber=None):
     """
     collectionName : String => collection name e.g. BEA_NIPA
     querySequence : List[Pair[action,args]] => mongo db action read pymongo docs e.g. 
@@ -70,10 +70,25 @@ def get(collectionName,querySequence,timeQuery=None, spaceQuery = None, returnMe
     returnObj : Boolean => store and return computed object
     processor : lambda => processor applied to each row (TODO: fully implement this)
     """
-    collection = Collection(collectionName)
-    vars = collection.VARIABLES
+    collection = Collection(collectionName,versionNumber=versionNumber)
+   
+    versionNumber = collection.versionNumber
+    
+    vars = collection.totalVariables
     ColumnGroups = collection.ColumnGroups
 
+
+    if versionNumber != 'ALL':  
+        for (i,(action,args)) in enumerate(querySequence):
+            if action in ['find','find_one']:
+                if args:
+                    (posargs,kwargs) = getArgs(args)
+                else:
+                    posargs = () ; kwargs = {}
+            
+            posargs = setArgTuple(posargs,'__versionNumber__',versionNumber)
+            querySequence[i] = (action,[posargs,kwargs])  
+            
 
     if timeQuery:
         if hasattr(collection,'OverallDate'):
@@ -248,8 +263,8 @@ def setArgTuple(t,k,v):
     return t
 
 def getsci(collection):
-    if 'Subcollections' in collection.VARIABLES:
-        sci = str(collection.VARIABLES.index('Subcollections'))
+    if 'Subcollections' in collection.totalVariables:
+        sci = str(collection.totalVariables.index('Subcollections'))
     else:
         sci = None
     subcols = []    
@@ -303,7 +318,7 @@ def actionAct(a,v,o):
 
 def processArg(arg,collection):
     """Translates the arg to human readable to collections"""
-    V = collection.VARIABLES
+    V = collection.totalVariables
     C = collection.ColumnGroups
     if is_string_like(arg):
         argsplit = arg.split('.')

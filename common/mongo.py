@@ -5,7 +5,7 @@ class Collection(pm.collection.Collection):
     from the metadata collection as well as the slices from the query database. 
     """
     
-    def __init__(self,name,connection = None):
+    def __init__(self,name,connection = None,versionNumber=None):
         if connection == None:
             connection = pm.Connection()
         assert 'govdata' in connection.database_names(), 'govdata collection not found.'
@@ -15,18 +15,29 @@ class Collection(pm.collection.Collection):
         metaname = '__' + name + '__'
         assert metaname in db.collection_names(), 'No metadata collection associated with ' + name + ' found.'
         self.metaCollection = db[metaname]      
-        self.meta = dict([(l['_id'],l) for l in self.metaCollection.find()])
         
         slicesname = '__' + name + '__SLICES__'
         if slicesname in db.collection_names():
             self.slices = db[slicesname]
+            
+        versionsname = '__' + name + '__VERSIONS__'
+        if versions in db.collection_names():
+            self.versions = db[versionsname]
+            currentVersion = max(self.versions.distinct('__versionNumber__'))
+            self.currentVersion = currentVersion
+            if versionNumber == None:
+            	versionNumber = currentVersion
+            self.versionNumber = versionNumber
+            self.metadata = dict([(l['__name__'],l) for l in self.metaCollection.find({'__versionNumber__':versionNumber})])
+        else:
+            self.metadata = dict([(l['__name__'],l) for l in self.metaCollection.find()])
         
     def subcollection_names(self):
         return self.meta.keys()
         
     def __getattr__(self,name):
         try:
-            V = self.meta[''][name]
+            V = self.metadata[''][name]
         except KeyError:
             raise AttributeError, "Can't find attribute " + name
         else:
