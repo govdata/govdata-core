@@ -3,7 +3,6 @@
 import tornado.web
 import os
 import json
-import urllib2
 import ast
 import pymongo as pm
 import pymongo.json_util
@@ -11,7 +10,8 @@ from common.utils import IsFile, listdir, is_string_like, ListUnion, Flatten
 from common.mongo import Collection
 import common.timedate as td
 import common.location as loc
-import urllib2,urllib
+import common.solr as solr
+
 
 
 class GetHandler(tornado.web.RequestHandler):
@@ -409,7 +409,7 @@ def getArgs(args):
 #=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 
-def find(query, timeQuery = None, spaceQuery = None, hlParams=None,facetParams=None,mltParams = None, **params):
+def find(q, timeQuery = None, spaceQuery = None, hlParams=None,facetParams=None,mltParams = None, **params):
     """
         query : String => the query to solr
         timeQuery => see get
@@ -444,25 +444,14 @@ def find(query, timeQuery = None, spaceQuery = None, hlParams=None,facetParams=N
     if facetParams == None:
         facetParams = {'field':['agency','subagency','dataset','dateDivisions']}
                     
-    params['wt'] = 'json'
+    params['wt'] = 'json'   #in the future this may be done differently, e.g. a conditional that would sometimes set 'wt=json' and sometimes 'python', depending on whether processing of the results needs to take place
     
-    paramstring = processSolrArgList('',params)
-    facetstring = processSolrArgList('facet',facetParams)
-    hlstring = processSolrArgList('hl',hlParams)
-    mltstring = processSolrArgList('mlt',mltParams)
-    
-    URL = 'http://localhost:8983/solr/select?q=' + urllib.quote(query) + paramstring + facetstring + hlstring + mltstring
-    
+    S = solr.query(q,hlParams,facetParams,mltParams,**params)
+        
     if params['wt'] == 'json':
-        return urllib2.urlopen(URL).read()
+        return S
     elif params['wt'] == 'python':
-        X = ast.literal_eval(urllib2.urlopen(URL).read())
+        X = ast.literal_eval(S)
         #do stuff to X
         return json.dumps(X,default=pm.json_util.default)
-    
-
-def processSolrArgList(base,valdict)    :
-    return ('&' + ((base + '=true&') if base and '' not in valdict.keys() else '') + '&'.join([processSolrArg(base,key,valdict[key]) for key in valdict])) if valdict else ''       
-    
-def processSolrArg(base,key,value):
-    return base + ('.' if key and base else '') + key + '=' + urllib.quote(value) if is_string_like(value) else '&'.join([base + ('.' if key and base else '') + key + '=' + urllib.quote(v) for v in value])
+        

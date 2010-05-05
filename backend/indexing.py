@@ -4,6 +4,7 @@ from common.mongo import Collection, cleanCollection
 from common.utils import IsFile, listdir, is_string_like, ListUnion, uniqify,createCertificate, rgetattr,rhasattr
 import common.timedate as td
 import common.location as loc
+import common.solr as ourSolr
 import backend.api as api
 import solr
 import itertools
@@ -117,8 +118,7 @@ def updateQueryDB(collectionName,incertpath,certpath, hashSlices=True):
     else:
         atVersion = max(sliceCollection.distinct('v'))
         
-   
-  
+ 
     uiMap = dict(zip(uniqueIndexes, getStrs(collection,uniqueIndexes)))
     sct = ListUnion(sliceColTuples)
     sctMap = dict(zip(sct, getStrs(collection,sct)))
@@ -321,8 +321,8 @@ def updateCollectionIndex(collectionName,incertpath,certpath):
     if 'Subcollections' in collection.totalVariables:
         ArgDict['subColInd'] = collection.totalVariables.index('Subcollections')
         
-    URL = 'http://localhost:8983/solr/select?q=' + 'collectionName:' + collectionName + '&fl=versionNumber&sort=' + urllib.quote('versionNumber desc') + '&wt=json'
-    existing_slice = ast.literal_eval(urllib2.urlopen(URL).read())['response']['docs']
+    S = ourSolr.query('collectionName:' + collectionName,fl = 'versionNumber',sort='versionNumber desc',wt = 'json')
+    existing_slice = ast.literal_eval(S)['response']['docs']
     
     if len(existing_slice) > 0:
         atVersion = existing_slice[0]['versionNumber'][0]
@@ -452,9 +452,7 @@ def addToIndex(R,d,collection,solr_interface,contentColNums = None, phraseCols =
                     commonLocation = loc.intersect(commonLocation,r[str(x)]) if commonLocation != None else r[str(x)]
                     spatialDivisions += loc.divisions(location)
                     spatialPhrases.append(loc.phrase(location))
-                
-                    
-    
+                   
     d['sliceContents'] = ' '.join(d['sliceContents'])
     Subcollections = uniqify(Subcollections)
     d['columnNames'] = [collection.totalVariables[int(x)] for x in colnames if x.isdigit()]
