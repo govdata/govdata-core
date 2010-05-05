@@ -13,6 +13,9 @@ import pymongo.json_util as ju
 import pymongo.son as son
 import os
 import hashlib
+import urllib
+import urllib2
+import ast
 from System.Protocols import activate
 
 def pathToSchema():
@@ -87,6 +90,11 @@ def updateQueryDB(collectionName,incertpath,certpath, hashSlices=True):
     """Make the query database"""
     collection = Collection(collectionName)
     currentVersion = collection.currentVersion
+    totalVariables = collection.totalVariables
+    vNInd = str(totalVariables.index('__versionNumber__'))
+    retInd = str(totalVariables.index('__retained__'))
+    uniqueIndexes = collection.UniqueIndexes
+    
 
     sliceCols = collection.sliceCols
     if is_string_like(sliceCols[0]):
@@ -96,7 +104,6 @@ def updateQueryDB(collectionName,incertpath,certpath, hashSlices=True):
     sliceColU = uniqify(ListUnion(sliceColList))
     OK = dict([(x,x in collection.ColumnGroups.keys() or len(api.get(collectionName,[('distinct',(x,))])['data']) > 1) for x in sliceColU])
     sliceColList = [tuple([x for x in sliceColU if x in sc and OK[x]]) for sc in sliceColList]
-
     sliceColTuples = uniqify(ListUnion([subTuples(sc) for sc in sliceColList]))
     
     connection = pm.Connection()
@@ -105,35 +112,85 @@ def updateQueryDB(collectionName,incertpath,certpath, hashSlices=True):
     sliceCollection = db[sliceDBname]
 
     if sliceDBname not in db.collection_names():
-        sliceCollection.ensure_index([('hash',pm.DESCENDING),('__versionNumber__',pm.DESCENDING)],unique=True,dropDups=True)
-        atVersion =     -1
+        sliceCollection.ensure_index([('h',pm.DESCENDING),('v',pm.DESCENDING)],unique=True,dropDups=True)
+        atVersion = -1
     else:
-        atVersion = max(sliceCollection.distinct('__versionNumber__'))
-    
-    queryGenerators = getQueryGenerators(collectionName,atVersion,currentVersion)
+        atVersion = max(sliceCollection.distinct('v'))
+        
    
-    for (sind,sliceCols) in enumerate(sliceColTuples):
-        Q = getUpdateQueryList(queryGenerators,sliceCols)
-        for (i,q) in enumerate(Q):
-            q = son.SON(q)
-            pq = processQuery(q)
-            if hashSlices:
-                print i ,'of', len(Q) , 'in list', sind , 'of', len(sliceColTuples)
-                R = api.get(collectionName,[('find',[(q,),{'fields':['_id']}])])['data']
-                count = len(R)
-                if count > 0:
-                    hash = hashlib.sha1(''.join([str(r['_id']) for r in R])).hexdigest()
-                    if sliceCollection.find_one({'hash':hash}):
-                        sliceCollection.update({'hash':hash},{'$push':{'queries':pq}},safe=True)
-                    else:
-                        sliceCollection.insert({'hash':hash,'queries':[pq],'count':count},safe=True)
-            else:
-                sliceCollection.insert({'hash':pq,'queries':[pq]})
-                
+  
+    uiMap = dict(zip(uniqueIndexes, getStrs(collection,uniqueIndexes)))
+    sct = ListUnion(sliceColTuples)
+    sctMap = dict(zip(sct, getStrs(collection,sct)))
+    
+    Qgen = getQgen(sctMap,sliceColTuples)
+    
+    for (i,x) in enumerate(collection.find({vNInd:currentVersion})):
+        print i
+        #if index(x) is new, compute all sliceTuple subsets in new and remove from old
+        
+        if currentVersion > 0 and currentVersion > atVersion:
+            index = dict([(uiMap[t],rgetattr(x,uiMap[t].split('.'))) for t in uniqueIndexes if t != '__versionNumber__'])
+            pq = processQuery(index)    
+            index[vNInd] = atVersion
+            indexIsNew = not collection.find_one(index)
+        else:
+            indexIsNew = currentVersion > atVersion
+     
+        if indexIsNew:
+            print 'new'
+           
+            Q = getQ(x,Qgen)
+        
+            for q in Q:
+                pq = processQuery(q)
+                if hashSlices:
+                    if not sliceCollection.find_one({'q': pq,'v':currentVersion}):
+                        #print q, sliceCollection.find_one({'queries':pq,'__versionNumber__':currentVersion})
+                        R = api.get(collectionName,[('find',[(q,),{'fields':['_id']}])])['data']
+                        count = len(R)
+                        if count > 0:
+                            hash = hashlib.sha1(''.join([str(r['_id']) for r in R])).hexdigest()
+                            if sliceCollection.find_one({'h':hash,'v':currentVersion}):
+                                sliceCollection.update({'h':hash,'v':currentVersion},{'$push':{'q':pq}},safe=True)
+                            else:
+                                sliceCollection.insert({'h':hash,'q':[pq],'c':count,'v':currentVersion,'o':currentVersion},safe=True)             
+                        sliceCollection.remove({'q':pq,'v':atVersion})
+                else:
+                    col.insert({'h':pq,'q':[pq],'v':currentVersion})
+                    sliceCollection.remove({'q':pq,'v':atVersion})
+            
+    #delete
+    for x in collection.find({retInd:{'$exists':False},vNInd:{'$lt':currentVersion,'$gte':atVersion}}):
+        index = dict([(uiMap[t],rgetattr(x,uiMap[t].split('.'))) for t in uniqueIndexes if t != '__versionNumber__'])
+        index[vNInd] = currentVersion
+        
+        if not collection.find_one(index):
+            Q = getQ(x,Qgen)
+            for q in Q:
+                pq = processQuery(q)
+                q[vNInd] = currentVersion
+                if not collection.find_one(q):
+                    sliceCollection.update({'q':pq,'v':atVersion},{'$set':{'d':True}})
+    
+    #move over remainder
+    sliceCollection.update({'v':atVersion,'d':{'$exists':False}},{'$set':{'v':currentVersion}},multi=True)
+        
+  
     createCertificate(certpath,'Slice database for ' + collectionName + ' written.')
 
     
+def getQgen(sctMap,sliceColTuples):
+    
+    return [(T,list(itertools.product(*[[sctMap[t]] if is_string_like(sctMap[t]) else sctMap[t] for t in T]))) for T in sliceColTuples]
 
+
+def getQ(x,Qgen):
+
+    H = uniqify( ListUnion([[  tuple([(t,rgetattr(x,n.split('.'))) for (t,n) in zip(T,l) if rhasattr(x,n.split('.'))])   for l in L]    for (T,L) in Qgen]) )
+    return [son.SON(x) for x in H]
+    
+    
 def processQuery(q):
     return son.SON([(k.replace('.','__'),v) for (k,v) in q.items()])
 
@@ -154,12 +211,16 @@ def subTuples(T):
 STANDARD_META = ['title','subject','description','author','keywords','content_type','last_modified','dateReleased','links']
 STANDARD_META_FORMATS = {'keywords':'tplist','last_modified':'dt','dateReleased':'dt'}
 
+
 @activate(lambda x : x[1],lambda x : x[2])
-def indexCollection(collectionName,incertpath,certpath):
+def updateCollectionIndex(collectionName,incertpath,certpath):
     """index collection object"""
     ArgDict = {}
     
     collection = Collection(collectionName)
+    currentVersion = collection.currentVersion
+       
+    
     sliceCols = collection.sliceCols
     if is_string_like(sliceCols[0]):
         sliceColList = [sliceCols]
@@ -260,24 +321,49 @@ def indexCollection(collectionName,incertpath,certpath):
     if 'Subcollections' in collection.totalVariables:
         ArgDict['subColInd'] = collection.totalVariables.index('Subcollections')
         
-    #solr_interface = sunburnt.SolrInterface("http://localhost:8983", pathToSchema())
-    solr_interface = solr.SolrConnection("http://localhost:8983/solr")
+    URL = 'http://localhost:8983/solr/select?q=' + 'collectionName:' + collectionName + '&fl=versionNumber&sort=' + urllib.quote('versionNumber desc') + '&wt=json'
+    existing_slice = ast.literal_eval(urllib2.urlopen(URL).read())['response']['docs']
     
+    if len(existing_slice) > 0:
+        atVersion = existing_slice[0]['versionNumber'][0]
+    else:
+        atVersion = -1
+    
+    print 'existing collection at version', atVersion
+    if currentVersion > atVersion:
+        print 'Updating to version', currentVersion
+    else:
+        print 'Already up to date.'
+    
+    solr_interface = solr.SolrConnection("http://localhost:8983/solr")
+     
     sliceDB = collection.slices
-    numslices = sliceDB.count()
     i = 1
-    for sliceData in sliceDB.find(timeout=False):
-        queryText = unProcessQuery(min(sliceData['queries']))
-        query = api.processArg(queryText,collection)
-        print i , 'of', numslices , ': ' , queryText
-        sliceCursor = collection.find(query,timeout=False)
-        dd = d.copy()
-        queryID = {'collectionName':collectionName,'query':queryText}
-        dd['mongoID'] = json.dumps(queryID,default=ju.default)
-        dd['mongoText'] = ', '.join([key + '=' + value for (key,value) in queryText.items()])
-        addToIndex(sliceCursor,dd,collection,solr_interface,**ArgDict)
+    for sliceData in sliceDB.find({'o':{'$gt':atVersion,'$lte':currentVersion},'d':{'$exists':False}},timeout=False):
+        q = min(sliceData['q']) 
+        if sliceDB.find_one({'q':q,'v':currentVersion}):
+            queryText = unProcessQuery(q)
+            query = api.processArg(queryText,collection)
+            print i , queryText
+            sliceCursor = collection.find(query,timeout=False)
+            dd = d.copy()
+            queryID = {'collectionName':collectionName,'query':queryText}
+            dd['collectionName'] = collectionName
+            dd['query'] = repr(queryText)
+            dd['mongoID'] = json.dumps(queryID,default=ju.default)
+            dd['mongoText'] = ', '.join([key + '=' + value for (key,value) in queryText.items()])
+            dd['versionNumber'] = currentVersion
+            addToIndex(sliceCursor,dd,collection,solr_interface,**ArgDict)
         i += 1
-            
+    
+    for sliceData in sliceDB.find({'v':{'$gte':atVersion,'$lt':currentVersion},'d':True},timeout=False):
+        q = min(sliceData['q']) 
+        if not sliceDB.find_one({'q':q,'v':currentVersion}):
+            queryText = repr(unProcessQuery(q))
+            queryID = {'collectionName':collectionName,'query':queryText}
+            mongoID = json.dumps(queryID,default=ju.default)
+            solr_interface.delete_query('collectionName:' + collectionName + ' AND query:' + queryText)
+
         
     solr_interface.commit()
     
@@ -295,8 +381,10 @@ def getNums(collection,namelist):
 def getStrs(collection,namelist):
     numlist = []
     for n in namelist:
-        if n.split('.')[0] in collection.totalVariables:
-            numlist.append(str(collection.totalVariables.index(n.split('.')[0])) + '.'.join(n.split('.')[1:]))
+        ns = n.split('.')
+        dot = '.' if len(ns) > 1 else ''
+        if ns[0] in collection.totalVariables:
+            numlist.append(str(collection.totalVariables.index(ns[0])) + dot + '.'.join(n.split('.')[1:]))
         else:
             numlist.append([str(collection.totalVariables.index(m)) for m in collection.ColumnGroups[n]])
     return numlist
@@ -405,9 +493,9 @@ def addToIndex(R,d,collection,solr_interface,contentColNums = None, phraseCols =
     
     
     #metadata
-    metadata = collection.meta['']
+    metadata = collection.metadata['']
     for sc in Subcollections:
-        metadata.update(collection.meta[sc])
+        metadata.update(collection.metadata[sc])
 
     for k in metadata.keys():
         if k in STANDARD_META:

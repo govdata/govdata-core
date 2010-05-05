@@ -379,7 +379,7 @@ def MakeMongoSource(metafile, docfile, seriesfile, filelistfile, sourcedir, outd
 	ColNumbers = [x.split('!')[-1].split('.')[x.split('!')[-1].split('.').index('data') + 1] for x in L]
 	FLF = tb.tabarray(SVfile = filelistfile)
 	Paths = FLF['Path'].tolist()
-	SubCols = dict([('Col' + c,{'Title':FLF['FileName'][Paths.index(f)]}) for (c,f) in zip(ColNumbers,L)])
+	SubCols = dict([(c,{'Title':FLF['FileName'][Paths.index(f)]}) for (c,f) in zip(ColNumbers,L)])
 	
 	M = tb.io.getmetadata(seriesfile)[0]
 	getnames = M['coloring']['NewNames']
@@ -407,7 +407,7 @@ def MakeMongoSource(metafile, docfile, seriesfile, filelistfile, sourcedir, outd
 	Hashes = {}
 	
 	for (ColNo,l) in zip(ColNumbers,L):
-		print 'Parsing', SubCols['Col' + ColNo]['Title']
+		print 'Parsing', SubCols[ColNo]['Title']
 		G = open(seriesfile,'rU')
 		for i in range(headerlines):
 			G.readline()
@@ -543,7 +543,7 @@ def MakeMongoSourceFlat(metafile, docfile, seriesfile, filelistfile, sourcedir, 
 	ColNumbers = [x.split('!')[-1].split('.')[x.split('!')[-1].split('.').index('data') + 1] for x in L]
 	FLF = tb.tabarray(SVfile = filelistfile)
 	Paths = FLF['Path'].tolist()
-	SubCols = dict([('Col' + c,{'Title':FLF['FileName'][Paths.index(f)],'__query__' : {'Subcollections':[c]}}) for (c,f) in zip(ColNumbers,L)])
+	SubCols = dict([(c,{'Title':FLF['FileName'][Paths.index(f)],'__query__' : {'Subcollections':[c]}}) for (c,f) in zip(ColNumbers,L)])
 	
 	M = tb.io.getmetadata(seriesfile)[0]
 	getnames = M['coloring']['NewNames']
@@ -568,7 +568,7 @@ def MakeMongoSourceFlat(metafile, docfile, seriesfile, filelistfile, sourcedir, 
 	Hashes = {}
 	
 	for (ColNo,l) in zip(ColNumbers,L):
-		print 'Parsing', SubCols['Col' + ColNo]['Title']
+		print 'Parsing', SubCols[ColNo]['Title']
 		G = open(seriesfile,'rU')
 		for i in range(headerlines):
 			G.readline()

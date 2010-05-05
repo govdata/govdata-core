@@ -260,7 +260,7 @@ def updateCollection(collectionName,certpath):
         sc = newVarMap['Subcollections']
     else:
         sc = None
-    print sc
+
     if 'TimeColumns' in AllMeta['ColumnGroups'].keys():
         tcs = [newVarMap[tc] for tc in AllMeta['ColumnGroups']['TimeColumns']]
     else:

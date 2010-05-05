@@ -70,7 +70,10 @@ def get(collectionName,querySequence,timeQuery=None, spaceQuery = None, returnMe
     returnObj : Boolean => store and return computed object
     processor : lambda => processor applied to each row (TODO: fully implement this)
     """
-    collection = Collection(collectionName,versionNumber=versionNumber)
+    if versionNumber != 'ALL':
+	    collection = Collection(collectionName,versionNumber=versionNumber)
+    else:
+        collection =  Collection(collectionName)
    
     versionNumber = collection.versionNumber
     
@@ -79,17 +82,22 @@ def get(collectionName,querySequence,timeQuery=None, spaceQuery = None, returnMe
 
 
     if versionNumber != 'ALL':  
+        insertions = []
         for (i,(action,args)) in enumerate(querySequence):
-            if action in ['find','find_one']:
-                if args:
-                    (posargs,kwargs) = getArgs(args)
-                else:
-                    posargs = () ; kwargs = {}
+            if args:
+                (posargs,kwargs) = getArgs(args)
+            else:
+                posargs = () ; kwargs = {}
+                
+            if action in ['find','find_one']:               
+                posargs = setArgTuple(posargs,'__versionNumber__',versionNumber)
+                querySequence[i] = (action,[posargs,kwargs])  
+            elif action in ['count','distinct']:
+                insertions.append((i,('find',   ({'__versionNumber__':versionNumber},))))
             
-            posargs = setArgTuple(posargs,'__versionNumber__',versionNumber)
-            querySequence[i] = (action,[posargs,kwargs])  
-            
-
+        for (i,v) in insertions:
+            querySequence.insert(i,v)
+                
     if timeQuery:
         if hasattr(collection,'OverallDate'):
             OK = td.checkQuery(timeQuery, collection.OverallDate)
@@ -448,7 +456,7 @@ def find(query, timeQuery = None, spaceQuery = None, hlParams=None,facetParams=N
     if params['wt'] == 'json':
         return urllib2.urlopen(URL).read()
     elif params['wt'] == 'python':
-        X = ast.literal_eval(urllib.urlopen(URL).read())
+        X = ast.literal_eval(urllib2.urlopen(URL).read())
         #do stuff to X
         return json.dumps(X,default=pm.json_util.default)
     

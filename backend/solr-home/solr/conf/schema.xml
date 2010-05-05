@@ -163,6 +163,8 @@
  <fields>
    <!-- database slice things --> 
    <field name="mongoID" type="string" indexed="true" stored="true" required="true" />  <!-- mongoID is the unique ID!  --> 
+   <field name="collectionName" type="string" indexed="true" stored="true" required="true" />  <!-- mongoID is the unique ID!  --> 
+   <field name="query" type="string" indexed="true" stored="true" required="true" />  <!-- mongoID is the unique ID!  --> 
    <field name="mongoText" type="text" indexed="true" stored="true" required = "true"/> 
    <field name="sliceContents" type="text" indexed="true" stored="false" />
    <field name="slicePhrases" type="multiPhraseLoose" indexed="true" stored="false" />
@@ -171,6 +173,7 @@
    <!-- slice stats.  more can be added using specific-type dynamic fields --> 
    <field name="volume" type="tint" indexed="true" stored="true" />
    <field name="dimension" type="tint" indexed="true" stored="true" />
+   <field name="versionNumber" type="tint" indexed="true" stored="true" />
 
    <!-- source -->
    <field name="SourceSpec" type="string" indexed="true" stored="true" required="true" />  
