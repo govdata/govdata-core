@@ -81,7 +81,7 @@ def get(collectionName,querySequence,timeQuery=None, spaceQuery = None, returnMe
     
     vars = collection.totalVariables
     uniqueIndexes = collection.UniqueIndexes
-    VarMap = dict(zip(totalVariables,[str(x) for x in range(len(totalVariables))]))   
+    VarMap = dict(zip(vars,[str(x) for x in range(len(vars))]))   
     vNInd = VarMap['__versionNumber__']
     retInd = VarMap['__retained__']
     
@@ -244,7 +244,7 @@ def get(collectionName,querySequence,timeQuery=None, spaceQuery = None, returnMe
                 if needsVersioning: 
 					rV = r[vNInd]
 					if rV > versionNumber:
-						s = dict([(VarMap[k],r[k]) for k in uniqueIndexes])
+						s = dict([(VarMap[k],r[VarMap[k]]) for k in uniqueIndexes])
 						s[vNInd] = {'$gte': versionNumber,'$lt':rV}
 						s[retInd] = True
 						H = collection.find(s).sort(vNInd,pm.DESCENDING)

@@ -123,7 +123,6 @@ def updateQueryDB(collectionName,incertpath,certpath, hashSlices=True):
     uiMap = dict(zip(uniqueIndexes, getStrs(collection,uniqueIndexes)))
     sct = ListUnion(sliceColTuples)
     sctMap = dict(zip(sct, getStrs(collection,sct)))
-    
     Qgen = getQgen(sctMap,sliceColTuples)
     
     for (i,x) in enumerate(collection.find({vNInd:currentVersion})):
