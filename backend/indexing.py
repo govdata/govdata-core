@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from common.mongo import Collection, cleanCollection
+from common.mongo import Collection, cleanCollection, SPECIAL_KEYS
 from common.utils import IsFile, listdir, is_string_like, ListUnion, uniqify,createCertificate, rgetattr,rhasattr
 import common.timedate as td
 import common.location as loc
@@ -93,6 +93,7 @@ def updateQueryDB(collectionName,incertpath,certpath, hashSlices=True):
     currentVersion = collection.currentVersion
     totalVariables = collection.totalVariables
     vNInd = str(totalVariables.index('__versionNumber__'))
+    origInd =  str(totalVariables.index('__originalVersion__'))
     retInd = str(totalVariables.index('__retained__'))
     uniqueIndexes = collection.UniqueIndexes
     
@@ -129,24 +130,15 @@ def updateQueryDB(collectionName,incertpath,certpath, hashSlices=True):
         print i
         #if index(x) is new, compute all sliceTuple subsets in new and remove from old
         
-        if currentVersion > 0 and currentVersion > atVersion:
-            index = dict([(uiMap[t],rgetattr(x,uiMap[t].split('.'))) for t in uniqueIndexes if t != '__versionNumber__'])
-            pq = processQuery(index)    
-            index[vNInd] = atVersion
-            indexIsNew = not collection.find_one(index)
-        else:
-            indexIsNew = currentVersion > atVersion
-     
-        if indexIsNew:
+        if x[origInd] > atVersion:
             print 'new'
-           
+
             Q = getQ(x,Qgen)
         
             for q in Q:
                 pq = processQuery(q)
                 if hashSlices:
                     if not sliceCollection.find_one({'q': pq,'v':currentVersion}):
-                        #print q, sliceCollection.find_one({'queries':pq,'__versionNumber__':currentVersion})
                         R = api.get(collectionName,[('find',[(q,),{'fields':['_id']}])])['data']
                         count = len(R)
                         if count > 0:
@@ -162,7 +154,7 @@ def updateQueryDB(collectionName,incertpath,certpath, hashSlices=True):
             
     #delete
     for x in collection.find({retInd:{'$exists':False},vNInd:{'$lt':currentVersion,'$gte':atVersion}}):
-        index = dict([(uiMap[t],rgetattr(x,uiMap[t].split('.'))) for t in uniqueIndexes if t != '__versionNumber__'])
+        index = dict([(uiMap[t],rgetattr(x,uiMap[t].split('.'))) for t in uniqueIndexes])
         index[vNInd] = currentVersion
         
         if not collection.find_one(index):
@@ -172,6 +164,8 @@ def updateQueryDB(collectionName,incertpath,certpath, hashSlices=True):
                 q[vNInd] = currentVersion
                 if not collection.find_one(q):
                     sliceCollection.update({'q':pq,'v':atVersion},{'$set':{'d':True}})
+                
+                	
     
     #move over remainder
     sliceCollection.update({'v':atVersion,'d':{'$exists':False}},{'$set':{'v':currentVersion}},multi=True)
@@ -339,7 +333,7 @@ def updateCollectionIndex(collectionName,incertpath,certpath):
      
     sliceDB = collection.slices
     i = 1
-    for sliceData in sliceDB.find({'o':{'$gt':atVersion,'$lte':currentVersion},'d':{'$exists':False}},timeout=False):
+    for sliceData in sliceDB.find({'o':{'$gt':atVersion},'d':{'$exists':False}},timeout=False):
         q = min(sliceData['q']) 
         if sliceDB.find_one({'q':q,'v':currentVersion}):
             queryText = unProcessQuery(q)

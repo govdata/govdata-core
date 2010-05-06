@@ -1,5 +1,9 @@
 import pymongo as pm
     
+    
+SPECIAL_KEYS =  ['__versionNumber__','__retained__','__addedKeys__','__originalVersion__']  
+
+
 class Collection(pm.collection.Collection):
     """Extends the pymongo collection object for the special case of govdata collections, meaning attaching stuff from 
     from the metadata collection as well as the slices from the query database. 

@@ -13,7 +13,6 @@ import common.location as loc
 import common.solr as solr
 
 
-
 class GetHandler(tornado.web.RequestHandler):
     def get(self):
         self.write("Hello, get")
@@ -76,8 +75,16 @@ def get(collectionName,querySequence,timeQuery=None, spaceQuery = None, returnMe
         collection =  Collection(collectionName)
    
     versionNumber = collection.versionNumber
+    currentVersion = collection.currentVersion
+    
+    needsVersioning = versionNumber != 'ALL' and versionNumber != currentVersion
     
     vars = collection.totalVariables
+    uniqueIndexes = collection.UniqueIndexes
+    VarMap = dict(zip(totalVariables,[str(x) for x in range(len(totalVariables))]))   
+    vNInd = VarMap['__versionNumber__']
+    retInd = VarMap['__retained__']
+    
     ColumnGroups = collection.ColumnGroups
 
 
@@ -90,10 +97,12 @@ def get(collectionName,querySequence,timeQuery=None, spaceQuery = None, returnMe
                 posargs = () ; kwargs = {}
                 
             if action in ['find','find_one']:               
-                posargs = setArgTuple(posargs,'__versionNumber__',versionNumber)
+                posargs = setArgTuple(posargs,'__versionNumber__',{'$gte':versionNumber})
+                posargs = setArgTuple(posargs,'__retained__',{'$exists':False})
+                posargs = setArgTuple(posargs,'__originalVersion__',{'$lte':versionNumber})
                 querySequence[i] = (action,[posargs,kwargs])  
             elif action in ['count','distinct']:
-                insertions.append((i,('find',   ({'__versionNumber__':versionNumber},))))
+                insertions.append((i,('find',   ({'__versionNumber__':{'$gte':versionNumber},'__retained__':{'$exists':False},'__originalVersion__':{'$lte':versionNumber}},))))
             
         for (i,v) in insertions:
             querySequence.insert(i,v)
@@ -195,7 +204,7 @@ def get(collectionName,querySequence,timeQuery=None, spaceQuery = None, returnMe
     if querySequence:
     
         [Actions, Args] = zip(*querySequence)
-        
+         
         posArgs = []
         kwArgs = []
         for (action,args) in querySequence:
@@ -203,6 +212,9 @@ def get(collectionName,querySequence,timeQuery=None, spaceQuery = None, returnMe
                 if action not in EXPOSED_ACTIONS:
                     raise ValueError, 'Action type ' + str(action) + ' not recognized or exposed.'                  
                 (posargs,kwargs) = getArgs(args)    
+                if needsVersioning and  'fields' in kwargs.keys() and  action in ['find','find_one']:
+                    kwargs['fields'] += ['__versionNumber__'] + uniqueIndexes
+
                 posargs = tuple([processArg(arg,collection) for arg in posargs])
                 kwargs = dict([(argname,processArg(arg,collection)) for (argname,arg) in kwargs.items()])
             else:
@@ -229,6 +241,21 @@ def get(collectionName,querySequence,timeQuery=None, spaceQuery = None, returnMe
                 fh.write('[')
                 
             for r in R:
+                if needsVersioning: 
+					rV = r[vNInd]
+					if rV > versionNumber:
+						s = dict([(VarMap[k],r[k]) for k in uniqueIndexes])
+						s[vNInd] = {'$gte': versionNumber,'$lt':rV}
+						s[retInd] = True
+						H = collection.find(s).sort(vNInd,pm.DESCENDING)
+						for h in H:
+							for hh in h.keys():
+								if hh not in SPECIAL_KEYS:
+									r[hh] = H[hh]
+					
+						r[vNInd] = versionNumber
+    
+                
                 if processor:
                     r = processor(r,collection)
                     
