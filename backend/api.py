@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import tornado.web
+import tornado.httpclient
 import os
 import json
 import ast
@@ -24,9 +25,9 @@ class GetHandler(tornado.web.RequestHandler):
         if R.alive:
             p = self.application.settings.get('pool')
             p.apply_async(get_loop,*get_loop_args,callback=self.async_callback(self.on_get))
-         else:
-             self.write(']')
-             self.get_finish(returnMetadata,collection,sci,subcols)                
+        else:
+            self.write(']')
+            self.get_finish(returnMetadata,collection,sci,subcols)                
     
     def get_finish(self,returnMetadata,collection,sci,subcols):
         if returnMetadata:
@@ -70,11 +71,11 @@ class FindHandler(tornado.web.RequestHandler):
         http.fetch(find(query,**args),callback=self.async_callback(self.create_responder(**args)))
     
     def create_responder(self,**params):
-        def responder(self, response):
+        def responder(response):
             if response.error: raise tornado.web.HTTPError(500)
-            wt = params.get('json')
+            wt = params.get('wt',None)
             if wt == 'json':
-                self.write(resonse.body)
+                self.write(response.body)
             elif wt == 'python':
                 X = ast.literal_eval(response.body)
                 #do stuff to X
