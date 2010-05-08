@@ -19,7 +19,7 @@ class GetHandler(tornado.web.RequestHandler):
         self.write("Hello, get")
         
     def on_get(self,args):
-        chunk,R,needsVersioning,versionNumber,vNInd,VarMap,uniqueIndexes,retInd,collection,sci,subcols = args
+        chunk,R,processor,needsVersioning,versionNumber,vNInd,VarMap,uniqueIndexes,retInd,collection,sci,subcols = args
         get_loop_args = args[1:]
         self.write(chunk)
         if R.alive:
@@ -38,7 +38,7 @@ class GetHandler(tornado.web.RequestHandler):
         self.finish()                              
             
     def get_init(self,args):
-        R,needsVersioning,versionNumber,vNInd,VarMap,uniqueIndexes,retInd,collection,sci,subcols = args
+        R,processor,needsVersioning,versionNumber,vNInd,VarMap,uniqueIndexes,retInd,collection,sci,subcols = args
         self.write('{"data":')
         if isinstance(R,pm.cursor.Cursor):
             self.write('[')
@@ -293,72 +293,76 @@ def get_args(collectionName,querySequence,timeQuery=None, spaceQuery = None, ret
         
         sci,subcols = getsci(collection)
         
-        return (R,needsVersioning,versionNumber,vNInd,VarMap,uniqueIndexes,retInd,collection,sci,subcols)
+        return (R,processor,needsVersioning,versionNumber,vNInd,VarMap,uniqueIndexes,retInd,collection,sci,subcols)
 
-def get(*args,fh=None,**kwargs):
-    R,needsVersioning,versionNumber,vNInd,VarMap,uniqueIndexes,retInd,collection,sci,subcols = get_args(*args,**kwargs)
+def get(*args,**kwargs):
+    fh=kwargs.pop('fh',None)    
+    returnObj = kwargs.pop('returnObj',True)   
+    returnMetadata = kwargs.get('returnMetdata',True)   
+
+    R,processor,needsVersioning,versionNumber,vNInd,VarMap,uniqueIndexes,retInd,collection,sci,subcols = get_args(*args,**kwargs)
     if fh:
-         fh.write('{"data":')
-     if returnObj:
-         Obj = {}
- 
-     if isinstance(R,pm.cursor.Cursor):
-         if returnObj:
-             Obj['data'] = []
-         if fh:
-             fh.write('[')
+        fh.write('{"data":')
+    if returnObj:
+        Obj = {}
+    
+    if isinstance(R,pm.cursor.Cursor):
+        if returnObj:
+            Obj['data'] = []
+        if fh:
+            fh.write('[')
              
-         for r in R:
-             if needsVersioning: 
-                 rV = r[vNInd]
-                 if rV > versionNumber:
-                     s = dict([(VarMap[k],r[VarMap[k]]) for k in uniqueIndexes] + [(vNInd,{'$gte':versionNumber,'$lt':rV}),(retInd,True)])
-                     H = collection.find(s).sort(vNInd,pm.DESCENDING)
-                     for h in H:
-                         for hh in h.keys():
-                             if hh not in SPECIAL_KEYS:
-                                 r[hh] = h[hh]
-                             if '__addedKeys__' in h.keys():
-                                 for g in h['__addedKeys__']:
-                                     r.pop(g)
+        for r in R:
+            if needsVersioning: 
+                rV = r[vNInd]
+                if rV > versionNumber:
+                    s = dict([(VarMap[k],r[VarMap[k]]) for k in uniqueIndexes] + [(vNInd,{'$gte':versionNumber,'$lt':rV}),(retInd,True)])
+                    H = collection.find(s).sort(vNInd,pm.DESCENDING)
+                    for h in H:
+                        for hh in h.keys():
+                            if hh not in SPECIAL_KEYS:
+                                r[hh] = h[hh]
+                            if '__addedKeys__' in h.keys():
+                                for g in h['__addedKeys__']:
+                                    r.pop(g)
                  
-                     r[vNInd] = versionNumber
- 
+                    r[vNInd] = versionNumber
+        
              
-             if processor:
-                 r = processor(r,collection)
+            if processor:
+                r = processor(r,collection)
                  
-             if fh:
-                 fh.write(json.dumps(r,default=pm.json_util.default) + ',')
-             if returnObj:       
-                 Obj['data'].append(r)
+            if fh:
+                fh.write(json.dumps(r,default=pm.json_util.default) + ',')
+            if returnObj:       
+                Obj['data'].append(r)
                  
-             if sci and sci in r.keys():
-                 subcols.append((r['_id'],r[sci]))
+            if sci and sci in r.keys():
+                subcols.append((r['_id'],r[sci]))
                  
-         if fh:
-             fh.write(']')
+        if fh:
+            fh.write(']')
              
-     else:
-         if fh:
-             fh.write(json.dumps(R,default=pm.json_util.default))
-         if returnObj:
-             Obj['data'] = R
-                 
-                 
-     if returnMetadata:
-         metadata = makemetadata(collection,sci,subcols)
-         if fh:
-             fh.write(',"metadata":' + json.dumps(metadata,default=pm.json_util.default))    
-         if returnObj:
-             Obj['metadata'] = metadata
-         
-     if fh:
-         fh.write('}')                                   
-     if returnObj:
-         return Obj
+    else:
+        if fh:
+            fh.write(json.dumps(R,default=pm.json_util.default))
+        if returnObj:
+            Obj['data'] = R
+             
+             
+    if returnMetadata:
+        metadata = makemetadata(collection,sci,subcols)
+        if fh:
+            fh.write(',"metadata":' + json.dumps(metadata,default=pm.json_util.default))    
+    if returnObj:
+        Obj['metadata'] = metadata
+     
+    if fh:
+        fh.write('}')                                   
+    if returnObj:
+        return Obj
 
-def get_loop(R,needsVersioning,versionNumber,vNInd,VarMap,uniqueIndexes,retInd,collection,sci,subcols):
+def get_loop(R,processor,needsVersioning,versionNumber,vNInd,VarMap,uniqueIndexes,retInd,collection,sci,subcols):
     r = R.next()
     if needsVersioning: 
         rV = r[vNInd]
