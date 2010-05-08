@@ -26,7 +26,7 @@ class GetHandler(tornado.web.RequestHandler):
         self.write(chunk)
         if R.alive:
             p = self.application.settings.get('pool')
-            p.apply_async(get_loop,*get_loop_args,callback=self.async_callback(self.on_get))
+            p.apply_async(get_loop,get_loop_args,callback=self.async_callback(self.on_get))
         else:
             self.write(']')
             self.get_finish(returnMetadata,collection,sci,subcols)                
@@ -47,7 +47,7 @@ class GetHandler(tornado.web.RequestHandler):
         if isinstance(R,pm.cursor.Cursor):
             self.write('[')
             p = self.application.settings.get('pool')
-            p.apply_async(get_loop,*args,callback=self.async_callback(self.on_get))
+            p.apply_async(get_loop,args,callback=self.async_callback(self.on_get))
         else:
             self.write(json.dumps(R,default=pm.json_util.default))
             self.get_finish(returnMetadata,collection,sci,subcols)
@@ -60,8 +60,8 @@ class GetHandler(tornado.web.RequestHandler):
         collectionName = args.pop('collectionName')
         querySequence = args.pop('querySequence')
         p = self.application.settings.get('pool')
-        p.apply_async(get_args,collectionName,querySequence,
-                    callback=self.async_callback(self.get_init),**args)
+        p.apply_async(get_args,(collectionName,querySequence),args,
+                    callback=self.async_callback(self.get_init))
         
         
 class FindHandler(tornado.web.RequestHandler):
