@@ -16,14 +16,46 @@ import common.solr as solr
 class GetHandler(tornado.web.RequestHandler):
     def get(self):
         self.write("Hello, get")
-
+        
+    def on_get(self,args):
+        chunk,R,needsVersioning,versionNumber,vNInd,VarMap,uniqueIndexes,retInd,collection,sci,subcols = args
+        get_loop_args = args[1:]
+        self.write(chunk)
+        if R.alive:
+            p = self.application.settings.get('pool')
+            p.apply_async(get_loop,*get_loop_args,callback=self.async_callback(self.on_get))
+         else:
+             self.write(']')
+             self.get_finish(returnMetadata,collection,sci,subcols)                
+    
+    def get_finish(self,returnMetadata,collection,sci,subcols):
+        if returnMetadata:
+            metadata = makemetadata(collection,sci,subcols)
+            self.write(',"metadata":' + json.dumps(metadata,default=pm.json_util.default))    
+            
+        self.write('}')     
+        self.finish()                              
+            
+    def get_init(self,args):
+        R,needsVersioning,versionNumber,vNInd,VarMap,uniqueIndexes,retInd,collection,sci,subcols = args
+        self.write('{"data":')
+        if isinstance(R,pm.cursor.Cursor):
+            self.write('[')
+            p = self.application.settings.get('pool')
+            p.apply_async(get_loop,*args,callback=self.async_callback(self.on_get))
+        else:
+            self.write(json.dumps(R,default=pm.json_util.default))
+            self.get_finish(returnMetadata,collection,sci,subcols)
+    
+    @tornado.web.asynchronous
     def post(self):
         args = json.loads(self.request.body)
         args = dict([(str(x),y) for (x,y) in args.items()])
         collectionName = args.pop('collectionName')
         querySequence = args.pop('querySequence')
-        get(collectionName,querySequence,returnObj=False,fh=self,**args)
-
+        p = self.application.settings.get('pool')
+        p.apply_async(get,collectionName,querySequence,
+                    callback=self.async_callback(self.get_init),**args)
         
         
 class FindHandler(tornado.web.RequestHandler):
@@ -70,7 +102,7 @@ class FindHandler(tornado.web.RequestHandler):
 
 EXPOSED_ACTIONS = ['find','find_one','group','skip','limit','sort','count','distinct']
 
-def get(collectionName,querySequence,timeQuery=None, spaceQuery = None, returnMetadata=False,fh = None,returnObj = True,processor = None,versionNumber=None):
+def get(collectionName,querySequence,timeQuery=None, spaceQuery = None, returnMetadata=False, processor = None,versionNumber=None):
     """
     collectionName : String => collection name e.g. BEA_NIPA
     querySequence : List[Pair[action,args]] => mongo db action read pymongo docs e.g. 
@@ -85,8 +117,6 @@ def get(collectionName,querySequence,timeQuery=None, spaceQuery = None, returnMe
     spaceQuery : Dict => {"s": ?, "c": ?, "f": {"s", "c"}}
                : List => ["s", "c", "f.s"]
     returnMetadata : Boolean => to return meta data
-    fh : Boolean => file handle to write to
-    returnObj : Boolean => store and return computed object
     processor : lambda => processor applied to each row (TODO: fully implement this)
     versionNumber:  integer or 'ALL' ==> specify which version of data to be returned, defaults to currentVersion
         The logic implemented by this procedure for the version querying is:   
@@ -261,68 +291,36 @@ def get(collectionName,querySequence,timeQuery=None, spaceQuery = None, returnMe
             R = getattr(R,a)(*p,**k)    
         
         sci,subcols = getsci(collection)
-    
-        if fh:
-            fh.write('{"data":')
-        if returnObj:
-            Obj = {}
-    
-        if isinstance(R,pm.cursor.Cursor):
-            if returnObj:
-                Obj['data'] = []
-            if fh:
-                fh.write('[')
-                
-            for r in R:
-                if needsVersioning: 
-                    rV = r[vNInd]
-                    if rV > versionNumber:
-                        s = dict([(VarMap[k],r[VarMap[k]]) for k in uniqueIndexes] + [(vNInd,{'$gte':versionNumber,'$lt':rV}),(retInd,True)])
-                        H = collection.find(s).sort(vNInd,pm.DESCENDING)
-                        for h in H:
-                            for hh in h.keys():
-                                if hh not in SPECIAL_KEYS:
-                                    r[hh] = h[hh]
-                                if '__addedKeys__' in h.keys():
-                                    for g in h['__addedKeys__']:
-                                        r.pop(g)
-                    
-                        r[vNInd] = versionNumber
-    
-                
-                if processor:
-                    r = processor(r,collection)
-                    
-                if fh:
-                    fh.write(json.dumps(r,default=pm.json_util.default) + ',')
-                if returnObj:       
-                    Obj['data'].append(r)
-                    
-                if sci and sci in r.keys():
-                    subcols.append((r['_id'],r[sci]))
-                    
-            if fh:
-                fh.write(']')
-                
-        else:
-            if fh:
-                fh.write(json.dumps(R,default=pm.json_util.default))
-            if returnObj:
-                Obj['data'] = R
-                    
-                    
-        if returnMetadata:
-            metadata = makemetadata(collection,sci,subcols)
-            if fh:
-                fh.write(',"metadata":' + json.dumps(metadata,default=pm.json_util.default))    
-            if returnObj:
-                Obj['metadata'] = metadata
-            
-        if fh:
-            fh.write('}')                                   
-        if returnObj:
-            return Obj
+        
+        return (R,needsVersioning,versionNumber,vNInd,VarMap,uniqueIndexes,retInd,collection,sci,subcols)
 
+def get_loop(R,needsVersioning,versionNumber,vNInd,VarMap,uniqueIndexes,retInd,collection,sci,subcols):
+    r = R.next()
+    if needsVersioning: 
+        rV = r[vNInd]
+        if rV > versionNumber:
+            s = dict([(VarMap[k],r[VarMap[k]]) for k in uniqueIndexes] + [(vNInd,{'$gte':versionNumber,'$lt':rV}),(retInd,True)])
+            H = collection.find(s).sort(vNInd,pm.DESCENDING)
+            for h in H:
+                for hh in h.keys():
+                    if hh not in SPECIAL_KEYS:
+                        r[hh] = h[hh]
+                    if '__addedKeys__' in h.keys():
+                        for g in h['__addedKeys__']:
+                            r.pop(g)
+        
+            r[vNInd] = versionNumber
+
+    
+    if processor:
+        r = processor(r,collection)
+
+    if sci and sci in r.keys():
+        subcols.append((r['_id'],r[sci]))
+    
+    towrite = json.dumps(r,default=pm.json_util.default) + ','
+    
+    return (towrite,R,needsVersioning,versionNumber,vNInd,VarMap,uniqueIndexes,retInd,collection,sci,subcols)
 
 def setArgTuple(t,k,v):
     if t:
