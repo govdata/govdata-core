@@ -19,7 +19,9 @@ class GetHandler(tornado.web.RequestHandler):
         self.write("Hello, get")
         
     def on_get(self,args):
+    	print("CHUNK")
         chunk,R,processor,needsVersioning,versionNumber,vNInd,VarMap,uniqueIndexes,retInd,collection,sci,subcols = args
+        print(chunk)
         get_loop_args = args[1:]
         self.write(chunk)
         if R.alive:
@@ -30,7 +32,8 @@ class GetHandler(tornado.web.RequestHandler):
             self.get_finish(returnMetadata,collection,sci,subcols)                
     
     def get_finish(self,returnMetadata,collection,sci,subcols):
-        if returnMetadata:
+    	print("FINISH")
+    	if returnMetadata:
             metadata = makemetadata(collection,sci,subcols)
             self.write(',"metadata":' + json.dumps(metadata,default=pm.json_util.default))    
             
@@ -38,6 +41,7 @@ class GetHandler(tornado.web.RequestHandler):
         self.finish()                              
             
     def get_init(self,args):
+    	print("INIT")
         R,processor,needsVersioning,versionNumber,vNInd,VarMap,uniqueIndexes,retInd,collection,sci,subcols = args
         self.write('{"data":')
         if isinstance(R,pm.cursor.Cursor):
@@ -50,6 +54,7 @@ class GetHandler(tornado.web.RequestHandler):
     
     @tornado.web.asynchronous
     def post(self):
+    	print("GOT A POST")
         args = json.loads(self.request.body)
         args = dict([(str(x),y) for (x,y) in args.items()])
         collectionName = args.pop('collectionName')
@@ -133,6 +138,7 @@ def get_args(collectionName,querySequence,timeQuery=None, spaceQuery = None, ret
                         find all correponding records with __retained__ = true and __versionNumber__ < V' and for each  one, apply diffs, eading version history in backwards order.
 
     """
+    print("start stuff")
     if versionNumber != 'ALL':
         collection = Collection(collectionName,versionNumber=versionNumber)
     else:
@@ -293,6 +299,7 @@ def get_args(collectionName,querySequence,timeQuery=None, spaceQuery = None, ret
         
         sci,subcols = getsci(collection)
         
+        print("finished stuff")
         return (R,processor,needsVersioning,versionNumber,vNInd,VarMap,uniqueIndexes,retInd,collection,sci,subcols)
 
 def get(*args,**kwargs):
