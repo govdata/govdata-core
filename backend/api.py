@@ -27,13 +27,29 @@ class GetHandler(tornado.web.RequestHandler):
         
         
 class FindHandler(tornado.web.RequestHandler):
+    @tornado.web.asynchronous
     def get(self):
         args = self.request.arguments
         assert 'q' in args.keys() and len(args['q']) == 1
         query = args['q'][0]
         args.pop('q')
+        http = tornado.httpclient.AsyncHTTPClient()
+        http.fetch(find(query,**args),callback=self.async_callback(self.on_response))
         self.write(find(query,**args))
-
+    
+    def on_response(self, response):
+          if response.error: raise tornado.web.HTTPError(500)
+          wt = 'json'
+          self.write()
+          if wt == 'json':
+              self.write(resonse.body)
+          elif wt == 'python':
+              X = ast.literal_eval(response.body)
+              #do stuff to X
+              jsonstr = json.dumps(X,default=pm.json_util.default)
+              self.write(jsonstr)
+          self.finish()
+    
     def post(self):
         args = json.loads(self.request.body)
         args = dict([(str(x),y) for (x,y) in args.items()])
