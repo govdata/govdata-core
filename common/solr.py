@@ -15,7 +15,7 @@ def query(q, hlParams=None,facetParams=None,mltParams = None, host = 'localhost'
     hlstring = processSolrArgList('hl',hlParams)
     mltstring = processSolrArgList('mlt',mltParams)
     
-    URL = 'http://' + localhost + ':' + port + '/solr/select?q=' + urllib.quote(q) + paramstring + facetstring + hlstring + mltstring
+    URL = 'http://' + host + ':' + port + '/solr/select?q=' + urllib.quote(q) + paramstring + facetstring + hlstring + mltstring
     
     return urllib2.urlopen(URL).read()
     
