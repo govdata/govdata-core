@@ -55,7 +55,7 @@ class GetHandler(tornado.web.RequestHandler):
         collectionName = args.pop('collectionName')
         querySequence = args.pop('querySequence')
         p = self.application.settings.get('pool')
-        p.apply_async(get,collectionName,querySequence,
+        p.apply_async(get_args,collectionName,querySequence,
                     callback=self.async_callback(self.get_init),**args)
         
         
@@ -103,7 +103,7 @@ class FindHandler(tornado.web.RequestHandler):
 
 EXPOSED_ACTIONS = ['find','find_one','group','skip','limit','sort','count','distinct']
 
-def get(collectionName,querySequence,timeQuery=None, spaceQuery = None, returnMetadata=False, processor = None,versionNumber=None):
+def get_args(collectionName,querySequence,timeQuery=None, spaceQuery = None, returnMetadata=False, processor = None,versionNumber=None):
     """
     collectionName : String => collection name e.g. BEA_NIPA
     querySequence : List[Pair[action,args]] => mongo db action read pymongo docs e.g. 
@@ -294,6 +294,69 @@ def get(collectionName,querySequence,timeQuery=None, spaceQuery = None, returnMe
         sci,subcols = getsci(collection)
         
         return (R,needsVersioning,versionNumber,vNInd,VarMap,uniqueIndexes,retInd,collection,sci,subcols)
+
+def get(*args,fh=None,**kwargs):
+    R,needsVersioning,versionNumber,vNInd,VarMap,uniqueIndexes,retInd,collection,sci,subcols = get_args(*args,**kwargs)
+    if fh:
+         fh.write('{"data":')
+     if returnObj:
+         Obj = {}
+ 
+     if isinstance(R,pm.cursor.Cursor):
+         if returnObj:
+             Obj['data'] = []
+         if fh:
+             fh.write('[')
+             
+         for r in R:
+             if needsVersioning: 
+                 rV = r[vNInd]
+                 if rV > versionNumber:
+                     s = dict([(VarMap[k],r[VarMap[k]]) for k in uniqueIndexes] + [(vNInd,{'$gte':versionNumber,'$lt':rV}),(retInd,True)])
+                     H = collection.find(s).sort(vNInd,pm.DESCENDING)
+                     for h in H:
+                         for hh in h.keys():
+                             if hh not in SPECIAL_KEYS:
+                                 r[hh] = h[hh]
+                             if '__addedKeys__' in h.keys():
+                                 for g in h['__addedKeys__']:
+                                     r.pop(g)
+                 
+                     r[vNInd] = versionNumber
+ 
+             
+             if processor:
+                 r = processor(r,collection)
+                 
+             if fh:
+                 fh.write(json.dumps(r,default=pm.json_util.default) + ',')
+             if returnObj:       
+                 Obj['data'].append(r)
+                 
+             if sci and sci in r.keys():
+                 subcols.append((r['_id'],r[sci]))
+                 
+         if fh:
+             fh.write(']')
+             
+     else:
+         if fh:
+             fh.write(json.dumps(R,default=pm.json_util.default))
+         if returnObj:
+             Obj['data'] = R
+                 
+                 
+     if returnMetadata:
+         metadata = makemetadata(collection,sci,subcols)
+         if fh:
+             fh.write(',"metadata":' + json.dumps(metadata,default=pm.json_util.default))    
+         if returnObj:
+             Obj['metadata'] = metadata
+         
+     if fh:
+         fh.write('}')                                   
+     if returnObj:
+         return Obj
 
 def get_loop(R,needsVersioning,versionNumber,vNInd,VarMap,uniqueIndexes,retInd,collection,sci,subcols):
     r = R.next()
