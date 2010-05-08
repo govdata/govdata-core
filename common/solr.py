@@ -6,7 +6,7 @@ import urllib
 import urllib2
 from common.utils import is_string_like
     
-def query(q, hlParams=None,facetParams=None,mltParams = None, **params):
+def query(q, hlParams=None,facetParams=None,mltParams = None, host = 'localhost', port = '8983', **params):
     """
         query the solr index.  I wrote this because I found many flows with the query methods in solrpy. 
     """
@@ -15,7 +15,7 @@ def query(q, hlParams=None,facetParams=None,mltParams = None, **params):
     hlstring = processSolrArgList('hl',hlParams)
     mltstring = processSolrArgList('mlt',mltParams)
     
-    URL = 'http://localhost:8983/solr/select?q=' + urllib.quote(q) + paramstring + facetstring + hlstring + mltstring
+    URL = 'http://' + localhost + ':' + port + '/solr/select?q=' + urllib.quote(q) + paramstring + facetstring + hlstring + mltstring
     
     return urllib2.urlopen(URL).read()
     

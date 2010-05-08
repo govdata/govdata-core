@@ -162,7 +162,7 @@ def updateCollection(collectionName,certpath):
         
         creates collection and associated metadata collection and version history collection
         
-        The basis of the incremental approach is to assume each coollection has a uniqueIndexes list of columns which define a primary unique value.  "Corresponding" records between versions are those with the same value in the uniqueIndexes columns.
+        The basis of the incremental approach is to assume each coollection has a uniqueIndexes list of columns which define a primary unique value.  Definition:  "Corresponding" records between versions are those with the same value in the uniqueIndexes columns.
         
         Each document (record) in each collection is endowed with special keys for tracking versions -- these are actually defined in common.mongo module. The SPECIAL_KEYS are specifically:
            __versionNumber__ = version number of a particular record (document)
