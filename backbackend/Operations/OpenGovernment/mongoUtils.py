@@ -16,6 +16,7 @@ MONGOSOURCES_PATH = '../Data/OpenGovernment/MongoSources/'
 def createCollection(path,certpath):
     """adds data from text file format into mongo.   path is name of textfile folder path -- and containing directory name is used to create collection name
 
+        This function is basically deprecated in favor of the incremental version, updateCollection. 
     """
 
     path += '/' if path[-1] != '/' else ''  
@@ -158,6 +159,31 @@ def createCollection(path,certpath):
 @activate(lambda x : MONGOSOURCES_PATH + x[0] + '/',lambda x : x[1])
 def updateCollection(collectionName,certpath):
     """incremental version of createCollection
+        
+        creates collection and associated metadata collection and version history collection
+        
+        The basis of the incremental approach is to assume each coollection has a uniqueIndexes list of columns which define a primary unique value.  "Corresponding" records between versions are those with the same value in the uniqueIndexes columns.
+        
+        Each document (record) in each collection is endowed with special keys for tracking versions -- these are actually defined in common.mongo module. The SPECIAL_KEYS are specifically:
+           __versionNumber__ = version number of a particular record (document)
+           __retained__ =  whether a corresponding record was retained in the next version
+           __originalVersion__ = last CONTIGUOUS version where corresponding record was first added.  By "contiguous" is meant that if uniqueIndex tuple value is added at version v1, deleted at v2,  and then added back at version v3, the __originalVersion__ key for corresponding records between with __versionNumber between v1 and v2  is v1, while it is v2 for corresponding records with __versionNumber__ >= v3  
+           __addedKeys__  = in a record that is retained from version V to V + 1, this record is set in the version V record to be the list of (non-primary) keys present in the V+1 record that are NOT present in the original version V record
+           
+     
+        See also:  comments on processRecords for information on how this is propgated as versions are added
+                         comments on api.get for information on the versioning logic query retrieval
+                         
+        For each collection with name NAME, the metadata collection is an asssociated mongoDB collection with name __NAME__ .
+        The metadata collection has two "special" keys, __name__ and __versionNumber__:
+                the __name__ key describes the name of the special subcollection to which the metdata applies, e.g. so that __name__ = '' is top-level metadata
+                The __versionNumber__ is the version Number to which the metadata applies (the same version scheme as the regular data)
+       
+        For each collection, there is also an associated versionHistory collection with name __NAME__VERSIONS__, which has two keys:
+            __versionNumber__ : the versionNumber 
+            __timeStamp__: the timestamp when this version was added, as a special-format date object with Y, m, d, H, M, S entries
+                
+        
     """
     path = MONGOSOURCES_PATH + collectionName + '/'
    
@@ -175,13 +201,11 @@ def updateCollection(collectionName,certpath):
     db = connection['govdata']
     assert not '__' in collectionName, 'collectionName must not contain consecutive underscores'
     metaCollectionName = '__' + collectionName + '__'
-    queryDeltaName = '__' + collectionName + '__SLICEDELTAS__'
     versionName = '__' + collectionName + '__VERSIONS__'
     
     collection = db[collectionName]
     metacollection = db[metaCollectionName]
     versions = db[versionName]        
-    queryDeltaDB = db[queryDeltaName]
 
     assert 'UniqueIndexes' in AllMeta.keys(), 'No unique indexes specified'
     uniqueIndexes =  AllMeta['UniqueIndexes']
@@ -321,48 +345,74 @@ def updateCollection(collectionName,certpath):
     
                     
 def processRecord(c,collection,VarMap,varReMap,uniqueIndexes,versionNumber,specialKeyInds):
-        vNInd = VarMap['__versionNumber__']
-        retInd = VarMap['__retained__']
-        aKInd = VarMap['__addedKeys__']
-        origInd = VarMap['__originalVersion__']
+    """Function which adds a given record to a collection, handling the incremental version properly.  
+    
+        The basic logic is:  to add a given record 'c':
+            -- add __versionNumber__ key to 'c',  with value = currentVersion
+            -- see if there is a corresponding record in the previous version
+                if so: 
+                    add __originalVersion__ key to 'c',  with the same value as corresponding old record's __originalVersion__ 
+                    compute the differences between the new record and old corresponding record, including:
+                        -- added keys
+                        -- removed keys
+                        -- differing values
+                    if there are differences:
+                        add the __retained__ key to the OLD corresponding record, and, to save room, remove any non-differeing values from it (except for the uniqueIndex values)
+                    else:
+                        set _id key of 'c'  that of old record
+                        remove the old record from the collection
+                    
+                if not:  
+                    just set __originalVersion__ and __versionNumber__ keys to  equal currentVersion
+                
+             -- finally,  insert the record
+          
+    """
+
+    vNInd = VarMap['__versionNumber__']
+    retInd = VarMap['__retained__']
+    aKInd = VarMap['__addedKeys__']
+    origInd = VarMap['__originalVersion__']
+    
+    c = dict([(varReMap[k],c[k]) for k in c.keys()])
+    c[vNInd] = versionNumber
+    s = dict([(VarMap[k],c[VarMap[k]]) for k in uniqueIndexes])
+    s[vNInd] = versionNumber - 1
+    
+    H = collection.find_one(s)
+   
+    if H:
+        c[origInd] = H[origInd]
+        diff = dict([(k,H[k]) for k in H.keys() if k != '_id' and k not in specialKeyInds and (k not in c.keys() or notEqual(H[k],c[k])) ])
+        if diff:
+            diff[retInd] = True
+        newkeys = [k for k in c.keys() if k not in H.keys()]
+        if newkeys:
+            diff[aKInd] = newkeys
         
-        c = dict([(varReMap[k],c[k]) for k in c.keys()])
-        c[vNInd] = versionNumber
-        s = dict([(VarMap[k],c[VarMap[k]]) for k in uniqueIndexes])
-        s[vNInd] = versionNumber - 1
-        
-        H = collection.find_one(s)
-       
-        idSet = None
-        if H:
-            c[origInd] = H[origInd]
-            diff = dict([(k,H[k]) for k in H.keys() if k != '_id' and k not in specialKeyInds and (k not in c.keys() or notEqual(H[k],c[k])) ])
-            if diff:
-                diff[retInd] = True
-            newkeys = [k for k in c.keys() if k not in H.keys()]
-            if newkeys:
-                diff[aKInd] = newkeys
-            
-            if diff:
-                diff.update(s)
-                collection.update(s,diff)             
-            else:
-                idSet = H['_id']
-                collection.remove(s)
+        if diff:
+            diff.update(s)
+            collection.update(s,diff)             
         else:
-            c[origInd] = versionNumber
-        
-        
-        if idSet:
-            c['_id'] = idSet
-        
-        id = collection.insert(c)
-        return id
+            c['_id'] = H['_id']
+            collection.remove(s)
+    else:
+        c[origInd] = versionNumber
+            
+    id = collection.insert(c)
+    return id
             
 import numpy
 isnan = numpy.isnan
 def notEqual(x,y):
+    """
+        Helper for processRecord
+    """
     return x != y and not (isnan(x) and isnan(y))
     
 def getT(x):
+    """
+        Helper for createCollection and updateCollection
+    """
+    
     return tuple([(k,v) for (k,v) in x.items() if k != 'f'])

@@ -45,7 +45,9 @@ def getQueryList(collectionName,keys):
 
 @activate(lambda x : x[1],lambda x : x[2])
 def makeQueryDB(collectionName,incertpath,certpath, hashSlices=True):
-    """Make the query database"""
+    """Make the query database
+         Deprecated in favor of updateQueryDB
+    """
     collection = Collection(collectionName)
     sliceCols = collection.sliceCols
     if is_string_like(sliceCols[0]):
@@ -87,8 +89,35 @@ def makeQueryDB(collectionName,incertpath,certpath, hashSlices=True):
 
 
 @activate(lambda x : x[1],lambda x : x[2])
-def updateQueryDB(collectionName,incertpath,certpath, hashSlices=True):
-    """Make the query database"""
+def updateQueryDB(collectionName,incertpath,certpath, hashSlices=True, slicesCorrespondToIndexes = False):
+    """incrementally update the query database.
+    
+        For a given collection with name NAME, this creates (or updates)  the associated collection __NAME__SLICES__
+        
+        Documents in this slice collection has the following keys:
+            'q' = list of pymongo simple queries (with keys in collection.sliceCols) corresponding to an identical slice
+            'h' = hash of concentenated record ID lists of all records in the slice
+            'v' = versionNumber of the document
+            'o' = originalVersion where this slice  appears
+            'd' = whether this slice is deleted after this version
+        
+        
+        The incrementation logic is:
+            Add "new" queries -- as measured by having __originalIndex__ > atVersion, where atVersion = maximum existing version of a slice (fast to evaluate) 
+                -- and set the resulting records to have 'v' key and 'o' = currentNumber
+                
+            
+
+                
+            Set delete keys on all deleted queries, where "deleted" is measured by:
+                -- being in version < current, and NOT having a __retained__ key
+                -- not actually existing in the current version (this needs to be checked to handle the situation of something that has been deleted and then re-added)
+                
+                
+            
+            
+    
+    """
     collection = Collection(collectionName)
     currentVersion = collection.currentVersion
     totalVariables = collection.totalVariables
@@ -122,36 +151,41 @@ def updateQueryDB(collectionName,incertpath,certpath, hashSlices=True):
  
     uiMap = dict(zip(uniqueIndexes, getStrs(collection,uniqueIndexes)))
     sct = ListUnion(sliceColTuples)
+    slicesCorrespondToIndexes = slicesCorrespondToIndexes or set(sct) <= set(uniqueIndexes)
     sctMap = dict(zip(sct, getStrs(collection,sct)))
+    sctSet = set(uiMap.values())
     Qgen = getQgen(sctMap,sliceColTuples)
     
+    #addition of new things
     for (i,x) in enumerate(collection.find({vNInd:currentVersion})):
-        print i
-        #if index(x) is new, compute all sliceTuple subsets in new and remove from old
-        
-        if x[origInd] > atVersion:
-            print 'new'
+        print i,x
 
-            Q = getQ(x,Qgen)
-        
+        if x[origInd] > atVersion:
+            Q = getQ(x,Qgen)       
             for q in Q:
-                pq = processQuery(q)
-                if hashSlices:
-                    if not sliceCollection.find_one({'q': pq,'v':currentVersion}):
-                        R = api.get(collectionName,[('find',[(q,),{'fields':['_id']}])])['data']
-                        count = len(R)
-                        if count > 0:
-                            hash = hashlib.sha1(''.join([str(r['_id']) for r in R])).hexdigest()
-                            if sliceCollection.find_one({'h':hash,'v':currentVersion}):
-                                sliceCollection.update({'h':hash,'v':currentVersion},{'$push':{'q':pq}},safe=True)
-                            else:
-                                sliceCollection.insert({'h':hash,'q':[pq],'c':count,'v':currentVersion,'o':currentVersion},safe=True)             
-                        sliceCollection.remove({'q':pq,'v':atVersion})
-                else:
-                    col.insert({'h':pq,'q':[pq],'v':currentVersion})
-                    sliceCollection.remove({'q':pq,'v':atVersion})
+                doAdd(q,hashslices,sliceCollection,collectionName,currentVersion)
+                sliceCollection.remove({'q':processQuery(q),'v':atVersion})
+                                    
+        elif not slicesCorrespondToIndexes and x[origInd] <= atVersion:
+  
             
-    #delete
+            index = dict([(uiMap[t],rgetattr(x,uiMap[t].split('.'))) for t in uniqueIndexes] + [(retInd,True),(vNInd,{'$lt':currentVersion,'$gte':atVersion})])            
+            H = collection.find(index,fields=sct).sort(vNInd,pm.DESCENDING)
+       
+            y = dict([(k,x[k]) for k in x.keys() if k in sctSet])
+            z = y.copy()
+            for h in H:
+                z.update(h)
+                    
+            if y != z:              
+                Qy = getQ(y,Qgen)
+                Qz = getQ(z,Qgen)
+            
+                for (qy,qz) in zip(Qy,Qz):
+                    doAdd(qy,hashslices,sliceCollection,collectionName,currentVersion)
+                    sliceCollection.remove({'q': processQuery(qz),'v':atVersion})
+        
+    #add "d" key to deletions
     for x in collection.find({retInd:{'$exists':False},vNInd:{'$lt':currentVersion,'$gte':atVersion}}):
         index = dict([(uiMap[t],rgetattr(x,uiMap[t].split('.'))) for t in uniqueIndexes])
         index[vNInd] = currentVersion
@@ -164,15 +198,32 @@ def updateQueryDB(collectionName,incertpath,certpath, hashSlices=True):
                 if not collection.find_one(q):
                     sliceCollection.update({'q':pq,'v':atVersion},{'$set':{'d':True}})
                 
-                	
+                    
     
-    #move over remainder
+    #move over remaining non-'d'-tagged records from old version number to current
     sliceCollection.update({'v':atVersion,'d':{'$exists':False}},{'$set':{'v':currentVersion}},multi=True)
         
   
     createCertificate(certpath,'Slice database for ' + collectionName + ' written.')
 
-    
+  
+def doAdd(q,hashslices,sliceCollection,collectionName,currentVersion):
+               
+    pq = processQuery(q)
+    if hashSlices:
+        if not sliceCollection.find_one({'q': pq,'v':currentVersion}):
+            R = api.get(collectionName,[('find',[(q,),{'fields':['_id']}])])['data']
+            count = len(R)
+            if count > 0:
+                hash = hashlib.sha1(''.join([str(r['_id']) for r in R])).hexdigest()
+                if sliceCollection.find_one({'h':hash,'v':currentVersion}):
+                    sliceCollection.update({'h':hash,'v':currentVersion},{'$push':{'q':pq}},safe=True)
+                else:
+                    sliceCollection.insert({'h':hash,'q':[pq],'c':count,'v':currentVersion,'o':currentVersion},safe=True)               
+    else:
+        sliceCollection.insert({'h':pq,'q':[pq],'v':currentVersion})
+
+  
 def getQgen(sctMap,sliceColTuples):
     
     return [(T,list(itertools.product(*[[sctMap[t]] if is_string_like(sctMap[t]) else sctMap[t] for t in T]))) for T in sliceColTuples]

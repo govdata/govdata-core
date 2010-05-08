@@ -1,11 +1,36 @@
+"""
+utilities for working with govdata in mongoDB format
+
+"""
+   
 import pymongo as pm
     
-    
+
 SPECIAL_KEYS =  ['__versionNumber__','__retained__','__addedKeys__','__originalVersion__']  
 
 class Collection(pm.collection.Collection):
-    """Extends the pymongo collection object for the special case of govdata collections, meaning attaching stuff from 
-    from the metadata collection as well as the slices from the query database. 
+    """Extends the pymongo collection object for the special case of govdata collections, meaning:
+    
+          1) attaching connections to various associated collections, including metadata, indexed slices, and versionHistory, as attributes, specifically:
+               self.metaCollection = metadata collection connection
+               self.slices = slice collection connection
+               self.versions = version history colleciton connection
+           
+          1a) The complete currentVersion metadata is read out into a dictionary, whose keys are names of subcollections.  That is:
+          
+          		self.metadata[subcol] = metadata for that subcol -- from the current version of metadata
+          		
+          		so that e.g. "top level" metdata is self.metadata[''].  
+          		
+          1b) The versionNumber parameter to __init__ serves to modify 1a) so that metadata from the specified version is attached as self.metadata
+          
+          2) This class also makes various attributes available from top-level metadata, by passing on through via intercepting __getattr__, i.e.
+          		IF attribute not otherwise found:
+          			try:
+		          		X.attribute = X.metadata[''][attribute]
+		          		
+		        so e.g. X.ColumnGroups is defined.
+          
     """
     
     def __init__(self,name,connection = None,versionNumber=None):
@@ -24,7 +49,7 @@ class Collection(pm.collection.Collection):
             self.slices = db[slicesname]
             
         versionsname = '__' + name + '__VERSIONS__'
-        if versionsname in db.collection_names():
+        if versionsname in db.collection_names() and versionNumber != 'ALL':
             self.versions = db[versionsname]
             currentVersion = max(self.versions.distinct('__versionNumber__'))
             self.currentVersion = currentVersion

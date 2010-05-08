@@ -68,9 +68,22 @@ def get(collectionName,querySequence,timeQuery=None, spaceQuery = None, returnMe
     fh : Boolean => file handle to write to
     returnObj : Boolean => store and return computed object
     processor : lambda => processor applied to each row (TODO: fully implement this)
+    versionNumber:  integer or 'ALL' ==> specify which version of data to be returned, defaults to currentVersion
+        The logic implemented by this procedure for the version querying is:   
+          -- deletions relative to next version those records where __retained__ key doesn't exist
+          -- totally new records (e.g. with new uniqueIndexes) between v1 and v2 are those with:  v2 >= __originalVersion__ >= v1
+          -- diffs relative to corresponding record in next version: __retained__key DOES exist, and:
+                    -- keys which were deleted in next version or have differing values are stored
+                    -- __addedKeys__ key lists keys added in next version
+          -- Therefore, data at currentVersion are simply all records with  __versionNumber__ = currentVersion
+          -- The data at version V where V < currentVersion are computed by:
+                -- getting all data with __originalVersion__  <= V and __retained__ NOT exists, and __versionNumber__ >= V
+                -- for each record in above with __versionNumber__ = V':
+                        find all correponding records with __retained__ = true and __versionNumber__ < V' and for each  one, apply diffs, eading version history in backwards order.
+
     """
     if versionNumber != 'ALL':
-	    collection = Collection(collectionName,versionNumber=versionNumber)
+        collection = Collection(collectionName,versionNumber=versionNumber)
     else:
         collection =  Collection(collectionName)
    
@@ -242,18 +255,19 @@ def get(collectionName,querySequence,timeQuery=None, spaceQuery = None, returnMe
                 
             for r in R:
                 if needsVersioning: 
-					rV = r[vNInd]
-					if rV > versionNumber:
-						s = dict([(VarMap[k],r[VarMap[k]]) for k in uniqueIndexes])
-						s[vNInd] = {'$gte': versionNumber,'$lt':rV}
-						s[retInd] = True
-						H = collection.find(s).sort(vNInd,pm.DESCENDING)
-						for h in H:
-							for hh in h.keys():
-								if hh not in SPECIAL_KEYS:
-									r[hh] = H[hh]
-					
-						r[vNInd] = versionNumber
+                    rV = r[vNInd]
+                    if rV > versionNumber:
+                        s = dict([(VarMap[k],r[VarMap[k]]) for k in uniqueIndexes] + [(vNInd,{'$gte':versionNumber,'$lt':rV}),(retInd,True)])
+                        H = collection.find(s).sort(vNInd,pm.DESCENDING)
+                        for h in H:
+                            for hh in h.keys():
+                                if hh not in SPECIAL_KEYS:
+                                    r[hh] = h[hh]
+                                if '__addedKeys__' in h.keys():
+                                    for g in h['__addedKeys__']:
+                                        r.pop(g)
+                    
+                        r[vNInd] = versionNumber
     
                 
                 if processor:
