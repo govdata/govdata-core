@@ -8,7 +8,7 @@ import ast
 import pymongo as pm
 import pymongo.json_util
 from common.utils import IsFile, listdir, is_string_like, ListUnion, Flatten
-from common.mongo import Collection
+import common.mongo as CM
 import common.timedate as td
 import common.location as loc
 import common.solr as solr
@@ -140,9 +140,9 @@ def get_args(collectionName,querySequence,timeQuery=None, spaceQuery = None, ret
     """
     print("start stuff")
     if versionNumber != 'ALL':
-        collection = Collection(collectionName,versionNumber=versionNumber)
+        collection = CM.Collection(collectionName,versionNumber=versionNumber)
     else:
-        collection =  Collection(collectionName)
+        collection =  CM.Collection(collectionName)
    
     versionNumber = collection.versionNumber
     currentVersion = collection.currentVersion
@@ -292,15 +292,17 @@ def get_args(collectionName,querySequence,timeQuery=None, spaceQuery = None, ret
                 kwargs = {}
             posArgs.append(posargs)
             kwArgs.append(kwargs)
-        # Here is where the real stuff happens the other stuff is preprocessing the query
+
+        sci,subcols = getsci(collection)
+
         R = collection  
         for (a,p,k) in zip(Actions,posArgs,kwArgs):
             R = getattr(R,a)(*p,**k)    
-        
-        sci,subcols = getsci(collection)
-        
+
         print("finished stuff")
         return (R,processor,needsVersioning,versionNumber,vNInd,VarMap,uniqueIndexes,retInd,collection,sci,subcols)
+
+
 
 def get(*args,**kwargs):
     fh=kwargs.pop('fh',None)    
@@ -403,6 +405,7 @@ def setArgTuple(t,k,v):
     else:
         t = ({k:v},)
     return t
+
 
 def getsci(collection):
     if 'Subcollections' in collection.totalVariables:
