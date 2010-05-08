@@ -33,28 +33,32 @@ class FindHandler(tornado.web.RequestHandler):
         assert 'q' in args.keys() and len(args['q']) == 1
         query = args['q'][0]
         args.pop('q')
+        args['wt'] = args.get('wt','json') # set default wt = 'json'
         http = tornado.httpclient.AsyncHTTPClient()
-        http.fetch(find(query,**args),callback=self.async_callback(self.on_response))
-        self.write(find(query,**args))
+        http.fetch(find(query,**args),callback=self.async_callback(self.create_responder(**args)))
     
-    def on_response(self, response):
-          if response.error: raise tornado.web.HTTPError(500)
-          wt = 'json'
-          self.write()
-          if wt == 'json':
-              self.write(resonse.body)
-          elif wt == 'python':
-              X = ast.literal_eval(response.body)
-              #do stuff to X
-              jsonstr = json.dumps(X,default=pm.json_util.default)
-              self.write(jsonstr)
-          self.finish()
+    def create_responder(self,**params):
+        def responder(self, response):
+            if response.error: raise tornado.web.HTTPError(500)
+            wt = params.get('json')
+            if wt == 'json':
+                self.write(resonse.body)
+            elif wt == 'python':
+                X = ast.literal_eval(response.body)
+                #do stuff to X
+                jsonstr = json.dumps(X,default=pm.json_util.default)
+                self.write(jsonstr)
+            self.finish()
+        return responder
     
+    @tornado.web.asynchronous
     def post(self):
         args = json.loads(self.request.body)
         args = dict([(str(x),y) for (x,y) in args.items()])
         query = args.pop('q')
-        self.write(find(query,**args))
+        args['wt'] = args.get('wt','json') # set default wt = 'json'
+        http = tornado.httpclient.AsyncHTTPClient()
+        http.fetch(find(query,**args),callback=self.async_callback(self.create_responder(**args)))
         
 
 
@@ -501,14 +505,5 @@ def find(q, timeQuery = None, spaceQuery = None, hlParams=None,facetParams=None,
     if facetParams == None:
         facetParams = {'field':['agency','subagency','dataset','dateDivisions']}
                     
-    params['wt'] = 'json'   #in the future this may be done differently, e.g. a conditional that would sometimes set 'wt=json' and sometimes 'python', depending on whether processing of the results needs to take place
-    
-    S = solr.query(q,hlParams,facetParams,mltParams,**params)
-        
-    if params['wt'] == 'json':
-        return S
-    elif params['wt'] == 'python':
-        X = ast.literal_eval(S)
-        #do stuff to X
-        return json.dumps(X,default=pm.json_util.default)
+    return solr.queryUrl(q,hlParams,facetParams,mltParams,**params)
         
