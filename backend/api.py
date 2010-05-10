@@ -35,6 +35,7 @@ class GetHandler(tornado.web.RequestHandler):
         returnObj = args.pop('returnObj',True)   
         returnMetadata = args.pop('returnMetadata',False)   
         processor = args.pop('processor',None)        
+        number = args.pop('number',None) 
        
         #get(collectionName,querySequence,fh=self,returnObj=returnObj,returnMetadata=returnMetadata,processor=processor,**args)
         
@@ -51,6 +52,7 @@ class GetHandler(tornado.web.RequestHandler):
         self.retInd = self.VarMap['__retained__']
         self.returnMetadata = returnMetadata
         self.processor = processor
+        self.number = number
         
         R = collection  
         for (a,p,k) in A:
@@ -69,7 +71,7 @@ class GetHandler(tornado.web.RequestHandler):
             tailable = False
             
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
-            #sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             H = sock.connect(("localhost", 27017))
             sock.setblocking(0)
             
@@ -113,27 +115,30 @@ class GetHandler(tornado.web.RequestHandler):
 
 def loop(handler,cursor,sock,fd):
     
-
-
     hasdata = True
     
+    i = 0
+    
+    collection = handler.collection
+    needsVersioning = handler.needsVersioning
+    versionNumber = handler.versionNumber
+    uniqueIndexes = handler.uniqueIndexes
+    VarMap = handler.VarMap
+    sci= handler.sci
+    subcols = handler.subcols
+    vNInd =  handler.vNInd
+    retInd = handler.retInd
+    processor = handler.processor
+    number = handler.number
+    
     while hasdata:
+        i += 1
         r = cursor.next()
 
         if len(cursor._Cursor__data) == 0:
             hasdata = False
-
-        collection = handler.collection
-        needsVersioning = handler.needsVersioning
-        versionNumber = handler.versionNumber
-        uniqueIndexes = handler.uniqueIndexes
-        VarMap = handler.VarMap
-        sci= handler.sci
-        subcols = handler.subcols
-        vNInd =  handler.vNInd
-        retInd = handler.retInd
-        processor = handler.processor
-    
+            
+               
         if handler.needsVersioning: 
             rV = r[handler.vNInd]
             if rV > versionNumber:
@@ -159,6 +164,8 @@ def loop(handler,cursor,sock,fd):
 
     if cursor.alive:
         cursor._refresh()
+        print i, number
+        
     else:
         handler.write(']')
     
@@ -403,7 +410,7 @@ def get(*args,**kwargs):
     returnMetadata = kwargs.pop('returnMetadata',True)   
     processor = kwargs.pop('processor',None)
 
-    A,needsVersioning,versionNumber,uniqueIndexes,vars = get_args(*args,**kwargs)
+    A,collection,needsVersioning,versionNumber,uniqueIndexes,vars = get_args(*args,**kwargs)
     
     R = collection  
     for (a,p,k) in A:
@@ -468,8 +475,8 @@ def get(*args,**kwargs):
         metadata = makemetadata(collection,sci,subcols)
         if fh:
             fh.write(',"metadata":' + json.dumps(metadata,default=pm.json_util.default))    
-    if returnObj:
-        Obj['metadata'] = metadata
+        if returnObj:
+            Obj['metadata'] = metadata
      
     if fh:
         fh.write('}')                                   

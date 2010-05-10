@@ -420,11 +420,11 @@ class Cursor(object):
         """
         sock = self.__socket
         (request_id, data) = message
-        
         X = sock.send(data)
+        if X == 0:
+            X = sock.send(data)
 
-        
-
+       
 
     def next(self):
     
