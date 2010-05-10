@@ -6,8 +6,6 @@ import tornado.options
 import tornado.web
 import api
 import os
-from multiprocessing import Pool, Queue
-from mult	iprocessing.managers import BaseManager
 
 from tornado.options import define, options
 
@@ -15,7 +13,7 @@ define("port", default=8888, help="run on the given port", type=int)
 define("processes", default=4, help="number of threads in the pool", type=int)
 
 class GovLove(tornado.web.Application):
-    def __init__(self):
+    def __init__(self,ioloop):
         handlers = [
             (r"/", MainHandler),
             (r"/get", api.GetHandler),
@@ -25,8 +23,7 @@ class GovLove(tornado.web.Application):
             template_path=os.path.join(os.path.dirname(__file__), "templates"),
             static_path=os.path.join(os.path.dirname(__file__), "static"),
             debug=True,
-            pool=Pool(processes=options.processes),
-            queue=Queue()
+            io_loop=ioloop
         )
         tornado.web.Application.__init__(self, handlers, **settings)
 
@@ -36,9 +33,10 @@ class MainHandler(tornado.web.RequestHandler):
 
 def main():
     tornado.options.parse_command_line()
-    http_server = tornado.httpserver.HTTPServer(GovLove())
+    ioloop = tornado.ioloop.IOLoop.instance()
+    http_server = tornado.httpserver.HTTPServer(GovLove(ioloop))
     http_server.listen(options.port)
-    tornado.ioloop.IOLoop.instance().start()
+    ioloop.start()
 
 if __name__ == "__main__":
     main()

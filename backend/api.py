@@ -9,62 +9,166 @@ import pymongo as pm
 import pymongo.json_util
 from common.utils import IsFile, listdir, is_string_like, ListUnion, Flatten
 import common.mongo as CM
+import common.acursor as AC
 import common.timedate as td
 import common.location as loc
 import common.solr as solr
+import tornado.ioloop
+import socket
+import functools
+
+
+EXPOSED_ACTIONS = ['find','find_one','group','skip','limit','sort','count','distinct']
 
 
 class GetHandler(tornado.web.RequestHandler):
     def get(self):
         self.write("Hello, get")
-        
-    def on_get(self,args):
-    	print("CHUNK")
-        chunk,R,processor,needsVersioning,versionNumber,vNInd,VarMap,uniqueIndexes,retInd,collection,sci,subcols = args
-        print(chunk)
-        get_loop_args = args[1:]
-        self.write(chunk)
-        if R.alive:
-            p = self.application.settings.get('pool')
-            p.apply_async(get_loop,get_loop_args,callback=self.async_callback(self.on_get))
-        else:
-            self.write(']')
-            self.get_finish(returnMetadata,collection,sci,subcols)                
-    
-    def get_finish(self,returnMetadata,collection,sci,subcols):
-    	print("FINISH")
-    	if returnMetadata:
-            metadata = makemetadata(collection,sci,subcols)
-            self.write(',"metadata":' + json.dumps(metadata,default=pm.json_util.default))    
-            
-        self.write('}')     
-        self.finish()                              
-            
-    def get_init(self,args):
-    	print("INIT")
-        R,processor,needsVersioning,versionNumber,vNInd,VarMap,uniqueIndexes,retInd,collection,sci,subcols = args
-        self.write('{"data":')
-        if isinstance(R,pm.cursor.Cursor):
-            self.write('[')
-            p = self.application.settings.get('pool')
-            p.apply_async(get_loop,args,callback=self.async_callback(self.on_get))
-        else:
-            self.write(json.dumps(R,default=pm.json_util.default))
-            self.get_finish(returnMetadata,collection,sci,subcols)
-    
-    # @tornado.web.asynchronous
+
+    @tornado.web.asynchronous
     def post(self):
-    	print("GOT A POST")
+
         args = json.loads(self.request.body)
         args = dict([(str(x),y) for (x,y) in args.items()])
         collectionName = args.pop('collectionName')
-        querySequence = args.pop('querySequence')
-        get(collectionName,querySequence,fh=args,**args)
-        # p = self.application.settings.get('pool')
-        # p.apply_async(get_args,(collectionName,querySequence),args,
-        #             callback=self.async_callback(self.get_init))
+        querySequence = args.pop('querySequence')        
+        returnObj = args.pop('returnObj',True)   
+        returnMetadata = args.pop('returnMetadata',False)   
+        processor = args.pop('processor',None)        
+       
+        #get(collectionName,querySequence,fh=self,returnObj=returnObj,returnMetadata=returnMetadata,processor=processor,**args)
         
+        A,collection,needsVersioning,versionNumber,uniqueIndexes,vars = get_args(collectionName,querySequence,**args)
+       
+        self.collection = collection
+        self.needsVersioning = needsVersioning
+        self.versionNumber = versionNumber
+        self.uniqueIndexes = uniqueIndexes
+        self.VarMap = dict(zip(vars,[str(x) for x in range(len(vars))])) 
+        self.sci = self.VarMap.get('Subcollections')
+        self.subcols = []
+        self.vNInd =  self.VarMap['__versionNumber__']
+        self.retInd = self.VarMap['__retained__']
+        self.returnMetadata = returnMetadata
+        self.processor = processor
         
+        R = collection  
+        for (a,p,k) in A:
+            R = getattr(R,a)(*p,**k)    
+          
+        self.begin()
+                 
+        if isinstance(R,pm.cursor.Cursor):
+        #if 0 == 1:
+            self.write('[')
+            
+            spec,fields,skip,limit = R._Cursor__spec,R._Cursor__fields,R._Cursor__skip,R._Cursor__limit
+      
+            slave_okay = collection.database.connection.slave_okay
+            timeout = True
+            tailable = False
+            
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
+            #sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            H = sock.connect(("localhost", 27017))
+            sock.setblocking(0)
+            
+            cursor = AC.Cursor(collection,spec,fields,skip,limit, slave_okay, timeout,tailable,_sock = sock)
+            
+            callback = functools.partial(loop,self,cursor)
+            io_loop = self.settings['io_loop']
+            io_loop.add_handler(sock.fileno(), callback, io_loop.READ)        
+            
+            cursor._refresh()
+    
+        else:    
+        
+            self.write(json.dumps(R,default=pm.json_util.default))
+            self.end()
+            
+            
+    
+    def begin(self):
+    
+        self.write('{"data":')
+        
+                    
+    def end(self):        
+       
+        returnMetadata = self.returnMetadata
+
+        if returnMetadata:
+            collection = self.collection
+            sci = self.sci
+            subcols = self.subcols
+            
+            metadata = makemetadata(collection,sci,subcols)
+        
+            self.write(',"metadata":' + json.dumps(metadata,default=pm.json_util.default))    
+
+        self.write('}')        
+        
+        self.finish()
+          
+
+def loop(handler,cursor,sock,fd):
+    
+
+
+    hasdata = True
+    
+    while hasdata:
+        r = cursor.next()
+
+        if len(cursor._Cursor__data) == 0:
+            hasdata = False
+
+        collection = handler.collection
+        needsVersioning = handler.needsVersioning
+        versionNumber = handler.versionNumber
+        uniqueIndexes = handler.uniqueIndexes
+        VarMap = handler.VarMap
+        sci= handler.sci
+        subcols = handler.subcols
+        vNInd =  handler.vNInd
+        retInd = handler.retInd
+        processor = handler.processor
+    
+        if handler.needsVersioning: 
+            rV = r[handler.vNInd]
+            if rV > versionNumber:
+                s = dict([(VarMap[k],r[VarMap[k]]) for k in uniqueIndexes] + [(vNInd,{'$gte':versionNumber,'$lt':rV}),(retInd,True)])
+                H = collection.find(s).sort(vNInd,pm.DESCENDING)
+                for h in H:
+                    for hh in h.keys():
+                        if hh not in SPECIAL_KEYS:
+                            r[hh] = h[hh]
+                        if '__addedKeys__' in h.keys():
+                            for g in h['__addedKeys__']:
+                                r.pop(g)
+             
+                r[vNInd] = versionNumber
+         
+        if processor:
+            r = processor(r,collection)
+             
+        handler.write(json.dumps(r,default=pm.json_util.default) + ',')
+
+        if sci and sci in r.keys():
+            subcols.append((r['_id'],r[sci]))
+
+    if cursor.alive:
+        cursor._refresh()
+    else:
+        handler.write(']')
+    
+        io_loop = handler.settings['io_loop']
+        sock = cursor._Cursor__socket
+        io_loop.remove_handler(sock.fileno())
+        
+        handler.end()
+        
+
 class FindHandler(tornado.web.RequestHandler):
     @tornado.web.asynchronous
     def get(self):
@@ -107,9 +211,8 @@ class FindHandler(tornado.web.RequestHandler):
 #=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 
-EXPOSED_ACTIONS = ['find','find_one','group','skip','limit','sort','count','distinct']
 
-def get_args(collectionName,querySequence,timeQuery=None, spaceQuery = None, returnMetadata=False, processor = None,versionNumber=None):
+def get_args(collectionName,querySequence,timeQuery=None, spaceQuery = None, versionNumber=None):
     """
     collectionName : String => collection name e.g. BEA_NIPA
     querySequence : List[Pair[action,args]] => mongo db action read pymongo docs e.g. 
@@ -139,7 +242,6 @@ def get_args(collectionName,querySequence,timeQuery=None, spaceQuery = None, ret
                         find all correponding records with __retained__ = true and __versionNumber__ < V' and for each  one, apply diffs, eading version history in backwards order.
 
     """
-    print("start stuff")
     if versionNumber != 'ALL':
         collection = CM.Collection(collectionName,versionNumber=versionNumber)
     else:
@@ -149,12 +251,9 @@ def get_args(collectionName,querySequence,timeQuery=None, spaceQuery = None, ret
     currentVersion = collection.currentVersion
     
     needsVersioning = versionNumber != 'ALL' and versionNumber != currentVersion
-    
     vars = collection.totalVariables
     uniqueIndexes = collection.UniqueIndexes
-    VarMap = dict(zip(vars,[str(x) for x in range(len(vars))]))   
-    vNInd = VarMap['__versionNumber__']
-    retInd = VarMap['__retained__']
+     
     
     ColumnGroups = collection.ColumnGroups
 
@@ -294,23 +393,29 @@ def get_args(collectionName,querySequence,timeQuery=None, spaceQuery = None, ret
             posArgs.append(posargs)
             kwArgs.append(kwargs)
 
-        sci,subcols = getsci(collection)
-
-        R = collection  
-        for (a,p,k) in zip(Actions,posArgs,kwArgs):
-            R = getattr(R,a)(*p,**k)    
-
-        print("finished stuff")
-        return (R,processor,needsVersioning,versionNumber,vNInd,VarMap,uniqueIndexes,retInd,collection,sci,subcols)
-
+ 
+        return zip(Actions,posArgs,kwArgs),collection,needsVersioning,versionNumber,uniqueIndexes,vars
 
 
 def get(*args,**kwargs):
     fh=kwargs.pop('fh',None)    
     returnObj = kwargs.pop('returnObj',True)   
-    returnMetadata = kwargs.get('returnMetdata',True)   
+    returnMetadata = kwargs.pop('returnMetadata',True)   
+    processor = kwargs.pop('processor',None)
 
-    R,processor,needsVersioning,versionNumber,vNInd,VarMap,uniqueIndexes,retInd,collection,sci,subcols = get_args(*args,**kwargs)
+    A,needsVersioning,versionNumber,uniqueIndexes,vars = get_args(*args,**kwargs)
+    
+    R = collection  
+    for (a,p,k) in A:
+        R = getattr(R,a)(*p,**k)    
+    
+    VarMap = dict(zip(vars,[str(x) for x in range(len(vars))]))  
+    
+    sci = VarMap.get('Subcollections',None)
+    subcols = []
+    vNInd = VarMap['__versionNumber__']
+    retInd = VarMap['__retained__']
+    
     if fh:
         fh.write('{"data":')
     if returnObj:
@@ -337,7 +442,6 @@ def get(*args,**kwargs):
                                     r.pop(g)
                  
                     r[vNInd] = versionNumber
-        
              
             if processor:
                 r = processor(r,collection)
@@ -372,33 +476,6 @@ def get(*args,**kwargs):
     if returnObj:
         return Obj
 
-def get_loop(R,processor,needsVersioning,versionNumber,vNInd,VarMap,uniqueIndexes,retInd,collection,sci,subcols):
-    r = R.next()
-    if needsVersioning: 
-        rV = r[vNInd]
-        if rV > versionNumber:
-            s = dict([(VarMap[k],r[VarMap[k]]) for k in uniqueIndexes] + [(vNInd,{'$gte':versionNumber,'$lt':rV}),(retInd,True)])
-            H = collection.find(s).sort(vNInd,pm.DESCENDING)
-            for h in H:
-                for hh in h.keys():
-                    if hh not in SPECIAL_KEYS:
-                        r[hh] = h[hh]
-                    if '__addedKeys__' in h.keys():
-                        for g in h['__addedKeys__']:
-                            r.pop(g)
-        
-            r[vNInd] = versionNumber
-
-    
-    if processor:
-        r = processor(r,collection)
-
-    if sci and sci in r.keys():
-        subcols.append((r['_id'],r[sci]))
-    
-    towrite = json.dumps(r,default=pm.json_util.default) + ','
-    
-    return (towrite,R,needsVersioning,versionNumber,vNInd,VarMap,uniqueIndexes,retInd,collection,sci,subcols)
 
 def setArgTuple(t,k,v):
     if t:
@@ -408,14 +485,6 @@ def setArgTuple(t,k,v):
     return t
 
 
-def getsci(collection):
-    if 'Subcollections' in collection.totalVariables:
-        sci = str(collection.totalVariables.index('Subcollections'))
-    else:
-        sci = None
-    subcols = []    
-    
-    return  sci,subcols
 
 
 def makemetadata(collection,sci,subcols):
