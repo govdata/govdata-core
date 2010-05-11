@@ -111,11 +111,11 @@ class GetHandler(tornado.web.RequestHandler):
             finalize = karg.get('finalize')
             group = {}
             if isinstance(key, basestring):
-                group["$keyf"] = Code(key)
+                group["$keyf"] = Code(processJSValue(key,collection))
             elif key is not None:
                 group = {"key": collection._fields_list_to_dict(key)}
             group["ns"] = collection.name
-            group["$reduce"] = Code(reduce)
+            group["$reduce"] = Code(processJSValue(reduce,collection))
             group["cond"] = condition
             group["initial"] = initial
             if finalize is not None:
@@ -141,7 +141,6 @@ class GetHandler(tornado.web.RequestHandler):
                 self.write(json.dumps(R,default=pm.json_util.default))
                 self.end()
             
-
    
     def begin(self):
     
@@ -204,6 +203,46 @@ class GetHandler(tornado.web.RequestHandler):
         self.add_handler(cmdCollection,command,None,0,-1,callback,_must_use_master=True,_is_command= True)
             
                 
+class FindHandler(tornado.web.RequestHandler):
+    @tornado.web.asynchronous
+    def get(self):
+        args = self.request.arguments
+        assert 'q' in args.keys() and len(args['q']) == 1
+        query = args['q'][0]
+        args.pop('q')
+        args['wt'] = args.get('wt','json') # set default wt = 'json'
+        http = tornado.httpclient.AsyncHTTPClient()
+        http.fetch(find(query,**args),callback=self.async_callback(self.create_responder(**args)))
+    
+    def create_responder(self,**params):
+        def responder(response):
+            if response.error: raise tornado.web.HTTPError(500)
+            wt = params.get('wt',None)
+            if wt == 'json':
+                self.write(response.body)
+            elif wt == 'python':
+                X = ast.literal_eval(response.body)
+                #do stuff to X
+                jsonstr = json.dumps(X,default=pm.json_util.default)
+                self.write(jsonstr)
+            self.finish()
+        return responder
+    
+    @tornado.web.asynchronous
+    def post(self):
+        args = json.loads(self.request.body)
+        args = dict([(str(x),y) for (x,y) in args.items()])
+        query = args.pop('q')
+        args['wt'] = args.get('wt','json') # set default wt = 'json'
+        http = tornado.httpclient.AsyncHTTPClient()
+        http.fetch(find(query,**args),callback=self.async_callback(self.create_responder(**args)))
+        
+
+
+#=-=-=-=-=-=-=-=-=-=-=-=-=-
+#GET
+#=-=-=-=-=-=-=-=-=-=-=-=-=-
+
 def processor_handler(processor,handler,cursor,sock,fd):
 
     r = cursor.next()
@@ -290,49 +329,6 @@ def loop(handler,cursor,sock,fd):
         
         handler.end()
         
-
-class FindHandler(tornado.web.RequestHandler):
-    @tornado.web.asynchronous
-    def get(self):
-        args = self.request.arguments
-        assert 'q' in args.keys() and len(args['q']) == 1
-        query = args['q'][0]
-        args.pop('q')
-        args['wt'] = args.get('wt','json') # set default wt = 'json'
-        http = tornado.httpclient.AsyncHTTPClient()
-        http.fetch(find(query,**args),callback=self.async_callback(self.create_responder(**args)))
-    
-    def create_responder(self,**params):
-        def responder(response):
-            if response.error: raise tornado.web.HTTPError(500)
-            wt = params.get('wt',None)
-            if wt == 'json':
-                self.write(response.body)
-            elif wt == 'python':
-                X = ast.literal_eval(response.body)
-                #do stuff to X
-                jsonstr = json.dumps(X,default=pm.json_util.default)
-                self.write(jsonstr)
-            self.finish()
-        return responder
-    
-    @tornado.web.asynchronous
-    def post(self):
-        args = json.loads(self.request.body)
-        args = dict([(str(x),y) for (x,y) in args.items()])
-        query = args.pop('q')
-        args['wt'] = args.get('wt','json') # set default wt = 'json'
-        http = tornado.httpclient.AsyncHTTPClient()
-        http.fetch(find(query,**args),callback=self.async_callback(self.create_responder(**args)))
-        
-
-
-
-#=-=-=-=-=-=-=-=-=-=-=-=-=-
-#GET
-#=-=-=-=-=-=-=-=-=-=-=-=-=-
-
-
 
 def get_args(collectionName,querySequence,timeQuery=None, spaceQuery = None, versionNumber=None):
     """
@@ -610,8 +606,6 @@ def setArgTuple(t,k,v):
     return t
 
 
-
-
 def makemetadata(collection,sci,subcols):
     metadataInd = {'':('All',collection.metadata[''])}
     metalist = {}
@@ -684,9 +678,9 @@ def processArg(arg,collection):
     elif isinstance(arg,tuple):
         return tuple(processArg(list(arg),collection))
     elif isinstance(arg,dict):
-        T = [(processArg(k,collection), v) for (k,v) in arg.items()]
+        T = [(processArg(k,collection), v)  for (k,v) in arg.items() if k != '$where' ]
         S = dict([(k,v) for (k,v) in T if not (isinstance(k,list) or isinstance(k,tuple))])
-        CodeStrings = []
+        CodeStrings = [processJSValue(arg['$where'],collection)] if '$where' in arg.keys() else []
         for (k,v) in T:
             if isinstance(k,list) or isinstance(k,tuple):
                 if not isinstance(v,dict) or not any([key.startswith('$') for key in v.keys()]):
@@ -703,6 +697,14 @@ def processArg(arg,collection):
         return S
     else:
         return arg
+
+import string        
+def processJSValue(code,collection):
+    vars = collection.totalVariables
+    varMap = dict(zip(vars,[repr(str(x)) for x in range(len(vars))])) 
+    T = string.Template(code)
+    return T.substitute(varMap)
+    
         
 def js_translator(key,value):
     if key == '$e':
