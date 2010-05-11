@@ -153,37 +153,40 @@ def updateQueryDB(collectionName,incertpath,certpath, hashSlices=True, slicesCor
     sct = ListUnion(sliceColTuples)
     slicesCorrespondToIndexes = slicesCorrespondToIndexes or set(sct) <= set(uniqueIndexes)
     sctMap = dict(zip(sct, getStrs(collection,sct)))
-    sctSet = set(uiMap.values())
+    sctSet = set(ListUnion(sctMap.values()))
     Qgen = getQgen(sctMap,sliceColTuples)
     
     #addition of new things
     for (i,x) in enumerate(collection.find({vNInd:currentVersion})):
-        print i,x
+        print i
 
         if x[origInd] > atVersion:
+            print "New"
             Q = getQ(x,Qgen)       
             for q in Q:
-                doAdd(q,hashslices,sliceCollection,collectionName,currentVersion)
                 sliceCollection.remove({'q':processQuery(q),'v':atVersion})
+                doAdd(q,hashSlices,sliceCollection,collectionName,currentVersion)
                                     
         elif not slicesCorrespondToIndexes and x[origInd] <= atVersion:
   
-            
             index = dict([(uiMap[t],rgetattr(x,uiMap[t].split('.'))) for t in uniqueIndexes] + [(retInd,True),(vNInd,{'$lt':currentVersion,'$gte':atVersion})])            
             H = collection.find(index,fields=sct).sort(vNInd,pm.DESCENDING)
        
             y = dict([(k,x[k]) for k in x.keys() if k in sctSet])
             z = y.copy()
             for h in H:
+                h.pop('_id')
                 z.update(h)
                     
-            if y != z:              
+            if y != z:   
+                print "Changed", y, z
                 Qy = getQ(y,Qgen)
                 Qz = getQ(z,Qgen)
             
                 for (qy,qz) in zip(Qy,Qz):
-                    doAdd(qy,hashslices,sliceCollection,collectionName,currentVersion)
                     sliceCollection.remove({'q': processQuery(qz),'v':atVersion})
+                    doAdd(qy,hashSlices,sliceCollection,collectionName,currentVersion)
+                    
         
     #add "d" key to deletions
     for x in collection.find({retInd:{'$exists':False},vNInd:{'$lt':currentVersion,'$gte':atVersion}}):
@@ -196,6 +199,7 @@ def updateQueryDB(collectionName,incertpath,certpath, hashSlices=True, slicesCor
                 pq = processQuery(q)
                 q[vNInd] = currentVersion
                 if not collection.find_one(q):
+                    print 'deleting', q
                     sliceCollection.update({'q':pq,'v':atVersion},{'$set':{'d':True}})
                 
                     
@@ -207,7 +211,7 @@ def updateQueryDB(collectionName,incertpath,certpath, hashSlices=True, slicesCor
     createCertificate(certpath,'Slice database for ' + collectionName + ' written.')
 
   
-def doAdd(q,hashslices,sliceCollection,collectionName,currentVersion):
+def doAdd(q,hashSlices,sliceCollection,collectionName,currentVersion):
                
     pq = processQuery(q)
     if hashSlices:
@@ -219,7 +223,8 @@ def doAdd(q,hashslices,sliceCollection,collectionName,currentVersion):
                 if sliceCollection.find_one({'h':hash,'v':currentVersion}):
                     sliceCollection.update({'h':hash,'v':currentVersion},{'$push':{'q':pq}},safe=True)
                 else:
-                    sliceCollection.insert({'h':hash,'q':[pq],'c':count,'v':currentVersion,'o':currentVersion},safe=True)               
+                    sliceCollection.insert({'h':hash,'q':[pq],'c':count,'v':currentVersion,'o':currentVersion},safe=True)
+                    print "new add", pq
     else:
         sliceCollection.insert({'h':pq,'q':[pq],'v':currentVersion})
 
@@ -387,15 +392,17 @@ def updateCollectionIndex(collectionName,incertpath,certpath):
         q = min(sliceData['q']) 
         if sliceDB.find_one({'q':q,'v':currentVersion}):
             queryText = unProcessQuery(q)
+            queryText['__versionNumber__'] = currentVersion
             query = api.processArg(queryText,collection)
-            print i , queryText
+            queryText.pop('__versionNumber__')
+            print 'Adding:' , queryText
             sliceCursor = collection.find(query,timeout=False)
             dd = d.copy()
-            queryID = {'collectionName':collectionName,'query':queryText}
+            queryID = [('collectionName',collectionName),('query',queryText)]
             dd['collectionName'] = collectionName
-            dd['query'] = repr(queryText)
-            dd['mongoID'] = json.dumps(queryID,default=ju.default)
-            dd['mongoText'] = ', '.join([key + '=' + value for (key,value) in queryText.items()])
+            dd['query'] = json.dumps(queryText,default=ju.default)
+            dd['mongoID'] = hashlib.sha1(json.dumps(queryID,default=ju.default)).hexdigest()
+            dd['mongoText'] = ', '.join([key + '=' + value for (key,value) in queryText.items() if key != '__versionNumber__'])
             dd['versionNumber'] = currentVersion
             addToIndex(sliceCursor,dd,collection,solr_interface,**ArgDict)
         i += 1
@@ -403,10 +410,11 @@ def updateCollectionIndex(collectionName,incertpath,certpath):
     for sliceData in sliceDB.find({'v':{'$gte':atVersion,'$lt':currentVersion},'d':True},timeout=False):
         q = min(sliceData['q']) 
         if not sliceDB.find_one({'q':q,'v':currentVersion}):
-            queryText = repr(unProcessQuery(q))
-            queryID = {'collectionName':collectionName,'query':queryText}
-            mongoID = json.dumps(queryID,default=ju.default)
-            solr_interface.delete_query('collectionName:' + collectionName + ' AND query:' + queryText)
+            queryText = unProcessQuery(q)
+            queryID = [('collectionName',collectionName),('query',queryText)]
+            mongoID = hashlib.sha1(json.dumps(queryID,default=ju.default)).hexdigest()
+            print 'deleting', mongoID, queryID
+            solr_interface.delete_query('mongoID:' + mongoID)
 
         
     solr_interface.commit()
@@ -536,6 +544,7 @@ def addToIndex(R,d,collection,solr_interface,contentColNums = None, phraseCols =
     
     #metadata
     metadata = collection.metadata['']
+
     for sc in Subcollections:
         metadata.update(collection.metadata[sc])
 

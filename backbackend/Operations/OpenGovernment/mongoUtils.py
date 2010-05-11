@@ -196,6 +196,7 @@ def updateCollection(collectionName,certpath):
     
     assert 'VARIABLES' in AllMeta.keys(), 'No variable information provided, aborting.'
     Variables = AllMeta['VARIABLES']
+    oldVarMap = dict(zip(Variables,[str(x) for x in range(len(Variables))]))   
 
     connection =  pm.Connection()
     db = connection['govdata']
@@ -273,18 +274,18 @@ def updateCollection(collectionName,certpath):
             os.environ['PROTECTION'] = 'ON'
             G.put(S)   
             
-    if 'Subcollections' in VarMap.keys():
-        sc = VarMap['Subcollections']
+    if 'Subcollections' in oldVarMap.keys():
+        sc = oldVarMap['Subcollections']
     else:
         sc = None
 
     if 'TimeColumns' in AllMeta['ColumnGroups'].keys():
-        tcs = [VarMap[tc] for tc in AllMeta['ColumnGroups']['TimeColumns']]
+        tcs = [oldVarMap[tc] for tc in AllMeta['ColumnGroups']['TimeColumns']]
     else:
         tcs = []
     
     if 'SpaceColumns' in AllMeta['ColumnGroups'].keys():
-        spcs = [VarMap[spc] for spc in AllMeta['ColumnGroups']['SpaceColumns']]
+        spcs = [oldVarMap[spc] for spc in AllMeta['ColumnGroups']['SpaceColumns']]
     else:
         spcs = []
         
@@ -338,11 +339,16 @@ def updateCollection(collectionName,certpath):
                             SpaceCache[t] = c[spc].copy()
                 
                 ID = processRecord(c,collection,VarMap,varReMap,uniqueIndexes,versionNumber,specialKeyInds)
+        else:
+            print 'Type of chunkfile: ', fpath, 'not recognized.'
 
     ts = td.Now()
     newVersion = {'__versionNumber__': versionNumber, '__timeStamp__':ts}
     versions.insert(newVersion)
-    
+
+    connection.disconnect()
+    createCertificate(certpath,'Collection ' + collectionName + ' written to DB.')
+
                     
 def processRecord(c,collection,VarMap,varReMap,uniqueIndexes,versionNumber,specialKeyInds):
     """Function which adds a given record to a collection, handling the incremental version properly.  
@@ -392,11 +398,14 @@ def processRecord(c,collection,VarMap,varReMap,uniqueIndexes,versionNumber,speci
         
         if diff:
             diff.update(s)
-            collection.update(s,diff)             
+            collection.update(s,diff)
+            print 'Diff:' ,  diff
         else:
             c['_id'] = H['_id']
             collection.remove(s)
     else:
+
+        print 'New:' , [c[VarMap[k]] for k in uniqueIndexes] 
         c[origInd] = versionNumber
             
     id = collection.insert(c)

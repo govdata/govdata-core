@@ -102,3 +102,37 @@ def backendProtocol(collectionName,certdir = None, createCertDir = False, create
 	
 	return D
 	
+	
+def incrementalBackendProtocol(collectionName,certdir = None, createCertDir = False, createPath = None, slicePath = None, indexPath = None, hashSlices=True, write = True,ID = None):
+	"""This protocol is the workflow for getting source data into the backend.  It sets up three steps:  1) add collection to DB
+	2) makes the queryDB and 3) indexing the collection.    It writes certificates at each step to reflect completion in the filesystem. 
+	"""
+	if ID == None:
+		ID = collectionName
+	if ID and not ID.endswith('_'):
+		ID += '_'
+
+	D = []
+	
+	if certdir == None and any([x == None for x in [createPath,slicePath,indexPath]]):
+		certdir = CERT_ROOT
+		
+	if certdir:
+		if createCertDir:
+			D += [(ID + 'initialize',MakeDir,(certdir,))]
+		if createPath == None:
+			createPath = certdir + ID + 'createCertificate.txt'
+		if slicePath == None:
+			slicePath = certdir + ID + 'sliceCertificate.txt'
+		if indexPath == None:
+			indexPath = certdir + ID + 'indexCertificate.txt'
+		
+	D += [(ID + 'updateCollection',mU.updateCollection,(collectionName,createPath)),
+	(ID + 'updateQueryDB',indexing.updateQueryDB,[(collectionName,createPath,slicePath),{'hashSlices':hashSlices}]),
+	(ID + 'updateCollectionIndex',indexing.updateCollectionIndex,(collectionName,slicePath,indexPath))]
+
+	if write:
+		outfile = CERT_PROTOCOL_ROOT + collectionName + '.py'
+		ApplyOperations2(outfile,D)
+	
+	return D
