@@ -121,7 +121,7 @@ def ApplyOperations2(outfilename,OpThing,WriteMetaData =True,importsOnTop=True):
 		if '__objector__' in func.func_dict.keys():
 			LiveDict = func.__objector__(argdict)
 			assert isinstance(LiveDict,dict) and LiveDict <= argdict, '__objector__ decoration must return subdictionary of input dictionary'		
-		LiveDict.update(dict([(var,obj) for (var,obj) in argdict.items() if (isinstance(obj,types.FunctionType) or isinstance(obj,types.BuiltinFunctionType)) and var not in LiveDict.keys()]))
+		LiveDict.update(dict([(var,obj) for (var,obj) in argdict.items() if (isinstance(obj,types.FunctionType) or isinstance(obj,types.BuiltinFunctionType) or isinstance(obj,types.ClassType)) and var not in LiveDict.keys()]))
 			
 		livetoimport = [func.__module__]
 		if len(LiveDict) > 0:
