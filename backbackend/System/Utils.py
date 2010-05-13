@@ -363,12 +363,7 @@ def wget(getpath,savepath,opstring=''):
 	os.system('wget ' + opstring + ' "' + getpath + '" -O "' + savepath + '"')
 
 
-def MakeDirs(DirName,creates = ()):
-	'''
-	"strong" version of os.makedirs
-	'''
-	if os.path.exists(DirName):
-			delete(DirName)
+def MakeDirs(DirName):
 	os.makedirs(DirName)
 
 	
