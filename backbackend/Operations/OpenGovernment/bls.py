@@ -517,6 +517,6 @@ def MakeBLS_Resource(creates = protocol_root + 'make_resources.py'):
     D = htools.hsuck('http://www.bls.gov/data/', root + 'BLS_Hierarchy/', L, ipath=creates,write=False)
     ApplyOperations2(creates,D)
 
-def backendBLS_ap(creates = OG.CERT_PROTOCOL_ROOT + 'BLS_ap.py'):
-    OG.incrementalBackendProtocol2('BLS_ap',downloader = bls_downloader,downloadArgs = ('ap',),parser = bls_parser)
+def backendBLS_ap(creates = OG.CERT_PROTOCOL_ROOT + 'BLS_ap/'):
+    OG.backendProtocol('BLS_ap',bls_parser,downloader = bls_downloader,downloadArgs = ('ap',))
     

@@ -101,7 +101,7 @@ def getT(x):
  
  #=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
-def backendProtocol(collectionName,trigger,parser,downloader = None, downloadProtocol= None,downloadArgs = None, certdir = None, createCertDir = False, downloadPath = None , createPath = None, slicePath = None, indexPath = None, hashSlices=True, write = True,ID = None,incremental = False,uptostep=None):
+def backendProtocol(collectionName,parser,downloader = None, downloadProtocol= None,downloadArgs = None, trigger = None, certdir = None, createCertDir = False, downloadPath = None , createPath = None, slicePath = None, indexPath = None, hashSlices=True, write = True,ID = None,incremental = False,uptostep=None):
     if ID == None:
         ID = collectionName
     if ID and not ID.endswith('_'):
@@ -146,8 +146,7 @@ def backendProtocol(collectionName,trigger,parser,downloader = None, downloadPro
 
     download_root = DOWNLOAD_ROOT + collectionName + '/'
     
-    T = trigger()
-
+    T = trigger() if trigger else ''
         
     if incremental:
         if PathExists(outdir + 'manifest.tsv'):

@@ -479,7 +479,7 @@ def trigger():
     
     
 def backend_BEA_NIPA(creates = OG.CERT_PROTOCOL_ROOT + NIPA_NAME + '/',Fast = True):
-    OG.backendProtocol(NIPA_NAME,trigger,OG.csv_parser,downloader = [(NIPA_downloader,'raw'),(NIPA_preparser1,'preparse1'),(NIPA_preparser2,'preparse2'),(get_additional_info,'additional_info')],uptostep='updateCollection',incremental=True)
+    OG.backendProtocol(NIPA_NAME,OG.csv_parser,downloader = [(NIPA_downloader,'raw'),(NIPA_preparser1,'preparse1'),(NIPA_preparser2,'preparse2'),(get_additional_info,'additional_info')],trigger = trigger, uptostep='updateCollection',incremental=True)
     
     
     
