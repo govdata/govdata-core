@@ -261,7 +261,7 @@ def makemetadata(code,datadir,outfile1,outfile2,depends_on = (root + 'ProcessedM
     
 
 
-def getcategorydata(code,depends_on = (root + 'BLS_Hierarchy/Manifest_1.tsv',root + 'keywords.txt')):
+def getcategorydata(code,depends_on = (root + 'BLS_Hierarchy/Manifest_1.tsv',root + 'Keywords.txt')):
     
     manifest,keywords = depends_on
     
