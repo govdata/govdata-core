@@ -1,5 +1,5 @@
 import os
-from System.Utils import MakeDir,Contents,listdir,wget,PathExists, strongcopy,uniqify,ListUnion,Rename, delete
+from System.Utils import MakeDir,Contents,listdir,wget,PathExists, strongcopy,uniqify,ListUnion,Rename, delete, MakeDirs
 import Operations.htools as htools
 from BeautifulSoup import BeautifulSoup,BeautifulStoneSoup
 import tabular as tb
@@ -49,7 +49,7 @@ def WgetMultiple(link, fname, maxtries=10):
 @activate(lambda x : "ftp://ftp.bls.gov/pub/time.series/" + x[1], lambda x : x[0])
 def bls_downloader(download_dir,code):
 
-    MakeDir(download_dir)
+    MakeDirs(download_dir)
     download_dir += ('/' if download_dir[-1] != '/' else '')
 
     MakeDir(download_dir + 'RawDownloads/')
