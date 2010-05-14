@@ -157,7 +157,7 @@ def updateQueryDB(collectionName,incertpath,certpath, hashSlices=True, slicesCor
     Qgen = getQgen(sctMap,sliceColTuples)
     
     #addition of new things
-    for (i,x) in enumerate(collection.find({vNInd:currentVersion})):
+    for (i,x) in enumerate(collection.find({vNInd:currentVersion}),timeout=False):
         print i
 
         if x[origInd] > atVersion:
@@ -189,7 +189,7 @@ def updateQueryDB(collectionName,incertpath,certpath, hashSlices=True, slicesCor
                     
         
     #add "d" key to deletions
-    for x in collection.find({retInd:{'$exists':False},vNInd:{'$lt':currentVersion,'$gte':atVersion}}):
+    for x in collection.find({retInd:{'$exists':False},vNInd:{'$lt':currentVersion,'$gte':atVersion}},timeout=False):
         index = dict([(uiMap[t],rgetattr(x,uiMap[t].split('.'))) for t in uniqueIndexes])
         index[vNInd] = currentVersion
         
