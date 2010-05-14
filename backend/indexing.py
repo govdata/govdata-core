@@ -157,7 +157,7 @@ def updateQueryDB(collectionName,incertpath,certpath, hashSlices=True, slicesCor
     Qgen = getQgen(sctMap,sliceColTuples)
     
     #addition of new things
-    for (i,x) in enumerate(collection.find({vNInd:currentVersion}),timeout=False):
+    for (i,x) in enumerate(collection.find({vNInd:currentVersion},timeout=False)):
         print i
 
         if x[origInd] > atVersion:
