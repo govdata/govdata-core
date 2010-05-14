@@ -519,4 +519,7 @@ def MakeBLS_Resource(creates = protocol_root + 'make_resources.py'):
 
 def backendBLS_ap(creates = OG.CERT_PROTOCOL_ROOT + 'BLS_ap/'):
     OG.backendProtocol('BLS_ap',bls_parser,downloader = bls_downloader,downloadArgs = ('ap',))
+   
+def backendBLS_ap(creates = OG.CERT_PROTOCOL_ROOT + 'BLS_bd/'):
+    OG.backendProtocol('BLS_bd',bls_parser,downloader = bls_downloader,downloadArgs = ('bd',))
     
