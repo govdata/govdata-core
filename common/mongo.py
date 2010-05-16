@@ -11,9 +11,8 @@ SPECIAL_KEYS =  ['__versionNumber__','__retained__','__addedKeys__','__originalV
 class Collection(pm.collection.Collection):
     """Extends the pymongo collection object for the special case of govdata collections, meaning:
     
-          1) attaching connections to various associated collections, including metadata, indexed slices, and versionHistory, as attributes, specifically:
+          1) attaching connections to various associated collections, including metadata, and versionHistory, as attributes, specifically:
                self.metaCollection = metadata collection connection
-               self.slices = slice collection connection
                self.versions = version history colleciton connection
            
           1a) The complete currentVersion metadata is read out into a dictionary, whose keys are names of subcollections.  That is:
@@ -43,10 +42,6 @@ class Collection(pm.collection.Collection):
         metaname = '__' + name + '__'
         assert metaname in db.collection_names(), 'No metadata collection associated with ' + name + ' found.'
         self.metaCollection = db[metaname]      
-        
-        slicesname = '__' + name + '__SLICES__'
-        if slicesname in db.collection_names():
-            self.slices = db[slicesname]
             
         versionsname = '__' + name + '__VERSIONS__'
         if versionsname in db.collection_names() and versionNumber != 'ALL':

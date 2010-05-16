@@ -101,7 +101,7 @@ def getT(x):
  
  #=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
-def backendProtocol(collectionName,parser,downloader = None, downloadProtocol= None,downloadArgs = None, trigger = None, certdir = None, createCertDir = False, downloadPath = None , createPath = None, slicePath = None, indexPath = None, hashSlices=True, write = True,ID = None,incremental = False,uptostep=None):
+def backendProtocol(collectionName,parser,downloader = None, downloadProtocol= None,downloadArgs = None, trigger = None, certdir = None, createCertDir = False, downloadPath = None , createPath = None, indexPath = None, slicesCorrespondToIndexes=True, write = True,ID = None,incremental = False,uptostep=None):
     if ID == None:
         ID = collectionName
     if ID and not ID.endswith('_'):
@@ -115,7 +115,7 @@ def backendProtocol(collectionName,parser,downloader = None, downloadProtocol= N
 
     StepList = []
     
-    if certdir == None and any([x == None for x in [createPath,slicePath,indexPath]]):
+    if certdir == None and any([x == None for x in [downloadPath,createPath,indexPath]]):
         certdir = CERT_ROOT
         
     if certdir:
@@ -125,8 +125,6 @@ def backendProtocol(collectionName,parser,downloader = None, downloadProtocol= N
             downloadPath = certdir + ID + 'downloadCertificate.txt'
         if createPath == None:
             createPath = certdir + ID + 'createCertificate.txt'
-        if slicePath == None:
-            slicePath = certdir + ID + 'sliceCertificate.txt'
         if indexPath == None:
             indexPath = certdir + ID + 'indexCertificate.txt'   
     
@@ -170,8 +168,7 @@ def backendProtocol(collectionName,parser,downloader = None, downloadProtocol= N
     StepList += [(ID + 'download_check',download_check,(download_root,incremental,downloadPath))]
         
     StepList += [(ID + 'updateCollection',updateCollection,[(download_root,collectionName,parser,downloadPath,createPath),{'incremental':incremental}]),
-    (ID + 'updateQueryDB',indexing.updateQueryDB,[(collectionName,createPath,slicePath),{'hashSlices':hashSlices}]),
-    (ID + 'updateCollectionIndex',indexing.updateCollectionIndex,(collectionName,slicePath,indexPath))]
+    (ID + 'updateCollectionIndex',indexing.updateCollectionIndex,(collectionName,createPath,indexPath),{'slicesCorrespondToIndexes':slicesCorrespondToIndexes})]
 
     if uptostep:
         for (i,d) in enumerate(StepList):
@@ -230,10 +227,11 @@ def get_max_increment_fromDB(versions):
 def download_check(download_dir, incremental, certpath):
 
     if not incremental: 
-        check_list = download_dir   
+        check_list = [download_dir ]
     else:
         check_list = get_increment_paths(download_dir)
        
+
     assert all(['__PARSE__' in listdir(p) for p in check_list])
             
     createCertificate(certpath,'Collection properly downloaded and pre-parsed.')

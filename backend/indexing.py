@@ -29,67 +29,41 @@ def expand(r):
     I = itertools.product(*tuple([v for (k,v) in r if isinstance(v,list)]))
     return [tuple([(k,v) for (k,v) in r if is_string_like(v)] + zip(L,x)) for x in I]
     
-def getQueryList(collectionName,keys):
+def getQueryList(collection,keys,atVersion,toVersion,slicesCorrespondToIndexes):
+    totalVariables = collection.totalVariables
+    VarMap = dict(zip(totalVariables,[str(x) for x in range(len(totalVariables))]))
+    origInd = VarMap['__originalVersion__'] ; retInd = VarMap['__retained__'] ; vNInd = VarMap['__versionNumber__']
     keys = [str(x) for x in keys]
     if keys:
-        collection = Collection(collectionName)
-        R = api.get(collectionName,[('find',[(dict([(k,{'$exists':True}) for k in keys]),),{'fields':list(keys)}])])['data']
+        Q1 = api.processArg(dict([(origInd,{'$gt':atVersion}),(vNInd,toVersion)] + [(k,{'$exists':True}) for k in keys]),collection)
+        Q2 = api.processArg(dict([(retInd,{'$exists':False}),(vNInd,{'$lt':toVersion,'$gte':atVersion})] + [(k,{'$exists':True}) for k in keys]),collection)
+        Q3 = api.processArg(dict([(retInd,True),(vNInd,{'$lt':toVersion,'$gte':atVersion}),(origInd,{'$lte':atVersion})] + [(k,{'$exists':True}) for k in keys]),collection)
         colnames = [k for k in keys if k.split('.')[0] in collection.totalVariables]
         colgroups = [k for k in keys if k in collection.ColumnGroups]
         T= ListUnion([collection.ColumnGroups[k] for k in colgroups])
+        kInds = getStrs(collection,colnames + T)
+        R = list(collection.find(Q1,fields = kInds)) + list(collection.find(Q2,fields = kInds)) + (list(collection.find(Q3,fields = kInds)) if not slicesCorrespondToIndexes else [])
         R = [son.SON([(collection.totalVariables[int(k)],r[k]) for k in r.keys() if k.isdigit() and r[k]]) for r in R]
         R = [[(k,rgetattr(r,k.split('.'))) for k in keys if  rhasattr(r,k.split('.')) if k not in T] + [(g,[r[k] for k in collection.ColumnGroups[g] if k in r.keys() and r[k]]) for g in colgroups ] for r in R]
         return uniqify(ListUnion([expand(r) for r in R]))
     else:
         return [()]
-
-@activate(lambda x : x[1],lambda x : x[2])
-def makeQueryDB(collectionName,incertpath,certpath, hashSlices=True):
-    """Make the query database
-         Deprecated in favor of updateQueryDB
-    """
-    collection = Collection(collectionName)
-    sliceCols = collection.sliceCols
-    if is_string_like(sliceCols[0]):
-        sliceColList = [sliceCols]
-    else:
-        sliceColList = sliceCols
-    sliceColU = uniqify(ListUnion(sliceColList))
-    OK = dict([(x,x in collection.ColumnGroups.keys() or len(api.get(collectionName,[('distinct',(x,))])['data']) > 1) for x in sliceColU])
-    sliceColList = [tuple([x for x in sliceColU if x in sc and OK[x]]) for sc in sliceColList]
-
-    sliceColTuples = uniqify(ListUnion([subTuples(sc) for sc in sliceColList]))
+        
+def subqueries(q):
+    K = q.keys()
+    ind = itertools.product(*[[0,1]]*len(K))
+    return [son.SON([(K[i],q[K[i]]) for (i,k) in enumerate(j) if k]) for  j in ind]
     
-    connection = pm.Connection()
-    db = connection['govdata']
-    col = db['__' + collectionName + '__SLICES__']
-    cleanCollection(col)
-    col.ensure_index('hash',unique=True,dropDups=True)
+def subTuples(T):
+    ind = itertools.product(*[[0,1]]*len(T))
+    return [tuple([t for (t,k) in zip(T,I) if k]) for I in ind]
     
-
-    for (sind,sliceCols) in enumerate(sliceColTuples):
-        Q = getQueryList(collectionName,sliceCols)
-        for (i,q) in enumerate(Q):
-            q = son.SON(q)
-            pq = processQuery(q)
-            if hashSlices:
-                print i ,'of', len(Q) , 'in list', sind , 'of', len(sliceColTuples)
-                R = api.get(collectionName,[('find',[(q,),{'fields':['_id']}])])['data']
-                count = len(R)
-                if count > 0:
-                    hash = hashlib.sha1(''.join([str(r['_id']) for r in R])).hexdigest()
-                    if col.find_one({'hash':hash}):
-                        col.update({'hash':hash},{'$push':{'queries':pq}},safe=True)
-                    else:
-                        col.insert({'hash':hash,'queries':[pq],'count':count},safe=True)
-            else:
-                col.insert({'hash':pq,'queries':[pq]})
-                
-    createCertificate(certpath,'Slice database for ' + collectionName + ' written.')
+STANDARD_META = ['title','subject','description','author','keywords','content_type','last_modified','dateReleased','links']
+STANDARD_META_FORMATS = {'keywords':'tplist','last_modified':'dt','dateReleased':'dt'}
 
 
 @activate(lambda x : x[1],lambda x : x[2])
-def updateQueryDB(collectionName,incertpath,certpath, hashSlices=True, slicesCorrespondToIndexes = False):
+def updateCollectionIndex(collectionName,incertpath,certpath, slicesCorrespondToIndexes = False):
     """incrementally update the query database.
     
         For a given collection with name NAME, this creates (or updates)  the associated collection __NAME__SLICES__
@@ -112,164 +86,70 @@ def updateQueryDB(collectionName,incertpath,certpath, hashSlices=True, slicesCor
             Set delete keys on all deleted queries, where "deleted" is measured by:
                 -- being in version < current, and NOT having a __retained__ key
                 -- not actually existing in the current version (this needs to be checked to handle the situation of something that has been deleted and then re-added)
-                
-                
-            
-            
-    
+
     """
     collection = Collection(collectionName)
     currentVersion = collection.currentVersion
-    totalVariables = collection.totalVariables
-    vNInd = str(totalVariables.index('__versionNumber__'))
-    origInd =  str(totalVariables.index('__originalVersion__'))
-    retInd = str(totalVariables.index('__retained__'))
-    uniqueIndexes = collection.UniqueIndexes
-    
+  
+    sliceColTuples = getSliceColTuples(collection)
 
+    d = {} ; ArgDict = {}
+    initialize_argdict(d,ArgDict,collection)
+
+    S = ourSolr.query('collectionName:' + collectionName,fl = 'versionNumber',sort='versionNumber desc',wt = 'json')
+    existing_slice = ast.literal_eval(S)['response']['docs']
+    
+    if len(existing_slice) > 0:
+        atVersion = existing_slice[0]['versionNumber'][0]
+    else:
+        atVersion = -1
+
+    solr_interface = solr.SolrConnection("http://localhost:8983/solr")    
+
+    for sliceCols in sliceColTuples:
+        Q = getQueryList(collection,sliceCols,atVersion,currentVersion,slicesCorrespondToIndexes)
+        for q in Q:
+            q = pm.son.SON(q)
+            q['__versionNumber__'] = currentVersion
+            query = api.processArg(q,collection)
+            if collection.find_one(query):
+                q.pop('__versionNumber__')       
+                print 'Adding:' , q
+                sliceCursor = collection.find(query,timeout=False)
+                dd = d.copy()
+                queryID = [('collectionName',collectionName),('query',q)]
+                dd['collectionName'] = collectionName
+                dd['query'] = json.dumps(q,default=ju.default)
+                dd['mongoID'] = hashlib.sha1(json.dumps(queryID,default=ju.default)).hexdigest()
+                dd['mongoText'] = ', '.join([key + '=' + value for (key,value) in q.items()])
+                dd['versionNumber'] = currentVersion
+                addToIndex(sliceCursor,dd,collection,solr_interface,**ArgDict)  
+            else:
+                q.pop('__versionNumber__')
+                queryID = [('collectionName',collectionName),('query',q)]
+                mongoID = hashlib.sha1(json.dumps(queryID,default=ju.default)).hexdigest()
+                print 'deleting', mongoID, queryID
+                solr_interface.delete_query('mongoID:' + mongoID)
+                
+        
+    solr_interface.commit()
+    
+    createCertificate(certpath,'Collection ' + collectionName + ' indexed.')        
+   
+def getSliceColTuples(collection):
     sliceCols = collection.sliceCols
     if is_string_like(sliceCols[0]):
         sliceColList = [sliceCols]
     else:
         sliceColList = sliceCols
     sliceColU = uniqify(ListUnion(sliceColList))
-    OK = dict([(x,x in collection.ColumnGroups.keys() or len(api.get(collectionName,[('distinct',(x,))])['data']) > 1) for x in sliceColU])
+    OK = dict([(x,x in collection.ColumnGroups.keys() or len(api.get(collection.name,[('distinct',(x,))])['data']) > 1) for x in sliceColU])
     sliceColList = [tuple([x for x in sliceColU if x in sc and OK[x]]) for sc in sliceColList]
     sliceColTuples = uniqify(ListUnion([subTuples(sc) for sc in sliceColList]))
     
-    connection = pm.Connection()
-    db = connection['govdata']
-    sliceDBname = '__' + collectionName + '__SLICES__'
-    sliceCollection = db[sliceDBname]
-
-    if sliceDBname not in db.collection_names():
-        sliceCollection.ensure_index([('h',pm.DESCENDING),('v',pm.DESCENDING)],unique=True,dropDups=True)
-        atVersion = -1
-    else:
-        atVersion = max(sliceCollection.distinct('v'))
-        
- 
-    uiMap = dict(zip(uniqueIndexes, getStrs(collection,uniqueIndexes)))
-    sct = ListUnion(sliceColTuples)
-    slicesCorrespondToIndexes = slicesCorrespondToIndexes or set(sct) <= set(uniqueIndexes)
-    sctMap = dict(zip(sct, getStrs(collection,sct)))
-    sctSet = set(ListUnion(sctMap.values()))
-    Qgen = getQgen(sctMap,sliceColTuples)
+    return sliceColTuples
     
-    #addition of new things
-    for (i,x) in enumerate(collection.find({vNInd:currentVersion},timeout=False)):
-        print i
-
-        if x[origInd] > atVersion:
-            print "New"
-            Q = getQ(x,Qgen)       
-            for q in Q:
-                sliceCollection.remove({'q':processQuery(q),'v':atVersion})
-                doAdd(q,hashSlices,sliceCollection,collectionName,currentVersion)
-                                    
-        elif not slicesCorrespondToIndexes and x[origInd] <= atVersion:
-  
-            index = dict([(uiMap[t],rgetattr(x,uiMap[t].split('.'))) for t in uniqueIndexes] + [(retInd,True),(vNInd,{'$lt':currentVersion,'$gte':atVersion})])            
-            H = collection.find(index,fields=sct).sort(vNInd,pm.DESCENDING)
-       
-            y = dict([(k,x[k]) for k in x.keys() if k in sctSet])
-            z = y.copy()
-            for h in H:
-                h.pop('_id')
-                z.update(h)
-                    
-            if y != z:   
-                print "Changed", y, z
-                Qy = getQ(y,Qgen)
-                Qz = getQ(z,Qgen)
-            
-                for (qy,qz) in zip(Qy,Qz):
-                    sliceCollection.remove({'q': processQuery(qz),'v':atVersion})
-                    doAdd(qy,hashSlices,sliceCollection,collectionName,currentVersion)
-                    
-        
-    #add "d" key to deletions
-    for x in collection.find({retInd:{'$exists':False},vNInd:{'$lt':currentVersion,'$gte':atVersion}},timeout=False):
-        index = dict([(uiMap[t],rgetattr(x,uiMap[t].split('.'))) for t in uniqueIndexes])
-        index[vNInd] = currentVersion
-        
-        if not collection.find_one(index):
-            Q = getQ(x,Qgen)
-            for q in Q:
-                pq = processQuery(q)
-                q[vNInd] = currentVersion
-                if not collection.find_one(q):
-                    print 'deleting', q
-                    sliceCollection.update({'q':pq,'v':atVersion},{'$set':{'d':True}})
-                
-                    
-    
-    #move over remaining non-'d'-tagged records from old version number to current
-    sliceCollection.update({'v':atVersion,'d':{'$exists':False}},{'$set':{'v':currentVersion}},multi=True)
-        
-  
-    createCertificate(certpath,'Slice database for ' + collectionName + ' written.')
-
-  
-def doAdd(q,hashSlices,sliceCollection,collectionName,currentVersion):
-               
-    pq = processQuery(q)
-    if hashSlices:
-        if not sliceCollection.find_one({'q': pq,'v':currentVersion}):
-            R = api.get(collectionName,[('find',[(q,),{'fields':['_id']}])])['data']
-            count = len(R)
-            if count > 0:
-                hash = hashlib.sha1(''.join([str(r['_id']) for r in R])).hexdigest()
-                if sliceCollection.find_one({'h':hash,'v':currentVersion}):
-                    sliceCollection.update({'h':hash,'v':currentVersion},{'$push':{'q':pq}},safe=True)
-                else:
-                    sliceCollection.insert({'h':hash,'q':[pq],'c':count,'v':currentVersion,'o':currentVersion},safe=True)
-                    print "new add", pq
-    else:
-        sliceCollection.insert({'h':pq,'q':[pq],'v':currentVersion})
-
-  
-def getQgen(sctMap,sliceColTuples):
-    
-    return [(T,list(itertools.product(*[[sctMap[t]] if is_string_like(sctMap[t]) else sctMap[t] for t in T]))) for T in sliceColTuples]
-
-
-def getQ(x,Qgen):
-
-    H = uniqify( ListUnion([[  tuple([(t,rgetattr(x,n.split('.'))) for (t,n) in zip(T,l) if rhasattr(x,n.split('.'))])   for l in L]    for (T,L) in Qgen]) )
-    return [son.SON(x) for x in H]
-    
-    
-def processQuery(q):
-    return son.SON([(k.replace('.','__'),v) for (k,v) in q.items()])
-
-
-def unProcessQuery(q):
-    return son.SON([(k.replace('__','.'),v) for (k,v) in q.items()])
-
-
-def subqueries(q):
-    K = q.keys()
-    ind = itertools.product(*[[0,1]]*len(K))
-    return [son.SON([(K[i],q[K[i]]) for (i,k) in enumerate(j) if k]) for  j in ind]
-    
-def subTuples(T):
-    ind = itertools.product(*[[0,1]]*len(T))
-    return [tuple([t for (t,k) in zip(T,I) if k]) for I in ind]
-    
-STANDARD_META = ['title','subject','description','author','keywords','content_type','last_modified','dateReleased','links']
-STANDARD_META_FORMATS = {'keywords':'tplist','last_modified':'dt','dateReleased':'dt'}
-
-
-@activate(lambda x : x[1],lambda x : x[2])
-def updateCollectionIndex(collectionName,incertpath,certpath):
-    """index collection object"""
-    ArgDict = {}
-    
-    collection = Collection(collectionName)
-    currentVersion = collection.currentVersion
-       
-    
+def initialize_argdict(d,ArgDict,collection):
     sliceCols = collection.sliceCols
     if is_string_like(sliceCols[0]):
         sliceColList = [sliceCols]
@@ -352,8 +232,6 @@ def updateCollectionIndex(collectionName,incertpath,certpath):
     if 'SpaceColumns' in collection.ColumnGroups.keys():
         ArgDict['spaceColInds'] = getNums(collection,collection.ColumnGroups['SpaceColumns'])
 
-        
-    d = {}
     Source = collection.Source
     SourceNameDict = son.SON([(k,Source[k]['Name'] if isinstance(Source[k],dict) else Source[k]) for k in Source.keys()])
     SourceAbbrevDict = dict([(k,Source[k]['ShortName']) for k in Source.keys() if isinstance(Source[k],dict) and 'ShortName' in Source[k].keys() ])
@@ -365,61 +243,12 @@ def updateCollectionIndex(collectionName,incertpath,certpath):
         d['source_' + str(k).lower()] = SourceNameDict[k]
     for k in SourceAbbrevDict.keys():
         d['source_' + str(k).lower() + '_acronym'] = SourceAbbrevDict[k]
-    d['source'] = ' '.join(SourceNameDict.values() + SourceAbbrevDict.values())            
-    
+    d['source'] = ' '.join(SourceNameDict.values() + SourceAbbrevDict.values())
+        
     if 'Subcollections' in collection.totalVariables:
         ArgDict['subColInd'] = collection.totalVariables.index('Subcollections')
-        
-    S = ourSolr.query('collectionName:' + collectionName,fl = 'versionNumber',sort='versionNumber desc',wt = 'json')
-    existing_slice = ast.literal_eval(S)['response']['docs']
-    
-    if len(existing_slice) > 0:
-        atVersion = existing_slice[0]['versionNumber'][0]
-    else:
-        atVersion = -1
-    
-    print 'existing collection at version', atVersion
-    if currentVersion > atVersion:
-        print 'Updating to version', currentVersion
-    else:
-        print 'Already up to date.'
-    
-    solr_interface = solr.SolrConnection("http://localhost:8983/solr")
-     
-    sliceDB = collection.slices
-    i = 1
-    for sliceData in sliceDB.find({'o':{'$gt':atVersion},'d':{'$exists':False}},timeout=False):
-        q = min(sliceData['q']) 
-        if sliceDB.find_one({'q':q,'v':currentVersion}):
-            queryText = unProcessQuery(q)
-            queryText['__versionNumber__'] = currentVersion
-            query = api.processArg(queryText,collection)
-            queryText.pop('__versionNumber__')
-            print 'Adding:' , queryText
-            sliceCursor = collection.find(query,timeout=False)
-            dd = d.copy()
-            queryID = [('collectionName',collectionName),('query',queryText)]
-            dd['collectionName'] = collectionName
-            dd['query'] = json.dumps(queryText,default=ju.default)
-            dd['mongoID'] = hashlib.sha1(json.dumps(queryID,default=ju.default)).hexdigest()
-            dd['mongoText'] = ', '.join([key + '=' + value for (key,value) in queryText.items() if key != '__versionNumber__'])
-            dd['versionNumber'] = currentVersion
-            addToIndex(sliceCursor,dd,collection,solr_interface,**ArgDict)
-        i += 1
-    
-    for sliceData in sliceDB.find({'v':{'$gte':atVersion,'$lt':currentVersion},'d':True},timeout=False):
-        q = min(sliceData['q']) 
-        if not sliceDB.find_one({'q':q,'v':currentVersion}):
-            queryText = unProcessQuery(q)
-            queryID = [('collectionName',collectionName),('query',queryText)]
-            mongoID = hashlib.sha1(json.dumps(queryID,default=ju.default)).hexdigest()
-            print 'deleting', mongoID, queryID
-            solr_interface.delete_query('mongoID:' + mongoID)
 
-        
-    solr_interface.commit()
-    
-    createCertificate(certpath,'Collection ' + collectionName + ' indexed.')        
+
     
 def getNums(collection,namelist):
     numlist = []
