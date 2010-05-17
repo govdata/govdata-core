@@ -118,11 +118,12 @@ def BEA_Parser(page, headerlines=None, FootnoteSplitter = '/', FootnotesFunction
                 i = i + 1
             else:
                 keepon = 0              
-        [F, meta] = tb.io.loadSVrecs(page, headerlines=i+1)
+        [F, meta] = tb.io.loadSVrecs(page, headerlines=i+1,delimiter = ',')
+
     else:
         [F, meta] = tb.io.loadSVrecs(page, headerlines=headerlines)
         header = None
-    
+
     names = [n.strip() for n in meta['names']]
 
     if not NEA:
