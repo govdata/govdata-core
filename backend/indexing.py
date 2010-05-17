@@ -114,7 +114,7 @@ def updateCollectionIndex(collectionName,incertpath,certpath, slicesCorrespondTo
             query = api.processArg(q,collection)
             if collection.find_one(query):
                 q.pop('__versionNumber__')       
-                print 'Adding:' , q
+                print 'Adding:' , q, 'in', collectionName
                 sliceCursor = collection.find(query,timeout=False)
                 dd = d.copy()
                 queryID = [('collectionName',collectionName),('query',q)]

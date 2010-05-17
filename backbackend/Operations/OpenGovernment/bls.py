@@ -484,7 +484,7 @@ class bls_parser(OG.dataIterator):
                     self.sline = self.G.readline().strip('\n')
             slinesplit = self.sline.split('\t')
                         
-            Vals = [self.ColNo,ser] + [slinesplit[j].strip() for j in self.getcols] + ([dict(([(y,slinesplit[j])  for (j,y) in self.nonfipscols] if self.nonfipscols else []) + ([('f',dict([(y.split('.')[1],slinesplit[j])  for (j,y) in self.fipscols]))]  if self.fipscols else []))] if self.spacecols else [])
+            Vals = [[self.ColNo],ser] + [slinesplit[j].strip() for j in self.getcols] + ([dict(([(y,slinesplit[j])  for (j,y) in self.nonfipscols] if self.nonfipscols else []) + ([('f',dict([(y.split('.')[1],slinesplit[j])  for (j,y) in self.fipscols]))]  if self.fipscols else []))] if self.spacecols else [])
             
             servals = dict(zip(self.NAMES,Vals))
             
