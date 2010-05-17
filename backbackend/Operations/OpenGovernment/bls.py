@@ -523,3 +523,15 @@ def backendBLS_ap(creates = OG.CERT_PROTOCOL_ROOT + 'BLS_ap/'):
 def backendBLS_bd(creates = OG.CERT_PROTOCOL_ROOT + 'BLS_bd/'):
     OG.backendProtocol('BLS_bd',bls_parser,downloader = bls_downloader,downloadArgs = ('bd',))
     
+    
+def backendBLS_cw(creates = OG.CERT_PROTOCOL_ROOT + 'BLS_cw/'):
+    OG.backendProtocol('BLS_cw',bls_parser,downloader = bls_downloader,downloadArgs = ('cw',))    
+    
+def backendBLS_li(creates = OG.CERT_PROTOCOL_ROOT + 'BLS_li/'):
+    OG.backendProtocol('BLS_li',bls_parser,downloader = bls_downloader,downloadArgs = ('li',))  
+    
+def backendBLS_pc(creates = OG.CERT_PROTOCOL_ROOT + 'BLS_pc/'):
+    OG.backendProtocol('BLS_pc',bls_parser,downloader = bls_downloader,downloadArgs = ('pc',))  
+    
+def backendBLS_wp(creates = OG.CERT_PROTOCOL_ROOT + 'BLS_wp/'):
+    OG.backendProtocol('BLS_wp',bls_parser,downloader = bls_downloader,downloadArgs = ('wp',))  
