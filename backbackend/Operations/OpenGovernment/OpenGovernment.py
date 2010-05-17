@@ -421,7 +421,7 @@ def updateMetacollection(iterator, metacollection,incremental,versionNumber,tota
         previousMetadata = dict([(p["__name__"],p) for  p in metacollection.find({'__versionNumber__':versionNumber - 1})])
         if previousMetadata:
             for x in previousMetadata.values():
-                x[1].pop('_id')
+                x.pop('_id')
             
             for k in previousMetadata.keys():
                 if k not in metadata.keys():

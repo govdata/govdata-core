@@ -85,7 +85,7 @@ def nea_dateparse(x):
         
 def NEA_Parser(page, headerlines=None, FootnoteSplitter = '/', FootnotesFunction = GetFootnotes, CategoryColumn=None,FormulaColumn=None):
     
-    [Y, header, footer, keywords]    = BEA_Parser(page, headerlines=headerlines, FootnoteSplitter = FootnoteSplitter, FootnotesFunction = FootnotesFunction, CategoryColumn=CategoryColumn, NEA=True, FormulaColumn=FormulaColumn)
+    [Y, header, footer, keywords]  = BEA_Parser(page, headerlines=headerlines, FootnoteSplitter = FootnoteSplitter, FootnotesFunction = FootnotesFunction, CategoryColumn=CategoryColumn, NEA=True, FormulaColumn=FormulaColumn)
     levelnames = [n for n in Y.dtype.names if n.startswith('Level_')]
     displaylevels = np.array([np.where(Y[n] != '', i,0) for (i,n) in enumerate(levelnames)]).T.max(axis=1)
     Y = Y.addcols(displaylevels,names=['DisplayLevel'])     
@@ -148,14 +148,6 @@ def BEA_Parser(page, headerlines=None, FootnoteSplitter = '/', FootnotesFunction
     F = F[:i+1]
     F = [line + ['']*(len(names)-len(line)) for line in F ]
     
-    """
-    title = names[0]
-    if len(title.split(FootnoteSplitter)) > 1:
-        LineFootnote = title.split(FootnoteSplitter)[0].split()[-1]
-        title = ' '.join(title.split(FootnoteSplitter)[0].split()[:-1]).strip()
-    else:
-        LineFootnote = None
-    """
 
     if CategoryColumn:
         i = [i for i in range(len(names)) if names[i].strip() == CategoryColumn][0]
@@ -319,9 +311,196 @@ def NEA_preparser2(inpath,filepath,metadatapath,L = None):
     F.close()
 
 
+#=-=-=-=-=-=-=-=-=-=-=-=-=-=FAT
+FAT_NAME = 'BEA_FAT'
+@activate(lambda x : 'http://www.bea.gov/national/FA2004/SelectTable.asp',lambda x : x[0])
+def FAT_downloader(maindir):
 
+    MakeDirs(maindir)
+   
+    get_FAT_manifest(maindir)
     
+    connection = pm.Connection()
     
+    incremental = FAT_NAME in connection['govdata'].collection_names()
+    
+    MakeDir(maindir + 'raw/')
+    
+    URLBase = 'http://www.bea.gov/national/FA2004/csv/NIPATable.csv?'
+    
+   
+    X = tb.tabarray(SVfile = maindir + 'manifest.tsv')
+    for x in X:
+        
+        NC = x['NumCode']
+        Freq = x['Freq']
+        if incremental:
+            Vars = ['TableName','FirstYear','LastYear','Freq']
+            FY = x['FirstYear'] 
+            LY = x['LastYear']
+            url = URLBase + '&'.join([v + '=' + str(val) for (v,val) in zip(Vars,[NC,FY,LY,Freq])])
+        else:
+            Vars = ['TableName','AllYearChk','FirstYear','LastYear','Freq']
+            FY = 1800
+            LY = 2200
+            url = URLBase + '&'.join([v + '=' + str(val) for (v,val) in zip(Vars,[NC,'YES',FY,LY,Freq])])
+     
+        
+        topath = maindir + 'raw/' + x['Section'] + '_' + x['Table']  + '.csv'
+        
+        WgetMultiple(url,topath)
+        
+                
+        
+def get_FAT_manifest(download_dir,depends_on = 'http://www.bea.gov/national/FA2004/SelectTable.asp'):
+    
+    wget(depends_on,download_dir + 'manifest.html')
+    nc = re.compile('SelectedTable=[\d]+')
+    fy = re.compile('FirstYear=[\d]+')
+    ly = re.compile('LastYear=[\d]+')
+    fr = re.compile('Freq=[a-zA-Z]+')
+    
+    L = lambda reg , x : int(reg.search(str(dict(x.findAll('a')[0].attrs)['href'])).group().split('=')[-1])
+    L2 = lambda reg , x : reg.search(str(dict(x.findAll('a')[0].attrs)['href'])).group().split('=')[-1]
+    
+    path = download_dir + 'manifest.html'
+    Soup = BeautifulSoup(open(path),convertEntities=BeautifulStoneSoup.HTML_ENTITIES)
+    c1 = lambda x : x.name == 'a' and 'name' in dict(x.attrs).keys() and dict(x.attrs)['name'].startswith('S')
+    c2 = lambda x : x.name == 'tr' and 'class' in dict(x.attrs).keys() and dict(x.attrs)['class'] == 'TR' and x.findAll('a') and 'href' in dict(x.findAll('a')[0].attrs).keys() and  dict(x.findAll('a')[0].attrs)['href'].startswith('Table')
+    
+    p1 = lambda x : Contents(x).strip().strip('\xc2\xa0').strip()
+    p2 = lambda x : (p1(x),'http://www.bea.gov/national/FA2004/' + str(dict(x.findAll('a')[0].attrs)['href']),L(nc,x),L(fy,x),L(ly,x),L2(fr,x))
+    
+    X = htools.MakeTable(Soup,[c1,c2],[p1,p2],['Section',['Table','URL','NumCode','FirstYear','LastYear','Freq']])
+    secnums = [x['Section'].split(' ')[1].strip() for x in X]
+    secnames = [x['Section'].split('-')[1].strip() for x in X]
+    tablenums = [x['Table'].split(' ')[1].split('.')[-2].strip() for x in X]
+    tablenames = [' '.join(x['Table'].split(' ')[2:]).strip() for x in X]
+    X = X.addcols([secnums,secnames,tablenums,tablenames],names=['Section','SectionName','Table','TableName'])
+    X.saveSV(download_dir + 'manifest.tsv',metadata=True)
+
+@activate(lambda x : (x[0] + 'raw/',x[0] + 'manifest.tsv'), lambda x : x[0] + 'preparsed/')
+def FAT_preparser1(maindir):    
+
+    targetdir = maindir + 'preparsed/'
+    sourcedir = maindir + 'raw/'
+    
+    MakeDir(targetdir) 
+    M = tb.tabarray(SVfile = maindir + 'manifest.tsv')
+    for x in M:
+        f = sourcedir + x['Section'].strip('.') + '_' + x['Table'] + '.csv'
+        print f 
+        savepath = targetdir + x['Section'].strip('.') + '_' + x['Table'] + '.tsv'
+    
+        [X, header, footer, keywords] = NEA_Parser(f, FootnoteSplitter='\\', FootnotesFunction=GetFootnotesLazy, CategoryColumn='Category',FormulaColumn='Category')        
+        
+        metadata = {}
+        metadata['Header'] = '\n'.join(header)
+        (title, units, bea) = header
+        metadata['title'] = title
+        metadata['description'] = 'Fixed Asset "' + title + '" from the <a href="http://www.bea.gov/national/FA2004/SelectTable.asp">Standard Fixed Asset Tables</a> data set under the <a href="http://www.bea.gov/national/index.htm">National Economic Accounts</a> section of the <a href="http://www.bea.gov/">Bureau of Economic Accounts (BEA)</a> website.  For additional information on the Fixed Asset Tables, see: <a href="http://www.bea.gov/national/pdf/Fixed_Assets_1925_97.pdf"> Methodology, Fixed Assets and Consumer Durable Goods in the United States, 1925-97 | September 2003 (PDF)</a>, <a href="http://www.bea.gov/scb/pdf/national/niparel/1997/0797fr.pdf">The Measurement of Depreciation in the NIPA\'s | SCB, July 1997 (PDF) </a>, and <a href="http://www.bea.gov/national/FA2004/Tablecandtext.pdf">BEA Rates of Depreciation, Service Lives, Declining-Balance Rates, and Hulten-Wykoff categories | February 2008  (PDF)</a>.'
+        metadata['Agency'] = 'DOC'
+        metadata['Subagency'] = 'BEA'
+        metadata['Type'] = 'National'
+        metadata['Category'] = 'Fixed Asset Tables'
+        metadata['Table'] = ' '.join(title.split()[1:])
+        metadata['Section'] = x['Section']
+        metadata['Categories'] = ', '.join(['Agency', 'Subagency', 'Type', 'Category', 'Section', 'Table'])
+        metadata['Units'] = units.strip('[]')
+        if footer:
+            metadata['Footer'] = '\n'.join(footer)
+
+        metadata['keywords'] = 'National Economic Accounts,' + ','.join(keywords)       
+            
+        X.metadata.update(metadata)
+        X.saveSV(savepath, metadata=True, comments='#', delimiter='\t')
+        
+        
+@activate(lambda x: (x[0] + 'preparsed/',x[0]+'manifest.tsv'),lambda x : (x[0] + '__PARSE__/',x[0] + '__metadata.pickle'))
+def FAT_preparser2(maindir): 
+    sourcedir = maindir + 'preparsed/'
+    filedir = maindir + '__PARSE__/'
+    metadatapath = maindir + '__metadata.pickle'
+
+    MakeDir(filedir)
+   
+    GoodKeys = ['Category', 'Section', 'Units', 'Table', 'Footer']
+    
+    Metadict = {}
+    ColGroups = {}
+    
+    M = tb.tabarray(SVfile = maindir + 'manifest.tsv')
+    for (i,x) in enumerate(M):
+        l = sourcedir + x['Section'].strip('.') + '_' + x['Table'] + '.tsv'
+        print l
+        t = x['Section'] + '.' + x['Table']
+        print t
+        X = tb.tabarray(SVfile = l)
+        X1 = X[X['Line'] != ''].deletecols(['Category','Label','DisplayLevel'])
+        X1.metadata = X.metadata
+        X = X1
+        X.coloring['Topics'] = X.coloring['Categories']
+        X.coloring.pop('Categories')
+        X.coloring['TimeColNames'] = X.coloring['Data']
+        X.coloring.pop('Data')
+        for j in range(len(X.coloring['TimeColNames'])):
+            name = X.coloring['TimeColNames'][j]
+            X.renamecol(name,nea_dateparse(name))
+            
+        Section = X.metadata['Section'].split('-')[-1].strip()
+        X.metadata.pop('Section')
+        Table = X.metadata['Table']
+        X.metadata.pop('Table')
+        X.metadata['ColumnGroups'] = X.coloring
+        X.metadata['LabelColumns'] = ['Table','Topics']
+        
+        X.coloring['LabelColumns'] = ['Table'] + X.coloring['Topics']
+        for k in X.coloring.keys():
+            if k in ColGroups.keys():
+                ColGroups[k] = uniqify(ColGroups[k] + X.coloring[k])
+            else:
+                ColGroups[k] = X.coloring[k]
+        
+        Metadict[t] = dict([(k,X.metadata[k]) for k in GoodKeys if k in X.metadata.keys()])
+        
+        X = X.addcols([[t]*len(X),[Table]*len(X),[Section]*len(X),[t]*len(X)],names=['TableNo','Table','Section','Subcollections'])
+        X.saveSV(filedir + str(i) + '.tsv',metadata=['dialect','names','formats'])
+    
+    AllKeys = uniqify(ListUnion([k.keys() for k in Metadict.values()]))
+    AllMeta = {}
+    for k in AllKeys:
+        if all([k in Metadict[l].keys() for l in Metadict.keys()]) and len(uniqify([Metadict[l][k] for l in Metadict.keys()])) == 1:
+            AllMeta[k] = Metadict[Metadict.keys()[0]][k]
+            for l in Metadict.keys():
+                Metadict[l].pop(k)
+                
+    Category = AllMeta['Category']
+    AllMeta.pop('Category')
+    AllMeta['Source'] = [('Agency',{'Name':'Department of Commerce','ShortName':'DOC'}),('Subagency',{'Name':'Bureau of Economic Analysis','ShortName':'BEA'}),('Program','National Economic Accounts'), ('Dataset',Category)]
+    AllMeta['TopicHierarchy'] =  ('Agency','Subagency','Program','Dataset','Section','Table')
+    AllMeta['UniqueIndexes'] = ['TableNo','Line']
+    AllMeta['ColumnGroups'] = ColGroups
+    AllMeta['DateFormat'] = 'YYYYqmm'
+    AllMeta['sliceCols'] = ['Section','Table','Topics']
+    AllMeta['phraseCols'] = ['Section','Table','Topics','Line','TableNo']
+    
+    Subcollections = Metadict
+    Subcollections[''] = AllMeta
+
+    F = open(metadatapath ,'w')
+    pickle.dump(Subcollections,F)
+    F.close()
+        
+
+def fat_trigger():
+    connection = pm.Connection()
+    
+    incremental = FAT_NAME in connection['govdata'].collection_names()
+    if incremental:
+        return 'increment'
+    else:
+        return 'overall'
+        
 #=-=-=-=-=-=-=-=-=-=-=-=-=-=NIPA
 @activate(lambda x : 'http://www.bea.gov/national/nipaweb/csv/NIPATable.csv',lambda x : x[0])
 def NIPA_downloader(maindir):
@@ -477,11 +656,16 @@ def trigger():
         return 'increment'
     else:
         return 'overall'
+        
+    
     
     
 def backend_BEA_NIPA(creates = OG.CERT_PROTOCOL_ROOT + NIPA_NAME + '/',Fast = True):
     OG.backendProtocol(NIPA_NAME,OG.csv_parser,downloader = [(NIPA_downloader,'raw'),(NIPA_preparser1,'preparse1'),(NIPA_preparser2,'preparse2'),(get_additional_info,'additional_info')],trigger = trigger,incremental=True)
     
+  
+def backend_BEA_FAT(creates = OG.CERT_PROTOCOL_ROOT + FAT_NAME + '/',Fast = True):
+    OG.backendProtocol(FAT_NAME,OG.csv_parser,downloader = [(FAT_downloader,'raw'),(FAT_preparser1,'preparse1'),(FAT_preparser2,'preparse2')],trigger = fat_trigger,incremental=True)
     
     
     
