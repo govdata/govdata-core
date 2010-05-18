@@ -925,7 +925,7 @@ def DownloadStateFiles(maindir):
 @activate(lambda x : x[0] + 'GDPMetro.zip',lambda x : x[0] + 'Metro_Raw/')
 def DownloadMetroFiles(maindir):
     wget('http://www.bea.gov/regional/zip/GDPMetro.zip',maindir + 'GDPMetro.zip')
-    os.system('unzip -d ' + maindir + 'Metro_Raw GDPMetro.zip')
+    os.system('unzip -d ' + maindir + 'Metro_Raw ' + maindir + 'GDPMetro.zip')
 
 REG_NAME = 'BEA_RegionalGDP'
 
