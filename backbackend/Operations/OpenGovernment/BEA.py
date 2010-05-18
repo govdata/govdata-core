@@ -941,7 +941,7 @@ def reg_trigger():
 #=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 def backend_BEA_RegionalGDP(creates = OG.CERT_PROTOCOL_ROOT + REG_NAME + '/',Fast = True):
-    OG.backendProtocol(REG_NAME,None,downloader = [(RegionalGDP_initialize,'initialize'),(GetStateManifest,'state_manifest'),(DownloadStateFiles,'get_state_files'),(DownloadMetroFiles,'get_metro_files'),(State_PreParse1,'state_preparse1'),(Metro_PreParse1,'metro_preparse1'),(RegionalGDP_Preparse2,'preparse2')],trigger = reg_trigger,uptostep='download_check',incremental=True)
+    OG.backendProtocol(REG_NAME,None,downloader = [(RegionalGDP_initialize,'initialize'),(GetStateManifest,'state_manifest'),(DownloadStateFiles,'get_state_files'),(DownloadMetroFiles,'get_metro_files'),(State_PreParse1,'state_preparse1'),(Metro_PreParse1,'metro_preparse1'),(RegionalGDP_Preparse2,'preparse2')],trigger = reg_trigger,incremental=True)
 
 
 def backend_BEA_NIPA(creates = OG.CERT_PROTOCOL_ROOT + NIPA_NAME + '/',Fast = True):
