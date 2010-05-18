@@ -291,7 +291,7 @@ def getcategorydata(code,depends_on = (root + 'BLS_Hierarchy/Manifest_1.tsv',roo
         ProgramAbbr = ''
     
     y = Y[Y['Code'] == code]
-    keywords = str(y['Keywords'][0])
+    keywords = [x.strip() for x in str(y['Keywords'][0]).split(',')]
         
     return {'Topic':topic,'Subtopic':subtopic,'Dataset':Dataset,'ProgramName':ProgramName,'ProgramAbbr':ProgramAbbr,'keywords':keywords,'DatasetCode':code}
     
@@ -402,12 +402,9 @@ def inferSpaceCode(name):
     elif 'msa' in parts and ('code' in parts or 'fips' in parts):
         return 'f.m'
     
-
-
-
 class bls_parser(OG.dataIterator):
 
-    def __init__(self,source):
+    def __init__(self,source,sliceCols = None):
     
         self.metafile = metafile = source + 'metadata.pickle'
         self.docfile = docfile = source + 'documentation.txt'
@@ -443,7 +440,10 @@ class bls_parser(OG.dataIterator):
         if self.spacecols:
             D['ColumnGroups']['SpaceColumns'] = ['Location']
         D['UniqueIndexes'] = ['Series']
-        D['sliceCols'] = [g for g in labelcols if g.lower().split('.')[0] not in ['footnote','seasonal','periodicity','location']] + (['Location.' + x for x in dict(self.spacecols).values() if not x.startswith('f.')] if self.spacecols else [])
+        if sliceCols:
+            D['sliceCols'] = sliceCols
+        else:
+            D['sliceCols'] = [g for g in labelcols if g.lower().split('.')[0] not in ['footnote','seasonal','periodicity','location']] + (['Location.' + x for x in dict(self.spacecols).values() if not x.startswith('f.')] if self.spacecols else [])
 
         print 'Added general metadata.'
         
@@ -523,7 +523,6 @@ def backendBLS_ap(creates = OG.CERT_PROTOCOL_ROOT + 'BLS_ap/'):
 def backendBLS_bd(creates = OG.CERT_PROTOCOL_ROOT + 'BLS_bd/'):
     OG.backendProtocol('BLS_bd',bls_parser,downloader = bls_downloader,downloadArgs = ('bd',))
     
-    
 def backendBLS_cw(creates = OG.CERT_PROTOCOL_ROOT + 'BLS_cw/'):
     OG.backendProtocol('BLS_cw',bls_parser,downloader = bls_downloader,downloadArgs = ('cw',))    
     
@@ -545,9 +544,8 @@ def backendBLS_sm(creates = OG.CERT_PROTOCOL_ROOT + 'BLS_sm/'):
 def backendBLS_jt(creates = OG.CERT_PROTOCOL_ROOT + 'BLS_jt/'):
     OG.backendProtocol('BLS_jt',bls_parser,downloader = bls_downloader,downloadArgs = ('jt',))  
     
-
 def backendBLS_lu(creates = OG.CERT_PROTOCOL_ROOT + 'BLS_lu/'):
-    OG.backendProtocol('BLS_lu',bls_parser,downloader = bls_downloader,downloadArgs = ('lu',)) 
+    OG.backendProtocol('BLS_lu',bls_parser,downloader = bls_downloader,downloadArgs = ('lu',),parserKwargs = {'sliceCols':['Indy','Occupation','Education', 'Ages', 'Race', 'Orig', 'Sexs', 'Location.X']}) 
     
 def backendBLS_la(creates = OG.CERT_PROTOCOL_ROOT + 'BLS_la/'):
     OG.backendProtocol('BLS_la',bls_parser,downloader = bls_downloader,downloadArgs = ('la',)) 

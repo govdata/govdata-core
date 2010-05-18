@@ -101,7 +101,7 @@ def getT(x):
  
  #=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
-def backendProtocol(collectionName,parser,downloader = None, downloadProtocol= None,downloadArgs = None, trigger = None, certdir = None, createCertDir = False, downloadPath = None , createPath = None, indexPath = None, slicesCorrespondToIndexes=True, write = True,ID = None,incremental = False,uptostep=None):
+def backendProtocol(collectionName,parser,downloader = None, downloadProtocol= None,downloadArgs = None, downloadKwargs = None, parserArgs = None, parserKwargs = None, trigger = None, certdir = None, createCertDir = False, downloadPath = None , createPath = None, indexPath = None, slicesCorrespondToIndexes=True, write = True,ID = None,incremental = False,uptostep=None):
     if ID == None:
         ID = collectionName
     if ID and not ID.endswith('_'):
@@ -133,14 +133,22 @@ def backendProtocol(collectionName,parser,downloader = None, downloadProtocol= N
         if isinstance(downloader,list):
             if downloadArgs == None:
                 downloadArgs = [()]*len(downloader)
-            downloadStepsGen = lambda DIR,T : [(ID + 'download_'  + n +  ('_' + T if T else ''),d,(DIR ,) + a) for ((d,n),a) in zip(downloader,downloadArgs)]   
+            if downloadKwargs == None:
+                downloadKwargs = [{}]*len(downloader)
+            downloadStepsGen = lambda DIR,T : [(ID + 'download_'  + n +  ('_' + T if T else ''),d,[(DIR ,) + a,b]) for ((d,n),a,b) in zip(downloader,downloadArgs,downloadKwargs)]   
         else:
             assert hasattr(downloader,'__call__')
             if downloadArgs == None:
                 downloadArgs = ()
-            downloadStepsGen = lambda DIR,T : [(ID + 'download' + ('_' + T if T else '') ,downloader,(DIR,) + downloadArgs)]
+            if downloadKwargs == None:
+                downloadKwargs = {}
+            downloadStepsGen = lambda DIR,T : [(ID + 'download' + ('_' + T if T else '') ,downloader,[(DIR,) + downloadArgs,downloadKwargs])]
     elif downloadProtocol:
-        downloadStepsGen = lambda DIR,T : downloadProtocol(DIR,T,*downloadArgs)
+        if downloadArgs == None:
+            downloadArgs = ()
+        if downloadKwargs == None:
+            downloadKwargs = {}
+        downloadStepsGen = lambda DIR,T : downloadProtocol(DIR,T,*downloadArgs,**downloadKwargs)
 
     download_root = DOWNLOAD_ROOT + collectionName + '/'
     
@@ -167,7 +175,7 @@ def backendProtocol(collectionName,parser,downloader = None, downloadProtocol= N
     
     StepList += [(ID + 'download_check',download_check,(download_root,incremental,downloadPath))]
         
-    StepList += [(ID + 'updateCollection',updateCollection,[(download_root,collectionName,parser,downloadPath,createPath),{'incremental':incremental}]),
+    StepList += [(ID + 'updateCollection',updateCollection,[(download_root,collectionName,parser,downloadPath,createPath,parserArgs,parserKwargs),{'incremental':incremental}]),
     (ID + 'updateCollectionIndex',indexing.updateCollectionIndex,(collectionName,createPath,indexPath),{'slicesCorrespondToIndexes':slicesCorrespondToIndexes})]
 
     if uptostep:
@@ -280,7 +288,7 @@ class csv_parser(dataIterator):
     
 
 @activate(lambda x :  (x[0] + '/',x[3]),lambda x : x[4])
-def updateCollection(download_dir,collectionName,parserClass,checkpath,certpath,incremental=False):
+def updateCollection(download_dir,collectionName,parserClass,checkpath,certpath,parserArgs,parserKwargs,incremental=False):
     
     connection =  pm.Connection()
     db = connection['govdata']
@@ -303,8 +311,13 @@ def updateCollection(download_dir,collectionName,parserClass,checkpath,certpath,
         sources = [download_dir]
         startInc = endInc = None
         
+    if parserArgs == None:
+        parserArgs = ()
+    if parserKwargs == None:
+        parserKwargs = {}
+        
     if sources:
-        iterator = parserClass(sources[0])
+        iterator = parserClass(sources[0],*parserArgs,**parserKwargs)
     
         assert hasattr(iterator,'UniqueIndexes'),  'No unique indexes specified'
         uniqueIndexes = iterator.UniqueIndexes
