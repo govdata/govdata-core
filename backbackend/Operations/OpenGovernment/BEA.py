@@ -578,19 +578,8 @@ def NIPA_preparser1(maindir):
     
         table = title.split()[1].strip('.')
 
-        metadata['keywords'] = 'National Economic Accounts,' + ','.join(keywords)
+        metadata['keywords'] = ['National Economic Accounts'] + keywords
             
-        Years = [int(y[:4]) for y in X.coloring['Data']]
-        metadata['TimePeriod'] = str(min(Years)) + '-' + str(max(Years))
-        N = X.coloring['Data'][0]
-        if len(N) == 4:
-            metadata['DateDivisions'] = 'Years'
-        elif 'I' in N:
-            metadata['DateDivisions'] = 'Quarters'
-        else:
-            assert '-' in N
-            metadata['DateDivisions'] = 'Months'
-    
         X.metadata.update(metadata)
         X.saveSV(savepath, metadata=True, comments='#', delimiter='\t')
     
@@ -657,9 +646,304 @@ def trigger():
     else:
         return 'overall'
         
+#=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+@activate(lambda x : (x[0] + 'State_Preparsed/',x[0] + 'State_Manifest_1.tsv',x[0] + 'Metro_Preparsed.tsv'),lambda x : (x[0] + '__PARSE__/',x[0] + '__metadata.pickle'))
+def RegionalGDP_Preparse2(maindir):
+
+    inpath = maindir + 'State_Preparsed/'
+    outpath = maindir + '__PARSE__/'
+    MakeDir(outpath)
     
     
+    R = tb.tabarray(SVfile = maindir + 'State_Manifest_1.tsv')[['Region','IC','File']].aggregate(On=['Region','IC'],AggFunc = lambda x : '|'.join(x))
     
+    GoodKeys = ['Category', 'description','footer', 'LastRevised']  
+
+    Metadict = {}
+    LenR = len(R)
+    ColGroups = {}
+    for (i,r) in enumerate(R):
+        state = r['Region']
+        indclass = r['IC']
+        ps = r['File'].split('|')
+        print state,indclass
+        
+        X = [tb.tabarray(SVfile = inpath + p[:-4] + '.tsv') for p in ps]
+        for (j,x) in enumerate(X):
+            x1 = x.deletecols(['Component'])
+            x1.renamecol('Component Code','ComponentCode')
+            x1.renamecol('Industry Code','IndustryCode')
+            x1.renamecol('ParsedComponent','Component')
+            x1.metadata = x.metadata
+            x1.metadata['description'] = '.'.join(x1.metadata['description'].split('.')[1:]).strip()
+            X[j] = x1
+    
+        if len(X) > 1:
+            Z = tb.tab_join(X)
+        else:
+            Z = X[0]
+        Z.coloring['IndustryHierarchy'] = Z.coloring['Categories']
+        Z.coloring.pop('Categories')
+        Z.renamecol('State','Location')
+        Z = Z.addcols(['{"s":' + repr(z['Location']) + ',"f":{"s":' + repr(z['FIPS']) + '}}' for z in Z],names = ['Location'])
+        Z = Z.deletecols(['FIPS'])
+        
+        Z.coloring['TimeColNames'] = Z.coloring['Data']
+        Z.coloring.pop('Data')
+        for j in range(len(Z.coloring['TimeColNames'])):
+            name = Z.coloring['TimeColNames'][j]
+            Z.renamecol(name,nea_dateparse(name))
+            
+        Z.metadata = {}
+        for k in GoodKeys:
+            h = [x.metadata[k] for x in X if k in x.metadata.keys()]
+            if h:
+                if isinstance(h[0],str):
+                    Z.metadata[k] = uniqify(h)
+                elif isinstance(h[0],list) or isinstance(h[0],tuple):
+                    Z.metadata[k] = uniqify(ListUnion(h))
+                else:
+                    print 'metadata type for key', k , 'in table', t, 'not recognized.'
+
+        Z.coloring['LabelColumns'] =  ['Location','Industry','Component']       
+        for k in Z.coloring.keys():
+            if k in ColGroups.keys():
+                ColGroups[k] = uniqify(ColGroups[k] + Z.coloring[k])
+            else:
+                ColGroups[k] = Z.coloring[k]        
+        
+        Metadict[state] = Z.metadata
+        
+        Z = Z.addcols([len(Z)*[indclass], len(Z)*['S']],names=['IndClass','Subcollections'])
+        Z.saveSV(outpath + str(i) + '.tsv',metadata=['dialect','names','formats'])
+    
+    AllKeys = uniqify(ListUnion([k.keys() for k in Metadict.values()]))
+    AllMeta = {}
+    for k in AllKeys:
+        if all([k in Metadict[l].keys() for l in Metadict.keys()]) and len(uniqify([Metadict[l][k] for l in Metadict.keys()])) == 1:
+            AllMeta[k] = Metadict[Metadict.keys()[0]][k]
+    
+    Subcollections = {'S':AllMeta}
+    Subcollections['S']['Title'] = 'GDP by State'
+    
+    del(Z)
+        
+    L = ['Metro_Preparsed.tsv']
+
+    Metadict = {}
+    for (i,l) in enumerate(L):
+        print l
+        X = tb.tabarray(SVfile = maindir + l)
+        X.renamecol('industry_id','IndustryCode')
+        X.renamecol('component_id','ComponentCode')
+        X.renamecol('area_name','Metropolitan Area')
+        X.renamecol('ParsedComponent','Component')
+        X.renamecol('industry_name','Industry')
+        
+        X1 = X.deletecols('component_name')
+        X1 = X1.addcols(['{"m":' + repr(x['Metropolitan Area']) + ',"f":{"m":' + repr(x['FIPS']) + '}}' for x in X],names=['Location'])
+        X1 = X1.deletecols(['FIPS','Metropolitan Area'])
+        X1.metadata = X.metadata
+        X = X1  
+        
+        X.metadata['description'] = '--'.join(X.metadata['description'].split('--')[2:]).strip()
+
+        for k in X.metadata.keys():
+            if k not in GoodKeys: 
+                X.metadata.pop(k)
+        
+        if 'Categories' in X.coloring.keys():
+            X.coloring['IndustryHierarchy'] = X.coloring['Categories']
+            X.coloring.pop('Categories')
+        X.coloring['TimeColNames'] = X.coloring['Data']
+        X.coloring.pop('Data')
+        for j in range(len(X.coloring['TimeColNames'])):
+            name = X.coloring['TimeColNames'][j]
+            X.renamecol(name,nea_dateparse(name))
+
+        X.coloring['LabelColumns'] = ['Location','Industry','Component']    
+        for k in X.coloring.keys():
+            if k in ColGroups.keys():
+                ColGroups[k] = uniqify(ColGroups[k] + X.coloring[k])
+            else:
+                ColGroups[k] = X.coloring[k]                
+        
+        Metadict[l] = X.metadata
+        X = X.addcols([['NAICS']*len(X),['M']*len(X)],names=['IndClass','Subcollections'])
+        X.saveSV(outpath + str(i+LenR) + '.tsv',metadata=['dialect','names','formats'])
+
+    
+    AllKeys = uniqify(ListUnion([k.keys() for k in Metadict.values()]))
+    AllMeta = {}
+    for k in AllKeys:
+        if all([k in Metadict[l].keys() for l in Metadict.keys()]) and len(uniqify([Metadict[l][k] for l in Metadict.keys()])) == 1:
+            AllMeta[k] = Metadict[Metadict.keys()[0]][k]
+        
+    Subcollections['M'] = AllMeta
+    Subcollections['M']['Title'] = 'GDP by Metropolitan Area'
+
+    AllMeta = {}
+    AllMeta['Source'] = [('Agency',{'Name':'Department of Commerce','ShortName':'DOC'}),('Subagency',{'Name':'Bureau of Economic Analysis','ShortName':'BEA'}),('Program','Regional Economic Accounts'), ('Dataset','Regional GDP Data')]
+    AllMeta['TopicHierarchy']  = ('Agency','Subagency','Program','Dataset','Category')
+    AllMeta['UniqueIndexes'] = ['Location','IndustryCode','ComponentCode','IndClass']
+    ColGroups['SpaceColumns'] = ['Location']
+    AllMeta['ColumnGroups'] = ColGroups
+    AllMeta['DateFormat'] = 'YYYYqmm'
+    
+    AllMeta['sliceCols'] = [['Location.s', 'Location.m', 'IndustryHierarchy'] ,['Location.s', 'Location.m','Component'],['IndustryHierarchy','Component']]
+    AllMeta['phraseCols'] = ['Component', 'IndClass', 'IndustryHierarchy','Industry','Units','Units']    
+
+    Subcollections[''] = AllMeta
+        
+    F = open(maindir+'__metadata.pickle','w')
+    pickle.dump(Subcollections,F)
+    F.close()   
+
+
+@activate(lambda x : x[0] + 'Metro_Raw/allgmp.csv',lambda x : x[0] + 'Metro_Preparsed.tsv')
+def Metro_PreParse1(maindir):
+    f = maindir + 'Metro_Raw/allgmp.csv'
+    savepath = maindir + 'Metro_Preparsed.tsv'
+    [X, header, footer, keywords] = BEA_Parser(f, headerlines=1, CategoryColumn='industry_name')
+
+    X = X[(X['component_name'] != '') & (X['component_name'] != 'component_name')]
+    p = re.compile('\(.*\)')
+    ParsedComp = [p.sub('',x).strip() for x in X['component_name']]
+    Units = [x[p.search(x).start()+1:p.search(x).end()-1] for x in X['component_name']]
+    X = X.addcols([ParsedComp,Units],names=['ParsedComponent','Units'])
+
+
+    metadata = {}
+    metadata['keywords'] = ['Regional Economic Accounts']
+    metadata['title'] = 'GDP by Metropolitan Area'
+    metadata['description'] = 'Gross domestic product (GDP) for individual metropolitan statistical areas -- from the <a href="http://www.bea.gov/regional/gdpmetro/">GDP by Metropolitan Areas</a> data set under the <a href="http://www.bea.gov/regional/index.htm">Regional Economic Accounts</a> section of the <a href="http://www.bea.gov/">Bureau of Economic Accounts (BEA)</a> website.  Note that NAICS industry detail is based on the 1997 NAICS.  For more information on Metropolitan Statistical Areas, see the BEA website on <a href="http://www.bea.gov/regional/docs/msalist.cfm?mlist=45">Statistical Areas</a>.  Component units are as follows:  GDP by Metropolitan Area (millions of current dollars), Quantity Indexes for Real GDP by Metropolitan Area (2001=100.000), Real GDP by Metropolitan Area (millions of chained 2001 dollars), Per capita real GDP by Metropolitan Area (chained 2001 dollars).'
+    metadata['Agency'] = 'DOC'
+    metadata['Subagency'] = 'BEA'
+    metadata['Type'] = 'Regional'
+    metadata['Category'] = 'GDP by Metropolitan Area'
+    metadata['Categories'] = ', '.join(['Agency', 'Subagency', 'Type', 'Category', 'Region'])
+    if footer:
+        footer = [ff for ff in footer if ff.strip('\x1a')]
+        metadata['footer'] = '\n'.join(footer)
+        metadata['Notes'] = '\n'.join([x.split('Note:')[1].strip() for x in footer[:-1]])
+        metadata['Source'] = footer[-1].split('Source:')[1].strip()
+        metadata['LastRevised'] = metadata['Source'].split('--')[-1].strip()
+    
+    X.metadata = metadata
+    X.metadata['unitcol'] = ['Units']
+    X.metadata['labelcollist'] = ['industry_name','ParsedComponent']
+    X.saveSV(savepath, metadata=True, comments='#', delimiter='\t')
+        
+
+@activate(lambda x : ( x[0] + 'State_Manifest_1.tsv', x[0] + 'State_Raw/'),lambda x : x[0] + 'State_Preparsed/')
+def State_PreParse1(maindir):
+    target = maindir + 'State_Preparsed/'
+    sourcedir = maindir + 'State_Raw/'
+    manifest = maindir + 'State_Manifest_1.tsv'
+    
+    MakeDir(target)
+    M = tb.tabarray(SVfile=manifest)
+    for mm in M:
+        FIPS,Region,IC,file = mm['FIPS'],mm['Region'],mm['IC'],mm['File']
+
+  
+        f = sourcedir + file
+        savepath = target + file[:-4] + '.tsv'
+        [X, header, footer, keywords] = BEA_Parser(f, headerlines=1, FootnoteSplitter='\\', FootnotesFunction=GetFootnotes2, CategoryColumn='Industry')
+    
+        p = re.compile('\(.*\)')
+        ParsedComp = [p.sub('',x).strip() for x in X['Component']]
+        Units = [x[p.search(x).start()+1:p.search(x).end()-1] for x in X['Component']]
+        X = X.addcols([ParsedComp,Units],names=['ParsedComponent','Units'])
+            
+        metadata = {}
+
+        Years = [int(y[:4]) for y in X.coloring['Data'] if y[:4].isdigit()]
+        
+        metadata['keywords'] = ['Regional Economic Accounts']
+        metadata['description'] = 'Gross domestic product (GDP) for a single state or larger region, ' + Region + ' using the ' + IC + ' industry classification.  This data comes from the <a href="http://www.bea.gov/regional/gsp/">GDP by State</a> data set under the <a href="http://www.bea.gov/regional/index.htm">Regional Economic Accounts</a> section of the <a href="http://www.bea.gov/">Bureau of Economic Accounts (BEA)</a> website.  For more information on the industry classifications, see the BEA web pages on  <a href="http://www.bea.gov/regional/definitions/nextpage.cfm?key=NAICS">NAICS (1997-2008)</a> and <a href="http://www.bea.gov/regional/definitions/nextpage.cfm?key=SIC">SIC (1963-1997)</a>.  Component units are as follows:  Gross Domestic Product by State (millions of current dollars), Compensation of Employees (millions of current dollars), Taxes on Production and Imports less Subsidies (millions of current dollars), Gross Operating Surplus (millions of current dollars), Real GDP by state (millions of chained 2000 dollars), Quantity Indexes for Real GDP by State (2000=100.000), Subsidies (millions of current dollars), Taxes on Production and Imports (millions of current dollars), Per capita real GDP by state (chained 2000 dollars).'
+        metadata['Agency'] = 'DOC'
+        metadata['Subagency'] = 'BEA'
+        metadata['Type'] = 'Regional'
+        metadata['Category'] = 'GDP by State'
+        metadata['IndustryClassification'] = IC
+        metadata['Region'] = Region
+        metadata['FIPS'] = X['FIPS'][0]
+        metadata['Categories'] = ', '.join(['Agency', 'Subagency', 'Type', 'Category', 'IndustryClassification', 'Region', 'TimePeriod'])
+        if footer:
+            footer = CleanLinesForMetadata(footer)
+            metadata['footer'] = '\n'.join(footer)
+            [source] = footer
+            metadata['Source'] = source.split('Source:')[1].strip()
+        
+        X.metadata = metadata
+        X.metadata['unitcol'] = ['Units']
+        X.metadata['labelcollist'] = ['Industry','ParsedComponent']
+        X.saveSV(savepath, metadata=True, comments='#', delimiter='\t')
+
+
+def GetStateManifest(maindir):
+    wget('http://www.bea.gov/regional/gsp/',maindir + 'State_Index.html')
+    page = maindir + 'State_Index.html'
+    Soup = BeautifulSoup(open(page),convertEntities=BeautifulStoneSoup.HTML_ENTITIES)
+    O = Soup.findAll('select',{'name':'selFips'})[0].findAll('option')
+    L = [(str(dict(o.attrs)['value']),Contents(o).strip()) for o in O]
+    tb.tabarray(records = L,names = ['FIPS','Region']).saveSV(maindir + 'State_Manifest.tsv',metadata=True)
+    
+    
+@activate(lambda x : 'http://www.bea.gov/national/nipaweb/csv/NIPATable.csv',lambda x : x[0])
+def RegionalGDP_initialize(maindir):
+    MakeDirs(maindir)
+    GetStateManifest(maindir)
+    
+@activate(lambda x : x[0] + 'State_Manifest.tsv',lambda x : (x[0] + 'State_Raw/',x[0] + 'State_Manifest_1.tsv'))
+def DownloadStateFiles(maindir):
+    X = tb.tabarray(SVfile = maindir + 'State_Manifest.tsv')
+    rawdir = maindir + 'State_Raw/'
+    MakeDir(rawdir)
+    Recs = []
+    for x in X:
+        fips = x['FIPS']
+        if fips != 'ALL':
+            Region = x['Region']
+            Recs.append((fips,Region,'NAICS','NAICS_' + fips+ '.csv'))
+            Recs.append((fips,Region,'SIC','SIC_1_' + fips+ '.csv'))
+            Recs.append((fips,Region,'SIC','SIC_2_' + fips+ '.csv'))
+            Postdata= 'series=NAICS&selTable=ALL&selFips=' + str(fips) + '&selLineCode=ALL&selYears=ALL&querybutton=Download+CSV'
+            WgetMultiple('http://www.bea.gov/regional/gsp/action.cfm', rawdir + 'NAICS_' + fips + '.csv', opstring = '--post-data="' + Postdata + '"')
+            
+            selYears = '&'.join(['selYears=' + str(y) for y in range(1963,1983)])
+            Postdata= 'series=SIC&selTable=ALL&selFips=' + str(fips) + '&selLineCode=ALL&' + selYears + '&querybutton=Download+CSV'
+            WgetMultiple('http://www.bea.gov/regional/gsp/action.cfm', rawdir + 'SIC_1_' + fips + '.csv', opstring = '--post-data="' + Postdata + '"')
+            selYears = '&'.join(['selYears=' + str(y) for y in range(1983,1998)])
+            Postdata= 'series=SIC&selTable=ALL&selFips=' + str(fips) + '&selLineCode=ALL&' + selYears + '&querybutton=Download+CSV'
+            WgetMultiple('http://www.bea.gov/regional/gsp/action.cfm', rawdir + 'SIC_2_' + fips + '.csv', opstring = '--post-data="' + Postdata + '"')
+        
+    tb.tabarray(records = Recs,names = ['FIPS','Region','IC','File']).saveSV(maindir + 'State_Manifest_1.tsv',metadata=True)    
+
+@activate(lambda x : x[0] + 'GDPMetro.zip',lambda x : x[0] + 'Metro_Raw/')
+def DownloadMetroFiles(maindir):
+    wget('http://www.bea.gov/regional/zip/GDPMetro.zip',maindir + 'GDPMetro.zip')
+    os.system('unzip -d ' + maindir + 'Metro_Raw GDPMetro.zip')
+
+REG_NAME = 'BEA_RegionalGDP'
+
+     
+def reg_trigger():
+    connection = pm.Connection()
+    
+    incremental = REG_NAME in connection['govdata'].collection_names()
+    if incremental:
+        return 'increment'
+    else:
+        return 'overall'
+#=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+def backend_BEA_RegionalGDP(creates = OG.CERT_PROTOCOL_ROOT + REG_NAME + '/',Fast = True):
+    OG.backendProtocol(REG_NAME,None,downloader = [(RegionalGDP_initialize,'initialize'),(GetStateManifest,'state_manifest'),(DownloadStateFiles,'get_state_files'),(DownloadMetroFiles,'get_metro_files'),(State_PreParse1,'state_preparse1'),(Metro_PreParse1,'metro_preparse1'),(RegionalGDP_Preparse2,'preparse2')],trigger = reg_trigger,uptostep='download_check',incremental=True)
+
+
 def backend_BEA_NIPA(creates = OG.CERT_PROTOCOL_ROOT + NIPA_NAME + '/',Fast = True):
     OG.backendProtocol(NIPA_NAME,OG.csv_parser,downloader = [(NIPA_downloader,'raw'),(NIPA_preparser1,'preparse1'),(NIPA_preparser2,'preparse2'),(get_additional_info,'additional_info')],trigger = trigger,incremental=True)
     
