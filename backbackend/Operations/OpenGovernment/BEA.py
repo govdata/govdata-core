@@ -1048,7 +1048,7 @@ def LAPI_downloader(maindir,table,level):
 @activate(lambda x : 'http://www.bea.gov/regional/docs/footnotes.cfm', lambda x : (x[0] + 'footnotes/',x[0] + 'footnotes.tsv'))
 def get_footnotes(maindir):
     target = maindir + 'footnotes/'
-    MakeDir(target)
+    MakeDirs(target)
     index = target + 'index.html'
     wget('http://www.bea.gov/regional/docs/footnotes.cfm',index)
     Soup = BeautifulSoup(open(index))
