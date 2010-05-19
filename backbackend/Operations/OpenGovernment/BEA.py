@@ -1181,7 +1181,7 @@ def LAPI_preparse(maindir,table,level):
     for (i,c) in enumerate(Codes):
         linecode,line = c['Code'],c['CodeDescr']
         
-        f = sourcedir + line + '.csv'
+        f = sourcedir + linecode + '.csv'
         [X, header, footer, keywords] = BEA_Parser(f, headerlines=1, FootnoteSplitter='/', FootnotesFunction=GetFootnotes, CategoryColumn=None)
         title = X.dtype.names[0]
         if len(title.split('/')) > 1:
