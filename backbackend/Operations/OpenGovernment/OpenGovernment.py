@@ -365,11 +365,14 @@ def updateCollection(download_dir,collectionName,parserClass,checkpath,certpath,
             spcs = []
     
     
-        toParse = ListUnion([[source + '__PARSE__/' + x for x in listdir(source + '__PARSE__') if not x.startswith('.')] for source in sources])
+        toParse = ListUnion([RecursiveFileList(source + '__PARSE__') for source in sources])
     
         SpaceCache = {}    
         for file in toParse:
             iterator.refresh(file) 
+            tcs = iterator.ColumnGroups.get('TimeColumns',[])
+            spcs = iterator.ColumnGroups.get('SpaceColumns',[])
+            
             for c in iterator: 
                 newVars = [x for x in c.keys() if not x in totalVariables]
                 assert all(['__' not in x for x in newVars]) , '__ must not appear in key names.'     

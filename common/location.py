@@ -11,6 +11,8 @@ import urllib2
 
 SPACE_CODE_MAP = [('a','Address',None,None,None),
 ('A','Area Code',None,None,None),
+('b','Combined Statistical Area','CSA','csa_code','csa_name'),
+('B','Metropolitan Division','METDIV','metdiv_code','metdic_name'),
 ('c','County','USCounties','county_code','county_name'),
 ('C','country',None,None,None),
 ('d','Public Use Microdata Area -- 1%',None,None,None),
@@ -73,6 +75,9 @@ SPACE_RELATIONS = [('O','C'),
 ('r','D'),
 ('D','s'),
 ('C','r'),
+('s','b'),
+('s','B'),
+('s','m'),
 ]
 
 import networkx as nx
