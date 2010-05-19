@@ -277,6 +277,8 @@ class csv_parser(dataIterator):
             
             if 'Subcollections' in r.keys():
                 r['Subcollections'] = r['Subcollections'].split(',')
+            if 'Location' in r.keys():
+                r['Location'] = eval(r['Location'])
             
             self.__ind += 1
                 
