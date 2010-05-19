@@ -1196,7 +1196,7 @@ def LAPI_preparse(maindir,table,level):
         h = Codes['Hierarchy'][i]
         subjcols = [list(x) for x in zip(*[tuple(h)]*len(X))]
 
-        X = X.addcols([[table]*len(X),[line]*len(X),[table + ',LA,' + level + ',' + id]*len(X)] + subjcols,names=['Table','Line','Subcollections'] + tuple(h.dtype.names))
+        X = X.addcols([[table]*len(X),[line]*len(X),[table + ',LA,' + level + ',' + id]*len(X)] + subjcols,names=['Table','Line','Subcollections'] + list(h.dtype.names))
         X = X.addcols([loc_processor(f,x,level) for (f,x) in X[['FIPS','AreaName']]],names = ['Location'])
         X = X.deletecols(['FIPS','AreaName'])
 
