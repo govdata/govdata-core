@@ -1179,7 +1179,7 @@ def LAPI_preparse(maindir,table,level):
     Codes = Codes[Codes['Table'] == table]
     
     for (i,c) in enumerate(Codes):
-        linecode,line = x['Code'],X['CodeDescr']
+        linecode,line = c['Code'],c['CodeDescr']
         
         f = sourcedir + line + '.csv'
         [X, header, footer, keywords] = BEA_Parser(f, headerlines=1, FootnoteSplitter='/', FootnotesFunction=GetFootnotes, CategoryColumn=None)
