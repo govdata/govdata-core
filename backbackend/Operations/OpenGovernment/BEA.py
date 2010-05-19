@@ -1201,7 +1201,6 @@ def LAPI_preparse(maindir,table,level):
         X = X.deletecols(['FIPS','AreaName'])
 
         TimeColNames = X.coloring['Data']
-        X.coloring = {}
         for n in TimeColNames:
             X.renamecol(n,PI_dateparse(n))    
         X.coloring['TimeColNames'] = X.coloring.pop('Data')
