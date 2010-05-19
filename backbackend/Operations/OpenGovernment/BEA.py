@@ -1260,7 +1260,7 @@ class pi_parser(OG.csv_parser):
 
 def backend_BEA_PersonalIncome(creates = OG.CERT_PROTOCOL_ROOT + PI_NAME + '/',Fast = True):
   
-    D = [((get_footnotes,'footnotes'),()),((get_line_codes,'lapi_line_codes'),()),((SAPI_downloader,'sapi_raw'),()),((SQPI_downloader,'sqpi_raw'),())] 
+    D = [((get_footnotes,'footnotes'),()),((get_line_codes,'lapi_line_codes'),()),((process_line_codes,'process_line_codes'),()),((SAPI_downloader,'sapi_raw'),()),((SQPI_downloader,'sqpi_raw'),())] 
     D += [((SAPI_preparse,'sapi_preparse'),()),((SQPI_preparse,'sqpi_preparse'),())] 
     
     tables = ['CA1-3', 'CA04', 'CA05N', 'CA25N', 'CA05', 'CA06', 'CA06N', 'CA25', 'CA30', 'CA34', 'CA35','CA45']
