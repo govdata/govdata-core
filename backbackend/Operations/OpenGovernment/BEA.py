@@ -1197,13 +1197,13 @@ def LAPI_preparse(maindir,table,level):
         subjcols = [list(x) for x in zip(*[tuple(h)]*len(X))]
 
         X = X.addcols([[table]*len(X),[line]*len(X),[table + ',LA,' + level + ',' + id]*len(X)] + subjcols,names=['Table','Line','Subcollections'] + list(h.dtype.names))
-        X = X.addcols([loc_processor(f,x,level) for (f,x) in X[['FIPS','AreaName']]],names = ['Location'])
+        X = X.addcols([loc_processor(fips,aname,level) for (fips,aname) in X[['FIPS','AreaName']]],names = ['Location'])
         X = X.deletecols(['FIPS','AreaName'])
 
         TimeColNames = X.coloring['Data']
         X.coloring = {}
         for n in TimeColNames:
-            X.renamecol(name,PI_dateparse(name))    
+            X.renamecol(n,PI_dateparse(n))    
         X.coloring['TimeColNames'] = X.coloring.pop('Data')
         
         X.metadata = {'LineFootnote':LineFootnote,'Table':table,'Line':line,'LineCode':linecode}
