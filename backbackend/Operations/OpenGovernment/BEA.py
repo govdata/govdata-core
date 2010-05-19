@@ -986,7 +986,7 @@ def SAPI_downloader(maindir):
 @activate(lambda x : 'http://www.bea.gov/regional/reis/default.cfm?selTable=Single%20Line', lambda x : (x[0] + 'lapi_codes/',x[0] + 'lapi_codes.tsv'))
 def get_line_codes(maindir):
     target = maindir + 'lapi_codes/'
-    MakeDir(target)
+    MakeDirs(target)
     wget('http://www.bea.gov/regional/reis/default.cfm?selTable=Single%20Line',target + '/index.html')
     Soup = BeautifulSoup(open(target + 'index.html'))
     O = Soup.findAll('select',id='selTable')[0].findAll('option')
