@@ -1274,7 +1274,7 @@ def backend_BEA_PersonalIncome(creates = OG.CERT_PROTOCOL_ROOT + PI_NAME + '/',F
     downloader = list(downloader)
     downloadArgs = list(downloadArgs)
     
-    OG.backendProtocol(PI_NAME,pi_parser,downloader = downloader, downloadArgs = downloadArgs,trigger = pi_trigger,uptostep='download_check',incremental=True)
+    OG.backendProtocol(PI_NAME,pi_parser,downloader = downloader, downloadArgs = downloadArgs,trigger = pi_trigger,incremental=True)
 
 
 def backend_BEA_RegionalGDP(creates = OG.CERT_PROTOCOL_ROOT + REG_NAME + '/',Fast = True):
