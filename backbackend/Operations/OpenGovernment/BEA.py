@@ -1121,8 +1121,8 @@ def SAPI_preparse(maindir):
         temppath = target + f.split('/')[-1]
         strongcopy(f,temppath)
         F = open(temppath,'rU').read().strip().split('\n')
-        sline = [i for i in range(len(F)) if F[i].startswith('"Source:')][0]
-        nline = [i for i in range(len(F)) if F[i].startswith('"State FIPS')][0]
+        sline = [j for j in range(len(F)) if F[j].startswith('"Source:')][0]
+        nline = [j for j in range(len(F)) if F[j].startswith('"State FIPS')][0]
         s = F[nline] + '\n' + '\n'.join([F[j] for j in range(len(F)) if j not in [sline, nline]]) + '\n' + F[sline]
         F = open(temppath,'w')
         F.write(s)
@@ -1140,7 +1140,7 @@ def SAPI_preparse(maindir):
             X = X[['Info','Data','Footnotes']].addcols([units],names=['Units'])
      
         X = X.deletecols(['First Year']).addcols(len(X)*[table + ',SA' + (',SA_S' if Summary else '')],names=['Subcollections'])
-        X = X.addcols(['{"s":' + repr(x) + ',"f":{"s":' + repr(f) + '}}' for (f,x) in X[['State FIPS','State Name']]],names = ['Location'])
+        X = X.addcols(['{"s":' + repr(sname) + ',"f":{"s":' + repr(fips) + '}}' for (fips,sname) in X[['State FIPS','State Name']]],names = ['Location'])
         X = X.deletecols(['State FIPS','State Name'])   
         X.renamecol('Line Code','LineCode')
         X.renamecol('Line Title','Line')
