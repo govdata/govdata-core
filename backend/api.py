@@ -23,7 +23,25 @@ import functools
 EXPOSED_ACTIONS = ['find','find_one','group','skip','limit','sort','count','distinct']
 
 
-class GetHandler(tornado.web.RequestHandler):
+class JSONPHandler(tornado.web.RequestHandler):
+    
+    CALLBACK = 'jsonp' # define callback argument name
+    
+    def finish (self, chunk=None):
+        "" "Finishes this response, ending the HTTP Request."" "
+        assert not self._finished
+        if chunk:
+            self.write(chunk)
+        # Get client callback method
+        callback = tornado.web._utf8(self.get_argument (self.CALLBACK))
+        # format output with jsonp
+        self._write_buffer.insert(0, callback + '(')
+        self._write_buffer.append(')')
+        # call base method Class finish
+        super(JSONPHandler, self).finish() # chunk must be None
+
+
+class GetHandler(JSONPHandler):
     def get(self):
         self.write("Hello, get")
 
@@ -203,7 +221,7 @@ class GetHandler(tornado.web.RequestHandler):
         self.add_handler(cmdCollection,command,None,0,-1,callback,_must_use_master=True,_is_command= True)
             
                 
-class FindHandler(tornado.web.RequestHandler):
+class FindHandler(JSONPHandler):
     @tornado.web.asynchronous
     def get(self):
         args = self.request.arguments
