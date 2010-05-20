@@ -1166,7 +1166,7 @@ def SAPI_preparse(maindir):
         X.saveSV(target + str(i) + '.tsv',metadata=['dialect','names','formats','coloring'])
             
     
-def loc_processor(f,x,level):   
+def loc_processor_inner(f,x,level):   
     if level == 'ALLCOUNTY':
         return '{"c":' + repr(','.join(x.split(',')[:-1]).strip()) + ',"S":' + repr( x.split(',')[-1].strip()) +',"f":{"c":' + repr(f[2:]) + ',"s":' + repr(f[:2]) + '}}' 
     elif level ==   'STATE':
@@ -1180,6 +1180,14 @@ def loc_processor(f,x,level):
     elif level == 'ECON':
         return '{"X":' + repr(x) + ',"f":{"X":' + repr(f) + '}}' 
         
+def loc_processor(f,x,level):
+    s = loc_processor_inner(f,x,level)
+    try:
+        s = s.decode('utf-8')
+    except UnicodeDecodeError:
+        s = s.decode('latin-1').encode('utf-8')
+        
+    return s
         
 @activate(lambda x : (x[0] + 'lapi_raw/' + x[1] + '_' + x[2] + '/',x[0] + 'lapi_codes_processed.tsv'),lambda x : x[0] + '__PARSE__/lapi/'+x[1] + '_' + x[2] + '/')
 def LAPI_preparse(maindir,table,level):
