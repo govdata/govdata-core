@@ -266,6 +266,7 @@ class csv_parser(dataIterator):
         self.metadata = pickle.load(open(source + '__metadata.pickle'))
         
     def refresh(self,file):
+        print 'refreshing', file
         self.Data = tb.tabarray(SVfile = file,verbosity = 0)
         self.__ind = 0
     
