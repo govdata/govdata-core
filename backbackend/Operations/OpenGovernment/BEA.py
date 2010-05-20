@@ -1246,8 +1246,9 @@ def PI_metadata(maindir):
 class pi_parser(OG.csv_parser):
 
     def refresh(self,file):
-        
-        OG.csv_parser.refresh(self,file)
+        print 'refreshing: ', file
+        self.Data = tb.tabarray(SVfile = file,verbosity = 0)
+        self.__ind = 0
        
         self.metadata['']['ColumnGroups']['TimeColNames'] = uniqify(self.metadata['']['ColumnGroups'].get('TimeColNames',[]) + self.Data.coloring['TimeColNames'])
         
