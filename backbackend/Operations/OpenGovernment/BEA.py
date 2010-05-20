@@ -1249,7 +1249,7 @@ class pi_parser(OG.csv_parser):
         
         OG.csv_parser.refresh(self,file)
        
-        self.metadata['']['ColumnGroups']['TimeColNames'] = uniqify(self.metadata['']['ColumnGroups']['TimeColNames'] + self.Data.coloring['TimeColNames'])
+        self.metadata['']['ColumnGroups']['TimeColNames'] = uniqify(self.metadata['']['ColumnGroups'].get('TimeColNames',[]) + self.Data.coloring['TimeColNames'])
         
         if 'LineFootnote' in self.Data.metadata.keys():
             id = self.Data.metadata['Table'] + '_' + self.Data.metadata['LineCode']
