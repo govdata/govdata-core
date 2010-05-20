@@ -1186,7 +1186,7 @@ def REPR(x):
     except UnicodeDecodeError:
         x = x.decode('latin-1').encode('utf-8')
         
-    return 
+    return repr(x)
         
 @activate(lambda x : (x[0] + 'lapi_raw/' + x[1] + '_' + x[2] + '/',x[0] + 'lapi_codes_processed.tsv'),lambda x : x[0] + '__PARSE__/lapi/'+x[1] + '_' + x[2] + '/')
 def LAPI_preparse(maindir,table,level):
