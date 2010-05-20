@@ -272,7 +272,7 @@ class csv_parser(dataIterator):
     
     def next(self):
         if self.ind < len(self.Data):
-            r = self.Data[self.__ind]
+            r = self.Data[self.ind]
             r = [float(xx) if isinstance(xx,float) else int(xx) if isinstance(xx,int) else xx for xx in r]  
             r = dict(zip(self.Data.dtype.names,r))
             
