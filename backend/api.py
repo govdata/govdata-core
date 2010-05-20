@@ -645,7 +645,7 @@ def makemetadata(collection,sci,subcols):
                     metadataInd[k] = 'All'
                 else:
                     metadataInd[k] = metalist[k]
-    metadata = dict([(k,(metadataInd[k],collection.metadata[k])) for k in metadataInd.keys()])
+    metadata = dict([(k,(metadataInd[k],collection.metadata.get(k,{}))) for k in metadataInd.keys()])
     return metadata
 
 def actQueries(Q,O):

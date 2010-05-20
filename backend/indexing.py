@@ -137,11 +137,7 @@ def updateCollectionIndex(collectionName,incertpath,certpath, slicesCorrespondTo
     createCertificate(certpath,'Collection ' + collectionName + ' indexed.')        
    
 def getSliceColTuples(collection):
-    sliceCols = collection.sliceCols
-    if is_string_like(sliceCols[0]):
-        sliceColList = [sliceCols]
-    else:
-        sliceColList = sliceCols
+    sliceColList = collection.sliceCols
     sliceColU = uniqify(ListUnion(sliceColList))
     OK = dict([(x,x in collection.ColumnGroups.keys() or len(api.get(collection.name,[('distinct',(x,))])['data']) > 1) for x in sliceColU])
     sliceColList = [tuple([x for x in sliceColU if x in sc and OK[x]]) for sc in sliceColList]
@@ -150,11 +146,7 @@ def getSliceColTuples(collection):
     return sliceColTuples
     
 def initialize_argdict(d,ArgDict,collection):
-    sliceCols = collection.sliceCols
-    if is_string_like(sliceCols[0]):
-        sliceColList = [sliceCols]
-    else:
-        sliceColList = sliceCols
+    sliceColList = collection.sliceCols
     sliceCols = uniqify(ListUnion(sliceColList))
     if hasattr(collection,'contentCols'):
         contentCols = collection.contentCols
@@ -375,7 +367,7 @@ def addToIndex(R,d,collection,solr_interface,contentColNums = None, phraseCols =
     metadata = collection.metadata['']
 
     for sc in Subcollections:
-        metadata.update(collection.metadata[sc])
+        metadata.update(collection.metadata.get(sc,{}))
 
     for k in metadata.keys():
         if k in STANDARD_META:

@@ -18,6 +18,15 @@ NIPA_NAME = 'BEA_NIPA'
 def SafeContents(x):
     return ' '.join(Contents(x).strip().split())
     
+
+def getzip(url,zippath,dirpath=None):
+    assert zippath.endswith('.zip')
+    if dirpath == None:
+        dirpath = zippath[:-4]      
+    wget(url,zippath)
+    os.system('unzip -d ' + dirpath + ' ' + zippath)
+    
+    
 def WgetMultiple(link,fname,opstring='',  maxtries=5):
     for i in range(maxtries):
         wget(link, fname, opstring)
@@ -300,7 +309,7 @@ def NEA_preparser2(inpath,filepath,metadatapath,L = None):
     AllMeta['UniqueIndexes'] = ['TableNo','Line']
     AllMeta['ColumnGroups'] = ColGroups
     AllMeta['DateFormat'] = 'YYYYqmm'
-    AllMeta['sliceCols'] = ['Section','Table','Topics']
+    AllMeta['sliceCols'] = [['Section','Table','Topics']]
     AllMeta['phraseCols'] = ['Section','Table','Topics','Line','TableNo']
 
     
@@ -482,7 +491,7 @@ def FAT_preparser2(maindir):
     AllMeta['UniqueIndexes'] = ['TableNo','Line']
     AllMeta['ColumnGroups'] = ColGroups
     AllMeta['DateFormat'] = 'YYYYqmm'
-    AllMeta['sliceCols'] = ['Section','Table','Topics']
+    AllMeta['sliceCols'] = [['Section','Table','Topics']]
     AllMeta['phraseCols'] = ['Section','Table','Topics','Line','TableNo']
     
     Subcollections = Metadict
@@ -954,17 +963,18 @@ def reg_trigger():
 PI_NAME = 'BEA_PersonalIncome'
 
 def PI_dateparse(x):
-	d = x.split('.')
-	if len(d) == 1:
-		return d[0] + 'X' + 'XX' 
-	else:
-		return d[0] + str(int(d[1]))  + 'XX'
+    d = x.split('.')
+    if len(d) == 1:
+        return d[0] + 'X' + 'XX' 
+    else:
+        return d[0] + str(int(d[1]))  + 'XX'
 
-@activate(lambda x : 'http://www.bea.gov/regional/sqpi/action.cfm?zipfile=/regional/zip/sqpi.zip',lambda x : (x[0] + 'sqpi.zip', x[0] + 'sqpi_raw/'))
+@activate(lambda x : 'http://www.bea.gov/regional/sqpi/action.cfm?zipfile=/regional/zip/sqpi.zip',lambda x : x[0] + 'sqpi_raw/')
 def SQPI_downloader(maindir):
 
-    wget('http://www.bea.gov/regional/sqpi/action.cfm?zipfile=/regional/zip/sqpi.zip',maindir + 'sqpi.zip')
-    os.system('unzip -d ' + maindir + 'sqpi_raw/ ' + maindir + 'sqpi.zip')
+    MakeDirs(maindir + 'sqpi_raw/')
+    wget('http://www.bea.gov/regional/sqpi/action.cfm?zipfile=/regional/zip/sqpi.zip',maindir + 'sqpi_raw/sqpi.zip')
+    os.system('cd ' + maindir + 'sqpi_raw; unzip sqpi.zip; rm sqpi.zip')
             
     t = 'SQ1'
     selYears = range(1969,2020)
@@ -1128,7 +1138,7 @@ def SAPI_preparse(maindir):
     M = [x for x in RecursiveFileList(sourcedir) if x.endswith('.csv')]
 
     for (i,f) in enumerate(M):
-        print 'Processing', f
+        print 'Processing', i, f
         
         temppath = target + f.split('/')[-1]
         strongcopy(f,temppath)
@@ -1143,6 +1153,12 @@ def SAPI_preparse(maindir):
         [X, header, footer, keywords] = BEA_Parser(temppath, headerlines=1, FootnoteSplitter='/', FootnotesFunction=GetFootnotes, CategoryColumn='Line Title')
         delete(temppath)
         
+        
+        for name in X['Data'].dtype.names:
+            if name.endswith('p'):
+                newname = name.strip('p')
+                X.renamecol(name,newname)
+              
         table = X['Table'][0] 
         
         Summary = f.split('/')[-2] == 'sa_sum'
@@ -1162,8 +1178,9 @@ def SAPI_preparse(maindir):
         for n in TimeColNames:
             X.renamecol(n,PI_dateparse(n))
         X.coloring['TimeColNames'] = X.coloring.pop('Data')
-            
+        
         X.saveSV(target + str(i) + '.tsv',metadata=['dialect','names','formats','coloring'])
+        print len(X)
             
     
 def loc_processor(f,x,level):   
@@ -1187,6 +1204,15 @@ def REPR(x):
         x = x.decode('latin-1').encode('utf-8')
         
     return repr(x)
+
+DRF =  re.compile('\d{4}-\d{4}')
+DRFS =  re.compile('^\d{4}-\d{4}$')
+def daterangecorrect(x):
+    if DRF.search(x):
+        if DRFS.search(x):
+            return x.split('-')[-1]
+    else:
+        return x
         
 @activate(lambda x : (x[0] + 'lapi_raw/' + x[1] + '_' + x[2] + '/',x[0] + 'lapi_codes_processed.tsv'),lambda x : x[0] + '__PARSE__/lapi/'+x[1] + '_' + x[2] + '/')
 def LAPI_preparse(maindir,table,level):
@@ -1202,6 +1228,14 @@ def LAPI_preparse(maindir,table,level):
         
         f = sourcedir + linecode + '.csv'
         [X, header, footer, keywords] = BEA_Parser(f, headerlines=1, FootnoteSplitter='/', FootnotesFunction=GetFootnotes, CategoryColumn=None)
+        NewData = [(name,daterangecorrect(name)) for name in X['Data'].dtype.names]
+        for (name,newname) in NewData:
+            if name != newname:
+                if newname:
+                    X.renamecol(name,newname)
+                else:
+                    X.coloring['Data'].remove(name)
+        
         title = X.dtype.names[0]
         if len(title.split('/')) > 1:
             LineFootnote = title.split('/')[0].split()[-1]
@@ -1212,10 +1246,10 @@ def LAPI_preparse(maindir,table,level):
         
         id = table + '_' + linecode
 
-        h = Codes['Hierarchy'][i]
-        subjcols = [list(x) for x in zip(*[tuple(h)]*len(X))]
+        hRec = Codes['Hierarchy'][i]
+        subjcols = [list(x) for x in zip(*[tuple(hRec)]*len(X))]
 
-        X = X.addcols([[table]*len(X),[line]*len(X),[table + ',LA,' + level + ',' + id]*len(X)] + subjcols,names=['Table','Line','Subcollections'] + list(h.dtype.names))
+        X = X.addcols([[table]*len(X),[line]*len(X),[table + ',LA,' + id]*len(X)] + subjcols,names=['Table','Line','Subcollections'] + list(hRec.dtype.names))
         X = X.addcols([loc_processor(fips,aname,level) for (fips,aname) in X[['FIPS','AreaName']]],names = ['Location'])
         X = X.deletecols(['FIPS','AreaName'])
 
@@ -1223,6 +1257,7 @@ def LAPI_preparse(maindir,table,level):
         for n in TimeColNames:
             X.renamecol(n,PI_dateparse(n))    
         X.coloring['TimeColNames'] = X.coloring.pop('Data')
+        X.coloring['SubjectHierarchy'] = list(hRec.dtype.names)
         
         X.metadata = {'LineFootnote':LineFootnote,'Table':table,'Line':line,'LineCode':linecode}
 
@@ -1241,7 +1276,6 @@ def PI_metadata(maindir):
     
     Metadata['SQ'] = {'Title':'State Quarertly Persona Income','Description':'<a href="http://www.bea.gov/regional/sqpi/">State Quarterly Personal Income</a> data set under the <a href="http://www.bea.gov/regional/index.htm">Regional Economic Accounts</a> section of the <a href="http://www.bea.gov/">Bureau of Economic Accounts (BEA)</a> website.', 'Units':'Millions of dollars, seasonally adjusted at annual rates'}
     
-
     Metadata['SA_S'] = {'Title': 'State Annual Summary'}
     Metadata['SA'] = {'Title': 'State Annual Personal Income', 'Description' :  '<a href="http://www.bea.gov/regional/spi/">State Annual Personal Income</a> data set under the <a href="http://www.bea.gov/regional/index.htm">Regional Economic Accounts</a> section of the <a href="http://www.bea.gov/">Bureau of Economic Accounts (BEA)</a> website.  U.S. DEPARTMENT OF COMMERCE--ECONOMICS AND STATISTICS ADMINISTRATION BUREAU OF ECONOMIC ANALYSIS--REGIONAL ECONOMIC INFORMATION SYSTEM STATE ANNUAL TABLES 1969 - 2008 for the states and regions of the nation September 2009 These files are provided by the Regional Economic Measurement Division of the Bureau of Economic Analysis. They contain tables of annual estimates (see below) for 1969-2008 for all States, regions, and the nation. State personal income estimates, released September 18, 2009, have been revised for 1969-2008 to reflect the results of the comprehensive revision to the national income and product accounts released in July 2009 and to incorporate newly available state-level source data. For the year 2001 in the tables SA05, SA06, SA07, SA25, and SA27, the industry detail is available by division-level SIC only. Tables based upon the North American Industry Classification System (NAICS) are available for 2001-07. Newly available earnings by NAICS industry back to 1990 were released on September 26, 2006.   For more information on the industry classifications, see the BEA web pages on  <a href="http://www.bea.gov/regional/definitions/nextpage.cfm?key=NAICS">NAICS (1997-2008)</a> and <a href="http://www.bea.gov/regional/definitions/nextpage.cfm?key=SIC">SIC (1963-1997)</a>.   Historical estimates 1929-68 will be updated in the next several months. TABLES The estimates are organized by table. The name of the downloaded file indicates the table. For example, any filename beginning with "SA05" contains information from the SA05 table. With the exception of per capita estimates, all dollar estimates are in thousands of dollars. All employment estimates are number of jobs. All dollar estimates are in current dollars. SA04 - State income and employment summary (1969-2008) SA05 - Personal income by major source and earnings by industry (1969-2001, 1990-2008) SA06 - Compensation of employees by industry (1998-2001, 2001-08) SA07 - Wage and salary disbursements by industry (1969-01, 2001-08) SA25 - Total full-time and part-time employment by industry (1969-2001, 2001-08) SA27 - Full-time and part-time wage and salary employment by industry (1969-2001, 2001-08) SA30 - State economic profile (1969-08) SA35 - Personal current transfer receipts (1969-08) SA40 - State property income (1969-2008) SA45 - Farm income and expenses (1969-2008) SA50 - Personal current taxes (this table includes the disposable personal income estimate) (1969-08) DATA (*.CSV) FILES The files containing the estimates (data files) are in comma-separated-value text format with textual information enclosed in quotes.  (L) Less than $50,000 or less than 10 jobs, as appropriate, but the estimates for this item are included in the total. (T) SA05N=Less than 10 million dollars, but the estimates for this item are included in the total. SA25N=Estimate for employment suppressed to cover corresponding estimate for earnings. Estimates for this item are included in the total. (N) Data not available for this year. If you have any problems or comments on the use of these data files call or write: Regional Economic Information System Bureau of Economic Analysis (BE-55) U.S. Department of Commerce Washington, D.C. 20230 Phone (202) 606-5360 FAX (202) 606-5322 E-Mail: reis@bea.gov'}
     
@@ -1253,7 +1287,7 @@ def PI_metadata(maindir):
     AllMeta['UniqueIndexes'] = ['Location','Table','LineCode']
     AllMeta['ColumnGroups'] = {'SpaceColumns' : ['Location']}
     AllMeta['DateFormat'] = 'YYYYqmm'
-    AllMeta['sliceCols'] = ['Location.c','Location.m','Location.s','Table','SubjectHierarchy']  
+    AllMeta['sliceCols'] = [['Location.c','Location.m','Location.s','Table','SubjectHierarchy']]
     AllMeta['phraseCols'] = ['Table','SubjectHierarchy','Line','LineCode']  
     Metadata[''] = AllMeta
     
@@ -1269,12 +1303,63 @@ class pi_parser(OG.csv_parser):
         self.Data = tb.tabarray(SVfile = file,verbosity = 0)
         self.IND = 0
        
-        self.metadata['']['ColumnGroups']['TimeColNames'] = uniqify(self.metadata['']['ColumnGroups'].get('TimeColNames',[]) + self.Data.coloring['TimeColNames'])
+        for k in ['TimeColNames','SubjectHierarchy']:
+            self.metadata['']['ColumnGroups'][k] = uniqify(self.metadata['']['ColumnGroups'].get(k,[]) + self.Data.coloring.get(k,[]))
         
         if 'LineFootnote' in self.Data.metadata.keys():
             id = self.Data.metadata['Table'] + '_' + self.Data.metadata['LineCode']
             self.metadata[id] = {'Title':self.Data.metadata['Line'], 'Footnote': self.Data.metadata['LineFootnote']}
          
+         
+#=-=-=-=-=-=-=-=-=-=-=-=-International transactions
+
+def get_intl_transactions(maindir):
+    wget('http://www.bea.gov/international/xls/table1.xls',maindir + 'transactions.xls')
+    
+def get_intl_transactions_detailed(maindir):
+    #footnotes are with each individual file
+    wget('http://www.bea.gov/international/bp_web/startDownload.asp?dlSelect=tables%2FCSV%2FITA-CSV.zip',maindir + 'detailed_transactions.zip')
+    os.system('unzip -d ' + maindir + 'detailed_transactions/ ' + maindir + 'detailed_transactions.zip')
+
+def get_intl_transactions_files(maindir):
+    wget('http://www.bea.gov/methodologies/_pdf/summary_of_major_revisions_to_the_us_international_accounts_1976_2009.pdf',maindir + '__FILES__/international_transactions_revisions.pdf')
+    wget('http://www.bea.gov/scb/pdf/2010/02%20February/0210_guide.pdf',maindir + '__FILES__/international_transactions_guide.pdf')
+
+#=-=-=-=-=-=-=-=-=-=-=-=-International trade
+
+def get_intl_trade(maindir):
+    wget('http://www.bea.gov/newsreleases/international/trade/trad_time_series.xls',maindir + 'trade.xls')
+
+def get_intl_trade_services_detailed(maindir):
+    pass
+    #annoyingly dispersed:    http://www.bea.gov/international/international_services.htm#summaryandother
+    
+        
+def get_intl_trade_goods_detailed(maindir):
+    getzip('http://www.bea.gov/international/zip/IDS0008Hist.zip',maindir + 'detailed_trade_goods_historical_quarterly.zip')
+    getzip('http://www.bea.gov/international/zip/IDS0008.zip',maindir + 'detailed_trade_goods_current_quarterly.zip')
+    getzip('http://www.bea.gov/international/zip/IDS0182.zip',maindir + 'detailed_trade_goods_current_monthly.zip')
+    getzip('http://www.bea.gov/international/zip/IDS0182Hist.zip',maindir + 'detailed_trade_goods_historical_monthly.zip')
+
+
+#=-=-=-=-=-=-=-=-=-=-=-=-International investment
+    
+def get_intl_investment(maindir):
+    wget('http://www.bea.gov/international/xls/intinv08_t2.xls',maindir + 'investment_2.xls')
+    wget('http://www.bea.gov/international/xls/intinv08_t3.xls',maindir + 'investment_3.xls')
+ 
+ 
+def get_us_investment_abroad(maindir):
+    pass
+    
+def get_us_finance_abroad(maindir):
+    pass
+    
+def get_foreign_investment(maindir):
+    pass
+    
+def get_foreign_finance(maindir):
+    pass
 #=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 def backend_BEA_PersonalIncome(creates = OG.CERT_PROTOCOL_ROOT + PI_NAME + '/',Fast = True):
