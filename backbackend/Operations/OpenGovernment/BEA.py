@@ -1176,9 +1176,9 @@ def loc_processor(f,x,level):
     elif level == 'CSA':
         return '{"b":' + REPR(x) + ',"f":{"b":' + repr(f[2:]) + '}}' 
     elif level == 'MDIV':
-        return '{"B":' + REPR(x)) + ',"f":{"B":' + repr(f) + '}}' 
+        return '{"B":' + REPR(x) + ',"f":{"B":' + repr(f) + '}}' 
     elif level == 'ECON':
-        return '{"X":' + REPR(x)) + ',"f":{"X":' + repr(f) + '}}' 
+        return '{"X":' + REPR(x) + ',"f":{"X":' + repr(f) + '}}' 
         
 def REPR(x):
     try:
@@ -1186,7 +1186,7 @@ def REPR(x):
     except UnicodeDecodeError:
         x = x.decode('latin-1').encode('utf-8')
         
-    return repr(x)
+    return 
         
 @activate(lambda x : (x[0] + 'lapi_raw/' + x[1] + '_' + x[2] + '/',x[0] + 'lapi_codes_processed.tsv'),lambda x : x[0] + '__PARSE__/lapi/'+x[1] + '_' + x[2] + '/')
 def LAPI_preparse(maindir,table,level):
