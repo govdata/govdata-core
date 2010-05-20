@@ -5,7 +5,7 @@ import numpy as np
 import tabular as tb
 import backend.indexing as indexing
 from System.Protocols import ApplyOperations2, activate
-from System.Utils import MakeDir,MakeDirs, PathExists
+from System.Utils import MakeDir,MakeDirs, PathExists, RecursiveFileList
 import os
 import hashlib
 import pymongo as pm
