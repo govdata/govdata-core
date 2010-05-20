@@ -1086,7 +1086,19 @@ def SQPI_preparse(maindir):
     for (i,f) in enumerate(filelist):
         print f
 
-        [X, header, footer, keywords] = BEA_Parser(f, headerlines=1, FootnoteSplitter='/', FootnotesFunction=GetFootnotes, CategoryColumn='Line Title')
+        temppath = target + f.split('/')[-1]
+        strongcopy(f,temppath)
+        F = open(temppath,'rU').read().strip().split('\n')
+        sline = [j for j in range(len(F)) if F[j].startswith('"Source:')][0]
+        nline = [j for j in range(len(F)) if F[j].startswith('"State FIPS')][0]
+        s = F[nline] + '\n' + '\n'.join([F[j] for j in range(len(F)) if j not in [sline, nline]]) + '\n' + F[sline]
+        F = open(temppath,'w')
+        F.write(s)
+        F.close()
+
+        [X, header, footer, keywords] = BEA_Parser(temppath, headerlines=1, FootnoteSplitter='/', FootnotesFunction=GetFootnotes, CategoryColumn='Line Title')
+        delete(temppath)
+        
         table = X['Table'][0]
         X = X.deletecols(['First Year']).addcols(len(X)*[table + ',SQ'],names=['Subcollections'])
         X = X.addcols(['{"s":' + repr(x) + ',"f":{"s":' + repr(f) + '}}' for (f,x) in X[['State FIPS','State Name']]],names = ['Location'])
