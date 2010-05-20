@@ -30,10 +30,14 @@ class JSONPHandler(tornado.web.RequestHandler):
     def finish (self, chunk=None):
         "" "Finishes this response, ending the HTTP Request."" "
         assert not self._finished
+	self.set_header("Content-Type", "text/javascript")
         if chunk:
             self.write(chunk)
         # Get client callback method
-        callback = tornado.web._utf8(self.get_argument (self.CALLBACK))
+	try:
+            callback = tornado.web._utf8(self.get_argument(self.CALLBACK))
+	except:
+	    callback = "?"
         # format output with jsonp
         self._write_buffer.insert(0, callback + '(')
         self._write_buffer.append(')')
