@@ -368,6 +368,8 @@ def updateCollection(download_dir,collectionName,parserClass,checkpath,certpath,
     
         toParse = ListUnion([RecursiveFileList(source + '__PARSE__') for source in sources])
     
+        spaceComplete = False
+        
         SpaceCache = {}    
         for file in toParse:
             iterator.refresh(file) 
@@ -382,14 +384,15 @@ def updateCollection(download_dir,collectionName,parserClass,checkpath,certpath,
                 for tc in tcs:   #time handling 
                     if tc in c.keys():
                         c[tc] = TimeFormatter(c[tc])
-                for spc in spcs:
-                    if spc in c.keys():   #space
-                        t = getT(c[spc])
-                        if t in SpaceCache.keys():
-                            c[spc] = SpaceCache[t].copy()
-                        else:
-                            c[spc] = loc.SpaceComplete(c[spc])
-                            SpaceCache[t] = c[spc].copy()            
+                if completeSpace:        
+                    for spc in spcs:
+                        if spc in c.keys():   #space
+                            t = getT(c[spc])
+                            if t in SpaceCache.keys():
+                                c[spc] = SpaceCache[t].copy()
+                            else:
+                                c[spc] = loc.SpaceComplete(c[spc])
+                                SpaceCache[t] = c[spc].copy()            
                 processRecord(c,collection,VarMap,uniqueIndexes,versionNumber,specialKeyInds,incremental)
         if incremental:
             collection.update({vNInd:versionNumber - 1, retInd : {'$exists':False}}, {'$set':{vNInd:versionNumber}})        
