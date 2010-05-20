@@ -1183,7 +1183,7 @@ def loc_processor_inner(f,x,level):
 def loc_processor(f,x,level):
     s = loc_processor_inner(f,x,level)
     try:
-        s = s.decode('utf-8')
+        s.decode('utf-8')
     except UnicodeDecodeError:
         s = s.decode('latin-1').encode('utf-8')
         
