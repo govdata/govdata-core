@@ -213,6 +213,7 @@ def SpaceComplete(x):
         iFIPS = [c for c in iFIPS if c not in x.keys()]
         Cset = [c + '=' + x['f'][c] for c in x['f'].keys() if uniqify(x['f'][c]) != ['0']]
         if iFIPS and Cset:
+            print Cset
             X = eval(urllib2.urlopen('http://localhost:8000/fips/?' + '&'.join(Cset)).read())
             if len(X) == 1:
                 X = convertToCodes(X[0])
