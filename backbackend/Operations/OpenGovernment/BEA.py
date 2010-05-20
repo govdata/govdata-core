@@ -1102,7 +1102,7 @@ def SQPI_preparse(maindir):
             X.renamecol(n,PI_dateparse(n))    
         X.coloring['TimeColNames'] = X.coloring.pop('Data')
 
-        X.saveSV(target + str(i) + '.tsv',metadata=['dialect','names','formats'])
+        X.saveSV(target + str(i) + '.tsv',metadata=['dialect','names','formats','coloring'])
         
 
                 
@@ -1151,7 +1151,7 @@ def SAPI_preparse(maindir):
             X.renamecol(n,PI_dateparse(n))
         X.coloring['TimeColNames'] = X.coloring.pop('Data')
             
-        X.saveSV(target + str(i) + '.tsv',metadata=['dialect','names','formats'])
+        X.saveSV(target + str(i) + '.tsv',metadata=['dialect','names','formats','coloring'])
             
     
 def loc_processor(f,x,level):   
