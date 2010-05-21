@@ -6,7 +6,7 @@ from mechanize import Browser
 import urllib
 import re
 import pymongo as pm
-from System.Utils import MakeDir, Contents, listdir, IsDir, wget, uniqify, PathExists,RecursiveFileList, ListUnion, MakeDirs
+from System.Utils import MakeDir, Contents, listdir, IsDir, wget, uniqify, PathExists,RecursiveFileList, ListUnion, MakeDirs,delete,strongcopy
 from System.Protocols import activate,ApplyOperations2
 import Operations.htools as htools
 import Operations.OpenGovernment.OpenGovernment as OG
@@ -17,6 +17,15 @@ NIPA_NAME = 'BEA_NIPA'
 #=-=-=-=-=-=-=-=-=-Utilities
 def SafeContents(x):
     return ' '.join(Contents(x).strip().split())
+    
+
+def getzip(url,zippath,dirpath=None):
+    assert zippath.endswith('.zip')
+    if dirpath == None:
+        dirpath = zippath[:-4]      
+    wget(url,zippath)
+    os.system('unzip -d ' + dirpath + ' ' + zippath)
+    
     
 def WgetMultiple(link,fname,opstring='',  maxtries=5):
     for i in range(maxtries):
@@ -82,6 +91,7 @@ def nea_dateparse(x):
         ind = str(mmap.index(d[1].lower())+1)
         ind = ind if len(ind) == 2 else '0' + ind
         return d[0] + 'X' + ind
+        
         
 def NEA_Parser(page, headerlines=None, FootnoteSplitter = '/', FootnotesFunction = GetFootnotes, CategoryColumn=None,FormulaColumn=None):
     
@@ -299,7 +309,7 @@ def NEA_preparser2(inpath,filepath,metadatapath,L = None):
     AllMeta['UniqueIndexes'] = ['TableNo','Line']
     AllMeta['ColumnGroups'] = ColGroups
     AllMeta['DateFormat'] = 'YYYYqmm'
-    AllMeta['sliceCols'] = ['Section','Table','Topics']
+    AllMeta['sliceCols'] = [['Section','Table','Topics']]
     AllMeta['phraseCols'] = ['Section','Table','Topics','Line','TableNo']
 
     
@@ -481,7 +491,7 @@ def FAT_preparser2(maindir):
     AllMeta['UniqueIndexes'] = ['TableNo','Line']
     AllMeta['ColumnGroups'] = ColGroups
     AllMeta['DateFormat'] = 'YYYYqmm'
-    AllMeta['sliceCols'] = ['Section','Table','Topics']
+    AllMeta['sliceCols'] = [['Section','Table','Topics']]
     AllMeta['phraseCols'] = ['Section','Table','Topics','Line','TableNo']
     
     Subcollections = Metadict
@@ -899,6 +909,9 @@ def RegionalGDP_initialize(maindir):
     
 @activate(lambda x : x[0] + 'State_Manifest.tsv',lambda x : (x[0] + 'State_Raw/',x[0] + 'State_Manifest_1.tsv'))
 def DownloadStateFiles(maindir):
+    connection = pm.Connection()
+    incremental = REG_NAME in connection['govdata'].collection_names()
+    
     X = tb.tabarray(SVfile = maindir + 'State_Manifest.tsv')
     rawdir = maindir + 'State_Raw/'
     MakeDir(rawdir)
@@ -908,17 +921,23 @@ def DownloadStateFiles(maindir):
         if fips != 'ALL':
             Region = x['Region']
             Recs.append((fips,Region,'NAICS','NAICS_' + fips+ '.csv'))
-            Recs.append((fips,Region,'SIC','SIC_1_' + fips+ '.csv'))
-            Recs.append((fips,Region,'SIC','SIC_2_' + fips+ '.csv'))
-            Postdata= 'series=NAICS&selTable=ALL&selFips=' + str(fips) + '&selLineCode=ALL&selYears=ALL&querybutton=Download+CSV'
+
+            if incremental:
+                selYears = 'selYears=2008'   #this could be improved
+            else:
+                selYears = 'selYears=ALL'
+            Postdata= 'series=NAICS&selTable=ALL&selFips=' + str(fips) + '&selLineCode=ALL&' + selYears + '&querybutton=Download+CSV'
             WgetMultiple('http://www.bea.gov/regional/gsp/action.cfm', rawdir + 'NAICS_' + fips + '.csv', opstring = '--post-data="' + Postdata + '"')
             
-            selYears = '&'.join(['selYears=' + str(y) for y in range(1963,1983)])
-            Postdata= 'series=SIC&selTable=ALL&selFips=' + str(fips) + '&selLineCode=ALL&' + selYears + '&querybutton=Download+CSV'
-            WgetMultiple('http://www.bea.gov/regional/gsp/action.cfm', rawdir + 'SIC_1_' + fips + '.csv', opstring = '--post-data="' + Postdata + '"')
-            selYears = '&'.join(['selYears=' + str(y) for y in range(1983,1998)])
-            Postdata= 'series=SIC&selTable=ALL&selFips=' + str(fips) + '&selLineCode=ALL&' + selYears + '&querybutton=Download+CSV'
-            WgetMultiple('http://www.bea.gov/regional/gsp/action.cfm', rawdir + 'SIC_2_' + fips + '.csv', opstring = '--post-data="' + Postdata + '"')
+            if not incremental:
+                Recs.append((fips,Region,'SIC','SIC_1_' + fips+ '.csv'))
+                Recs.append((fips,Region,'SIC','SIC_2_' + fips+ '.csv'))            
+                selYears = '&'.join(['selYears=' + str(y) for y in range(1963,1983)])
+                Postdata= 'series=SIC&selTable=ALL&selFips=' + str(fips) + '&selLineCode=ALL&' + selYears + '&querybutton=Download+CSV'
+                WgetMultiple('http://www.bea.gov/regional/gsp/action.cfm', rawdir + 'SIC_1_' + fips + '.csv', opstring = '--post-data="' + Postdata + '"')
+                selYears = '&'.join(['selYears=' + str(y) for y in range(1983,1998)])
+                Postdata= 'series=SIC&selTable=ALL&selFips=' + str(fips) + '&selLineCode=ALL&' + selYears + '&querybutton=Download+CSV'
+                WgetMultiple('http://www.bea.gov/regional/gsp/action.cfm', rawdir + 'SIC_2_' + fips + '.csv', opstring = '--post-data="' + Postdata + '"')
         
     tb.tabarray(records = Recs,names = ['FIPS','Region','IC','File']).saveSV(maindir + 'State_Manifest_1.tsv',metadata=True)    
 
@@ -939,6 +958,428 @@ def reg_trigger():
     else:
         return 'overall'
 #=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+
+PI_NAME = 'BEA_PersonalIncome'
+
+def PI_dateparse(x):
+    d = x.split('.')
+    if len(d) == 1:
+        return d[0] + 'X' + 'XX' 
+    else:
+        return d[0] + str(int(d[1]))  + 'XX'
+
+@activate(lambda x : 'http://www.bea.gov/regional/sqpi/action.cfm?zipfile=/regional/zip/sqpi.zip',lambda x : x[0] + 'sqpi_raw/')
+def SQPI_downloader(maindir):
+
+    MakeDirs(maindir + 'sqpi_raw/')
+    wget('http://www.bea.gov/regional/sqpi/action.cfm?zipfile=/regional/zip/sqpi.zip',maindir + 'sqpi_raw/sqpi.zip')
+    os.system('cd ' + maindir + 'sqpi_raw; unzip sqpi.zip; rm sqpi.zip')
+            
+    t = 'SQ1'
+    selYears = range(1969,2020)
+        
+    #postdata = '--post-data="selLineCode=10&rformat=Download&selTable=' + t + '&selYears=' + ','.join(map(str,selYears)) + '"'
+    #wget('http://www.bea.gov/regional/sqpi/drill.cfm',maindir + 'sqpi_raw/' + t + '.csv',opstring = postdata)
+        
+            
+@activate(lambda x : 'http://www.bea.gov/regional/spi/action.cfm',lambda x : x[0] + 'sapi_raw/')
+def SAPI_downloader(maindir):
+    target = maindir + 'sapi_raw/'
+    MakeDirs(target)
+    src = 'http://www.bea.gov/regional/spi/action.cfm'
+    for x in ['sa','sa_sum','sa_naics','sa_sic']:
+        postdata = '--post-data="archive=' + x + '&DownloadZIP=Download+ZIP"'           
+        wget(src,target + x + '.zip', opstring=postdata)
+        os.system('unzip -d ' + target + x + ' ' + target + x + '.zip')
+
+@activate(lambda x : 'http://www.bea.gov/regional/reis/default.cfm?selTable=Single%20Line', lambda x : (x[0] + 'lapi_codes/',x[0] + 'lapi_codes.tsv'))
+def get_line_codes(maindir):
+    target = maindir + 'lapi_codes/'
+    MakeDirs(target)
+    wget('http://www.bea.gov/regional/reis/default.cfm?selTable=Single%20Line',target + '/index.html')
+    Soup = BeautifulSoup(open(target + 'index.html'))
+    O = Soup.findAll('select',id='selTable')[0].findAll('option')
+    O1 = [(str(dict(o.attrs)['value']),Contents(o).split(' - ')[0].strip(),Contents(o).split(' - ')[1].strip()) for o in O]
+    g = 'http://www.bea.gov/regional/reis/default.cfm#step2'
+    Recs = []
+    for (op,n,m) in O1:
+        s = '--post-data="singletable=' + op + '&nextarea=Next+%E2%86%92&section=next&selTable=Single+Line&areatype=ALLCOUNTY&catable_name=' + op + '"'
+        wget(g,target + op + '.html',opstring=s)
+        Soup = BeautifulSoup(open(target + op + '.html'))
+        O = Soup.findAll('select',{'name':'selLineCode'})[0].findAll('option')
+        Recs += [(op,m,str(dict(o.attrs)['value']),Contents(o).split(' - ')[1].strip()) for o in O]
+    tb.tabarray(records = Recs,names = ['Table','TableDescr','Code','CodeDescr']).saveSV(maindir + 'lapi_codes.tsv',metadata=True)
+    
+@activate(lambda x : x[0] + 'lapi_codes.tsv',lambda x : x[0] + 'lapi_codes_processed.tsv')
+def process_line_codes(maindir):
+    inpath = maindir + 'lapi_codes.tsv'
+    outpath = maindir + 'lapi_codes_processed.tsv'
+    
+    X = tb.tabarray(SVfile = inpath)
+    Vals = []
+    v = ()
+    pi = 0
+    for x in X:
+        ci = x['CodeDescr'].count('&nbsp;') / 2
+        t = x['CodeDescr'].split('&nbsp;')[-1]
+        if ci <= pi:
+            v = v[:ci] + (t,)
+        elif ci > pi:
+            v = v + (t,)
+        Vals.append(v)
+        pi = ci
+   
+    m = max(map(len,Vals))
+    
+    Vals = [v + (m - len(v))*('',) for v in Vals]
+    NewX = tb.tabarray(records = Vals,names = ['Level_' + str(i) for i in range(m)])
+    X = X.colstack(NewX)
+    X.coloring['Hierarchy'] = list(NewX.dtype.names)
+    X.saveSV(outpath,metadata = True)
+    
+@activate(lambda x : (x[0] + 'lapi_codes.tsv','http://www.bea.gov/regional/reis/drill.cfm'),lambda x : x[0] + 'lapi_raw/' + x[1] + '_' + x[2] + '/')
+def LAPI_downloader(maindir,table,level):
+    target = maindir + 'lapi_raw/' + table + '_' + level + '/'
+    MakeDirs(target)
+    X = tb.tabarray(SVfile = maindir + 'lapi_codes.tsv')
+    X = X[X['Table'] == table]
+    connection = pm.Connection()
+    incremental = PI_NAME in connection['govdata'].collection_names()
+    if incremental:
+        selYears = range(2008,2012)
+    else:
+        selYears = range(1969,2012)
+    for x in X['Code']:
+        s = '--post-data="areatype=' + level + '&SelLineCode=' + x + '&rformat=Download&selTable=Single+Line&catable_name=' + table + '&' + '&'.join(map(lambda y : 'selYears='+str(y),selYears)) + '"'
+        print 'Getting:', s
+        wget('http://www.bea.gov/regional/reis/drill.cfm',target + x + '.csv',opstring = s)
+
+@activate(lambda x : 'http://www.bea.gov/regional/docs/footnotes.cfm', lambda x : (x[0] + 'footnotes/',x[0] + 'footnotes.tsv'))
+def get_footnotes(maindir):
+    target = maindir + 'footnotes/'
+    MakeDirs(target)
+    index = target + 'index.html'
+    wget('http://www.bea.gov/regional/docs/footnotes.cfm',index)
+    Soup = BeautifulSoup(open(index))
+    A = Soup.findAll(lambda x : x.name == 'a' and  'footnotes.cfm' in str(x))
+    Tables = [Contents(a).strip() for a in A]
+    Recs = []
+    for t in Tables:
+        wget('http://www.bea.gov/regional/docs/footnotes.cfm?tablename=' + t, target + t + '.html')
+        Soup = BeautifulSoup(open(target + t + '.html'))
+        caption = Contents(Soup.findAll('caption')[0]).split(' - ')[-1].strip()
+        TR = Soup.findAll('caption')[0].findParent().findAll('tr')
+        Recs += [(t,caption,Contents(tr.findAll('strong')[0]).replace('\t',' '), Contents(tr.findAll('td')[-1]).replace('\t',' ')) for tr in TR]
+    tb.tabarray(records = Recs, names = ['Table','TableDescr','Number','Text']).saveSV(maindir + 'footnotes.tsv',metadata=True)
+
+   
+def pi_trigger():
+    connection = pm.Connection()
+    
+    incremental = PI_NAME in connection['govdata'].collection_names()
+    if incremental:
+        return 'increment'
+    else:
+        return 'overall'
+        
+        
+@activate(lambda x : (x[0] + 'sqpi_raw/',x[0] + 'footnotes.tsv'),lambda x : x[0] + '__PARSE__/sqpi/')
+def SQPI_preparse(maindir):
+    sourcedir = maindir + 'sqpi_raw/'
+    target =  maindir + '__PARSE__/sqpi/'
+    MakeDirs(target)
+    
+    Y = tb.tabarray(SVfile = maindir + 'footnotes.tsv')
+    filelist = [sourcedir + x for x in  listdir(sourcedir) if x.endswith('.csv')]
+    
+    for (i,f) in enumerate(filelist):
+        print f
+
+        temppath = target + f.split('/')[-1]
+        strongcopy(f,temppath)
+        F = open(temppath,'rU').read().strip().split('\n')
+        sline = [j for j in range(len(F)) if F[j].startswith('"Source:')][0]
+        nline = [j for j in range(len(F)) if F[j].startswith('"State FIPS')][0]
+        s = F[nline] + '\n' + '\n'.join([F[j] for j in range(len(F)) if j not in [sline, nline]]) + '\n' + F[sline]
+        F = open(temppath,'w')
+        F.write(s)
+        F.close()
+
+        [X, header, footer, keywords] = BEA_Parser(temppath, headerlines=1, FootnoteSplitter='/', FootnotesFunction=GetFootnotes, CategoryColumn='Line Title')
+        delete(temppath)
+        
+        table = X['Table'][0]
+        X = X.deletecols(['First Year']).addcols(len(X)*[table + ',SQ'],names=['Subcollections'])
+        X = X.addcols(['{"s":' + repr(x) + ',"f":{"s":' + repr(f) + '}}' for (f,x) in X[['State FIPS','State Name']]],names = ['Location'])
+        X = X.deletecols(['State FIPS','State Name'])               
+        X.renamecol('Line Code','LineCode')
+        X.renamecol('Line Title','Line')
+        X.renamecol('Line Title Footnotes', 'Line Footnotes')
+
+
+    
+        TimeColNames = X.coloring.get('Data')       
+        for n in TimeColNames:
+            X.renamecol(n,PI_dateparse(n))    
+        X.coloring['TimeColNames'] = X.coloring.pop('Data')
+
+        X.saveSV(target + str(i) + '.tsv',metadata=['dialect','names','formats','coloring'])
+        
+
+                
+@activate(lambda x : x[0] + 'sapi_raw/',lambda x : x[0] + '__PARSE__/sapi/')
+def SAPI_preparse(maindir):
+    sourcedir = maindir + 'sapi_raw/'
+    target =  maindir + '__PARSE__/sapi/'
+    MakeDirs(target)
+ 
+   
+    M = [x for x in RecursiveFileList(sourcedir) if x.endswith('.csv')]
+
+    for (i,f) in enumerate(M):
+        print 'Processing', i, f
+        
+        temppath = target + f.split('/')[-1]
+        strongcopy(f,temppath)
+        F = open(temppath,'rU').read().strip().split('\n')
+        sline = [j for j in range(len(F)) if F[j].startswith('"Source:')][0]
+        nline = [j for j in range(len(F)) if F[j].startswith('"State FIPS')][0]
+        s = F[nline] + '\n' + '\n'.join([F[j] for j in range(len(F)) if j not in [sline, nline]]) + '\n' + F[sline]
+        F = open(temppath,'w')
+        F.write(s)
+        F.close()
+
+        [X, header, footer, keywords] = BEA_Parser(temppath, headerlines=1, FootnoteSplitter='/', FootnotesFunction=GetFootnotes, CategoryColumn='Line Title')
+        delete(temppath)
+        
+        
+        for name in X['Data'].dtype.names:
+            if name.endswith('p'):
+                newname = name.strip('p')
+                X.renamecol(name,newname)
+              
+        table = X['Table'][0] 
+        
+        Summary = f.split('/')[-2] == 'sa_sum'
+        if Summary:             
+            unitsdict = {'personal income': 'Thousands of dollars', 'population': 'Number of persons', 'per capita personal income': 'Dollars'}
+            units = [unitsdict[i.lower().replace('disposable ', '').strip()] for i in X['Line Title']]          
+            X = X[['Info','Data','Footnotes']].addcols([units],names=['Units'])
+     
+        X = X.deletecols(['First Year']).addcols(len(X)*[table + ',SA' + (',SA_S' if Summary else '')],names=['Subcollections'])
+        X = X.addcols(['{"s":' + repr(sname) + ',"f":{"s":' + repr(fips) + '}}' for (fips,sname) in X[['State FIPS','State Name']]],names = ['Location'])
+        X = X.deletecols(['State FIPS','State Name'])   
+        X.renamecol('Line Code','LineCode')
+        X.renamecol('Line Title','Line')
+        X.renamecol('Line Title Footnotes', 'Line Footnotes')
+        
+        TimeColNames = X.coloring.get('Data')
+        for n in TimeColNames:
+            X.renamecol(n,PI_dateparse(n))
+        X.coloring['TimeColNames'] = X.coloring.pop('Data')
+        
+        X.saveSV(target + str(i) + '.tsv',metadata=['dialect','names','formats','coloring'])
+        print len(X)
+            
+    
+def loc_processor(f,x,level):   
+    if level == 'ALLCOUNTY':
+        return '{"c":' + repr(','.join(x.split(',')[:-1]).strip()) + ',"S":' + repr( x.split(',')[-1].strip()) +',"f":{"c":' + repr(f[2:]) + ',"s":' + repr(f[:2]) + '}}' 
+    elif level ==   'STATE':
+        return '{"f":{"s":' + repr(f[:2]) + '}}' 
+    elif level == 'METRO':
+        return '{"m":' + REPR(x) + ',"f":{"m":' + repr(f) + '}}' 
+    elif level == 'CSA':
+        return '{"b":' + REPR(x) + ',"f":{"b":' + repr(f[2:]) + '}}' 
+    elif level == 'MDIV':
+        return '{"B":' + REPR(x) + ',"f":{"B":' + repr(f) + '}}' 
+    elif level == 'ECON':
+        return '{"X":' + REPR(x) + ',"f":{"X":' + repr(f) + '}}' 
+        
+def REPR(x):
+    try:
+        x.decode('utf-8')
+    except UnicodeDecodeError:
+        x = x.decode('latin-1').encode('utf-8')
+        
+    return repr(x)
+
+DRF =  re.compile('\d{4}-\d{4}')
+DRFS =  re.compile('^\d{4}-\d{4}$')
+def daterangecorrect(x):
+    if DRF.search(x):
+        if DRFS.search(x):
+            return x.split('-')[-1]
+    else:
+        return x
+        
+@activate(lambda x : (x[0] + 'lapi_raw/' + x[1] + '_' + x[2] + '/',x[0] + 'lapi_codes_processed.tsv'),lambda x : x[0] + '__PARSE__/lapi/'+x[1] + '_' + x[2] + '/')
+def LAPI_preparse(maindir,table,level):
+    sourcedir = maindir + 'lapi_raw/' + table + '_' + level + '/'
+    target =  maindir + '__PARSE__/lapi/' + table + '_' + level + '/'
+    MakeDirs(target)
+    
+    Codes = tb.tabarray(SVfile = maindir + 'lapi_codes_processed.tsv')
+    Codes = Codes[Codes['Table'] == table]
+    
+    for (i,c) in enumerate(Codes):
+        linecode,line = c['Code'],c['CodeDescr']
+        
+        f = sourcedir + linecode + '.csv'
+        [X, header, footer, keywords] = BEA_Parser(f, headerlines=1, FootnoteSplitter='/', FootnotesFunction=GetFootnotes, CategoryColumn=None)
+        NewData = [(name,daterangecorrect(name)) for name in X['Data'].dtype.names]
+        for (name,newname) in NewData:
+            if name != newname:
+                if newname:
+                    X.renamecol(name,newname)
+                else:
+                    X.coloring['Data'].remove(name)
+        
+        title = X.dtype.names[0]
+        if len(title.split('/')) > 1:
+            LineFootnote = title.split('/')[0].split()[-1]
+            title = ' '.join(title.split('/')[0].split()[:-1]).strip()
+        else:
+            LineFootnote = None
+        X.renamecol(X.dtype.names[0], 'LineCode')
+        
+        id = table + '_' + linecode
+
+        hRec = Codes['Hierarchy'][i]
+        subjcols = [list(x) for x in zip(*[tuple(hRec)]*len(X))]
+
+        X = X.addcols([[table]*len(X),[line]*len(X),[table + ',LA,' + id]*len(X)] + subjcols,names=['Table','Line','Subcollections'] + list(hRec.dtype.names))
+        X = X.addcols([loc_processor(fips,aname,level) for (fips,aname) in X[['FIPS','AreaName']]],names = ['Location'])
+        X = X.deletecols(['FIPS','AreaName'])
+
+        TimeColNames = X.coloring['Data']
+        for n in TimeColNames:
+            X.renamecol(n,PI_dateparse(n))    
+        X.coloring['TimeColNames'] = X.coloring.pop('Data')
+        X.coloring['SubjectHierarchy'] = list(hRec.dtype.names)
+        
+        X.metadata = {'LineFootnote':LineFootnote,'Table':table,'Line':line,'LineCode':linecode}
+
+        X.saveSV(target + str(i) + '.tsv',metadata=True)
+        
+
+@activate(lambda x : x[0] + 'footnotes.tsv',lambda x : x[0] + '__metadata.pickle')
+def PI_metadata(maindir):
+    Y = tb.tabarray(SVfile = maindir + 'footnotes.tsv')
+   
+    Metadata = {}
+    
+    TFN = Y.aggregate(On=['Table'],AggList=[('TableDescr',lambda x : x[0]),('Footnote',lambda x : '\n'.join([w +': ' + z for (w,z) in zip(x['Number'],x['Text'])]),['Number','Text'])],KeepOthers=False)
+    for x in TFN:
+        Metadata[x['Table']] = {'Title':x['TableDescr'], 'Footnotes': x['Footnote']}
+    
+    Metadata['SQ'] = {'Title':'State Quarertly Persona Income','Description':'<a href="http://www.bea.gov/regional/sqpi/">State Quarterly Personal Income</a> data set under the <a href="http://www.bea.gov/regional/index.htm">Regional Economic Accounts</a> section of the <a href="http://www.bea.gov/">Bureau of Economic Accounts (BEA)</a> website.', 'Units':'Millions of dollars, seasonally adjusted at annual rates'}
+    
+    Metadata['SA_S'] = {'Title': 'State Annual Summary'}
+    Metadata['SA'] = {'Title': 'State Annual Personal Income', 'Description' :  '<a href="http://www.bea.gov/regional/spi/">State Annual Personal Income</a> data set under the <a href="http://www.bea.gov/regional/index.htm">Regional Economic Accounts</a> section of the <a href="http://www.bea.gov/">Bureau of Economic Accounts (BEA)</a> website.  U.S. DEPARTMENT OF COMMERCE--ECONOMICS AND STATISTICS ADMINISTRATION BUREAU OF ECONOMIC ANALYSIS--REGIONAL ECONOMIC INFORMATION SYSTEM STATE ANNUAL TABLES 1969 - 2008 for the states and regions of the nation September 2009 These files are provided by the Regional Economic Measurement Division of the Bureau of Economic Analysis. They contain tables of annual estimates (see below) for 1969-2008 for all States, regions, and the nation. State personal income estimates, released September 18, 2009, have been revised for 1969-2008 to reflect the results of the comprehensive revision to the national income and product accounts released in July 2009 and to incorporate newly available state-level source data. For the year 2001 in the tables SA05, SA06, SA07, SA25, and SA27, the industry detail is available by division-level SIC only. Tables based upon the North American Industry Classification System (NAICS) are available for 2001-07. Newly available earnings by NAICS industry back to 1990 were released on September 26, 2006.   For more information on the industry classifications, see the BEA web pages on  <a href="http://www.bea.gov/regional/definitions/nextpage.cfm?key=NAICS">NAICS (1997-2008)</a> and <a href="http://www.bea.gov/regional/definitions/nextpage.cfm?key=SIC">SIC (1963-1997)</a>.   Historical estimates 1929-68 will be updated in the next several months. TABLES The estimates are organized by table. The name of the downloaded file indicates the table. For example, any filename beginning with "SA05" contains information from the SA05 table. With the exception of per capita estimates, all dollar estimates are in thousands of dollars. All employment estimates are number of jobs. All dollar estimates are in current dollars. SA04 - State income and employment summary (1969-2008) SA05 - Personal income by major source and earnings by industry (1969-2001, 1990-2008) SA06 - Compensation of employees by industry (1998-2001, 2001-08) SA07 - Wage and salary disbursements by industry (1969-01, 2001-08) SA25 - Total full-time and part-time employment by industry (1969-2001, 2001-08) SA27 - Full-time and part-time wage and salary employment by industry (1969-2001, 2001-08) SA30 - State economic profile (1969-08) SA35 - Personal current transfer receipts (1969-08) SA40 - State property income (1969-2008) SA45 - Farm income and expenses (1969-2008) SA50 - Personal current taxes (this table includes the disposable personal income estimate) (1969-08) DATA (*.CSV) FILES The files containing the estimates (data files) are in comma-separated-value text format with textual information enclosed in quotes.  (L) Less than $50,000 or less than 10 jobs, as appropriate, but the estimates for this item are included in the total. (T) SA05N=Less than 10 million dollars, but the estimates for this item are included in the total. SA25N=Estimate for employment suppressed to cover corresponding estimate for earnings. Estimates for this item are included in the total. (N) Data not available for this year. If you have any problems or comments on the use of these data files call or write: Regional Economic Information System Bureau of Economic Analysis (BE-55) U.S. Department of Commerce Washington, D.C. 20230 Phone (202) 606-5360 FAX (202) 606-5322 E-Mail: reis@bea.gov'}
+    
+    Metadata['LA'] = {'Title':'Local Area Personal Income', 'Description' : 'Local Area Personal Income data for all US counties, from the <a href="http://www.bea.gov/regional/reis/default.cfm?selTable=Single%20Line">Local Area Personal Income "Single Line of data for all counties"</a> data set under the <a href="http://www.bea.gov/regional/index.htm">Regional Economic Accounts</a> section of the <a href="http://www.bea.gov/">Bureau of Economic Accounts (BEA)</a> website.  For more information on the industry classifications, see the BEA web pages on  <a href="http://www.bea.gov/regional/definitions/nextpage.cfm?key=NAICS">NAICS (1997-2008)</a> and <a href="http://www.bea.gov/regional/definitions/nextpage.cfm?key=SIC">SIC (1963-1997)</a>.  With the exception of per capita estimates, all dollar estimates are in thousands of dollars. All employment estimates are number of jobs. All dollar estimates are in current dollars.'}
+
+    AllMeta = {}
+    AllMeta['Source'] = [('Agency',{'Name':'Department of Commerce','ShortName':'DOC'}),('Subagency',{'Name':'Bureau of Economic Analysis','ShortName':'BEA'}),('Program','Regional Economic Accounts'), ('Dataset','Personal Income')]
+    AllMeta['TopicHierarchy']  = ('Agency','Subagency','Dataset','Category','Subcategory','SubjectHierarchy')
+    AllMeta['UniqueIndexes'] = ['Location','Table','LineCode']
+    AllMeta['ColumnGroups'] = {'SpaceColumns' : ['Location']}
+    AllMeta['DateFormat'] = 'YYYYqmm'
+    AllMeta['sliceCols'] = [['Location.c','Location.m','Location.s','Table','SubjectHierarchy']]
+    AllMeta['phraseCols'] = ['Table','SubjectHierarchy','Line','LineCode']  
+    Metadata[''] = AllMeta
+    
+    F = open(maindir + '__metadata.pickle','w')
+    pickle.dump(Metadata,F)
+    F.close()
+    
+
+class pi_parser(OG.csv_parser):
+
+    def refresh(self,file):
+        print 'refreshing: ', file
+        self.Data = tb.tabarray(SVfile = file,verbosity = 0)
+        self.IND = 0
+       
+        for k in ['TimeColNames','SubjectHierarchy']:
+            self.metadata['']['ColumnGroups'][k] = uniqify(self.metadata['']['ColumnGroups'].get(k,[]) + self.Data.coloring.get(k,[]))
+        
+        if 'LineFootnote' in self.Data.metadata.keys():
+            id = self.Data.metadata['Table'] + '_' + self.Data.metadata['LineCode']
+            self.metadata[id] = {'Title':self.Data.metadata['Line'], 'Footnote': self.Data.metadata['LineFootnote']}
+         
+         
+#=-=-=-=-=-=-=-=-=-=-=-=-International transactions
+
+def get_intl_transactions(maindir):
+    wget('http://www.bea.gov/international/xls/table1.xls',maindir + 'transactions.xls')
+    
+def get_intl_transactions_detailed(maindir):
+    #footnotes are with each individual file
+    wget('http://www.bea.gov/international/bp_web/startDownload.asp?dlSelect=tables%2FCSV%2FITA-CSV.zip',maindir + 'detailed_transactions.zip')
+    os.system('unzip -d ' + maindir + 'detailed_transactions/ ' + maindir + 'detailed_transactions.zip')
+
+def get_intl_transactions_files(maindir):
+    wget('http://www.bea.gov/methodologies/_pdf/summary_of_major_revisions_to_the_us_international_accounts_1976_2009.pdf',maindir + '__FILES__/international_transactions_revisions.pdf')
+    wget('http://www.bea.gov/scb/pdf/2010/02%20February/0210_guide.pdf',maindir + '__FILES__/international_transactions_guide.pdf')
+
+#=-=-=-=-=-=-=-=-=-=-=-=-International trade
+
+def get_intl_trade(maindir):
+    wget('http://www.bea.gov/newsreleases/international/trade/trad_time_series.xls',maindir + 'trade.xls')
+
+def get_intl_trade_services_detailed(maindir):
+    pass
+    #annoyingly dispersed:    http://www.bea.gov/international/international_services.htm#summaryandother
+    
+        
+def get_intl_trade_goods_detailed(maindir):
+    getzip('http://www.bea.gov/international/zip/IDS0008Hist.zip',maindir + 'detailed_trade_goods_historical_quarterly.zip')
+    getzip('http://www.bea.gov/international/zip/IDS0008.zip',maindir + 'detailed_trade_goods_current_quarterly.zip')
+    getzip('http://www.bea.gov/international/zip/IDS0182.zip',maindir + 'detailed_trade_goods_current_monthly.zip')
+    getzip('http://www.bea.gov/international/zip/IDS0182Hist.zip',maindir + 'detailed_trade_goods_historical_monthly.zip')
+
+
+#=-=-=-=-=-=-=-=-=-=-=-=-International investment
+    
+def get_intl_investment(maindir):
+    wget('http://www.bea.gov/international/xls/intinv08_t2.xls',maindir + 'investment_2.xls')
+    wget('http://www.bea.gov/international/xls/intinv08_t3.xls',maindir + 'investment_3.xls')
+ 
+ 
+def get_us_investment_abroad(maindir):
+    pass
+    
+def get_us_finance_abroad(maindir):
+    pass
+    
+def get_foreign_investment(maindir):
+    pass
+    
+def get_foreign_finance(maindir):
+    pass
+#=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+def backend_BEA_PersonalIncome(creates = OG.CERT_PROTOCOL_ROOT + PI_NAME + '/',Fast = True):
+  
+    D = [((get_footnotes,'footnotes'),()),((get_line_codes,'lapi_line_codes'),()),((process_line_codes,'process_line_codes'),()),((SAPI_downloader,'sapi_raw'),()),((SQPI_downloader,'sqpi_raw'),())] 
+    D += [((SAPI_preparse,'sapi_preparse'),()),((SQPI_preparse,'sqpi_preparse'),())] 
+    
+    tables = ['CA1-3', 'CA04', 'CA05N', 'CA25N', 'CA05', 'CA06', 'CA06N', 'CA25', 'CA30', 'CA34', 'CA35','CA45']
+    areatypes = ['ALLCOUNTY', 'STATE','METRO','MDIV','CSA']
+    D += [((LAPI_downloader,'lapi_' + t.replace('-','_') + '_' + a + '_raw'),(t,a)) for t in tables for a in areatypes]
+    D += [((LAPI_preparse,'lapi_' + t.replace('-','_') + '_' + a + '_preparse'),(t,a)) for t in tables for a in areatypes]
+    
+    D += [((PI_metadata,'make_metadata'),())]
+    
+    (downloader, downloadArgs) = zip(*D)
+    downloader = list(downloader)
+    downloadArgs = list(downloadArgs)
+    
+    OG.backendProtocol(PI_NAME,pi_parser,downloader = downloader, downloadArgs = downloadArgs,trigger = pi_trigger,incremental=True)
+
 
 def backend_BEA_RegionalGDP(creates = OG.CERT_PROTOCOL_ROOT + REG_NAME + '/',Fast = True):
     OG.backendProtocol(REG_NAME,OG.csv_parser,downloader = [(RegionalGDP_initialize,'initialize'),(GetStateManifest,'state_manifest'),(DownloadStateFiles,'get_state_files'),(DownloadMetroFiles,'get_metro_files'),(State_PreParse1,'state_preparse1'),(Metro_PreParse1,'metro_preparse1'),(RegionalGDP_Preparse2,'preparse2')],trigger = reg_trigger,incremental=True)

@@ -26,14 +26,18 @@ EXPOSED_ACTIONS = ['find','find_one','group','skip','limit','sort','count','dist
 class JSONPHandler(tornado.web.RequestHandler):
     
     CALLBACK = 'callback' # define callback argument name
-    
+
     def finish (self, chunk=None):
         "" "Finishes this response, ending the HTTP Request."" "
         assert not self._finished
+        self.set_header("Content-Type", "text/javascript")
         if chunk:
             self.write(chunk)
         # Get client callback method
-        callback = tornado.web._utf8(self.get_argument (self.CALLBACK))
+        try:
+            callback = tornado.web._utf8(self.get_argument(self.CALLBACK))
+        except:
+            callback = "?"
         # format output with jsonp
         self._write_buffer.insert(0, callback + '(')
         self._write_buffer.append(')')
@@ -641,7 +645,7 @@ def makemetadata(collection,sci,subcols):
                     metadataInd[k] = 'All'
                 else:
                     metadataInd[k] = metalist[k]
-    metadata = dict([(k,(metadataInd[k],collection.metadata[k])) for k in metadataInd.keys()])
+    metadata = dict([(k,(metadataInd[k],collection.metadata.get(k,{}))) for k in metadataInd.keys()])
     return metadata
 
 def actQueries(Q,O):

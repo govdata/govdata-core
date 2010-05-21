@@ -5,7 +5,7 @@ import numpy as np
 import tabular as tb
 import backend.indexing as indexing
 from System.Protocols import ApplyOperations2, activate
-from System.Utils import MakeDir,MakeDirs, PathExists
+from System.Utils import MakeDir,MakeDirs, PathExists, RecursiveFileList
 import os
 import hashlib
 import pymongo as pm
@@ -266,12 +266,13 @@ class csv_parser(dataIterator):
         self.metadata = pickle.load(open(source + '__metadata.pickle'))
         
     def refresh(self,file):
+        print 'refreshing', file
         self.Data = tb.tabarray(SVfile = file,verbosity = 0)
-        self.__ind = 0
+        self.IND = 0
     
     def next(self):
-        if self.__ind < len(self.Data):
-            r = self.Data[self.__ind]
+        if self.IND < len(self.Data):
+            r = self.Data[self.IND]
             r = [float(xx) if isinstance(xx,float) else int(xx) if isinstance(xx,int) else xx for xx in r]  
             r = dict(zip(self.Data.dtype.names,r))
             
@@ -280,7 +281,7 @@ class csv_parser(dataIterator):
             if 'Location' in r.keys():
                 r['Location'] = eval(r['Location'])
             
-            self.__ind += 1
+            self.IND += 1
                 
             return r
             
@@ -365,11 +366,16 @@ def updateCollection(download_dir,collectionName,parserClass,checkpath,certpath,
             spcs = []
     
     
-        toParse = ListUnion([[source + '__PARSE__/' + x for x in listdir(source + '__PARSE__') if not x.startswith('.')] for source in sources])
+        toParse = ListUnion([RecursiveFileList(source + '__PARSE__') for source in sources])
     
+        completeSpace = False
+        
         SpaceCache = {}    
         for file in toParse:
             iterator.refresh(file) 
+            tcs = iterator.ColumnGroups.get('TimeColumns',[])
+            spcs = iterator.ColumnGroups.get('SpaceColumns',[])
+            
             for c in iterator: 
                 newVars = [x for x in c.keys() if not x in totalVariables]
                 assert all(['__' not in x for x in newVars]) , '__ must not appear in key names.'     
@@ -378,14 +384,15 @@ def updateCollection(download_dir,collectionName,parserClass,checkpath,certpath,
                 for tc in tcs:   #time handling 
                     if tc in c.keys():
                         c[tc] = TimeFormatter(c[tc])
-                for spc in spcs:
-                    if spc in c.keys():   #space
-                        t = getT(c[spc])
-                        if t in SpaceCache.keys():
-                            c[spc] = SpaceCache[t].copy()
-                        else:
-                            c[spc] = loc.SpaceComplete(c[spc])
-                            SpaceCache[t] = c[spc].copy()            
+                if completeSpace:        
+                    for spc in spcs:
+                        if spc in c.keys():   #space
+                            t = getT(c[spc])
+                            if t in SpaceCache.keys():
+                                c[spc] = SpaceCache[t].copy()
+                            else:
+                                c[spc] = loc.SpaceComplete(c[spc])
+                                SpaceCache[t] = c[spc].copy()            
                 processRecord(c,collection,VarMap,uniqueIndexes,versionNumber,specialKeyInds,incremental)
         if incremental:
             collection.update({vNInd:versionNumber - 1, retInd : {'$exists':False}}, {'$set':{vNInd:versionNumber}})        
