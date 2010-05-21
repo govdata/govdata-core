@@ -1349,6 +1349,102 @@ def get_intl_investment(maindir):
     wget('http://www.bea.gov/international/xls/intinv08_t3.xls',maindir + 'investment_3.xls')
  
  
+#write a crawler that gets the relevant things for all the investment DBs 
+ 
+from mechanize import Browser
+
+def get_intl():
+
+	br = Browser()
+	br.open('http://www.bea.gov/international/ii_web/timeseries2.cfm?econtypeid=1&dirlevel1id=1&Entitytypeid=1&stepnum=1')
+	br.select_form(nr=1)
+
+
+def getfinaldata(seriesid,rowtypeid,indtypeid,url,maindir):
+	F = open(maindir + '/urls/' + seriesid + '_' + rowtypeid + '_' + indtypeid + '.txt','w')
+	F.write(url)
+	F.close()
+	
+def handle_br(br,maindir):
+	L = br.links()
+	URL = [l.url for l in L]
+	if any(['timeseries_to_csv.cfm?' in url for url in URL]):
+		getfinaldata(br['seriesid'],br['rowtypeid'],br['indtypeid'],[u for u in url if 'timeseries_to_csv.cfm?' in url][0])	
+	
+    br.select_form(nr=1)
+    try:
+    	control = br.find_control(predicate=lambda x : x.name == 'seriesid' and not x.readonly)
+    except ControlNotFoundError:
+    	try:
+    		control = br.find_control(predicate=lambda x : x.name == 'rowtypeid' and not x.readonly)
+    	except ControlNotFoundError:
+    		try:
+    			control = br.find_control(predicate=lambda x : x.name == 'indtypeid' and not x.readonly)
+    		except ControlNotFoundError:
+    			try:
+    				control = br.find_control(predicate=lambda x : x.name == 'yearidall' and not x.readonly)
+    			
+    			except ControlNotFoundError:
+    				control = br.find_control(predicate=lambda x : x.name == 'rowid' and not x.readonly)
+    				rowid_handler(br,maindir)
+    			else:
+    				year_handler(br,control,maindir)
+    		else:
+    			indtype_handler(br,control,maindir)
+    	else:
+    		rowtype_handler(br,control,maindir)
+    else:
+    	series_handler(br,control,maindir)
+
+def series_handler(br,c,maindir):
+	values = [i.attrs['value'] for i in c.items]
+	topurl = br.geturl()
+	for v in values:
+		br = Browser()
+		br.open(topurl)
+		br.select_form(nr=1)
+		br['seriesid'] = [v]
+		br.submit()
+		handle_br(br,maindir)
+		
+def rowtype_handler(br,c,maindir):
+	values = [i.attrs['value'] for i in c.items]
+	topurl = br.geturl()
+	for v in values:
+		br = Browser()
+		br.open(topurl)
+		br.select_form(nr=1)
+		br['rowtypeid'] = [v]
+		br.submit()
+		handle_br(br,maindir)
+		
+def year_handler(br,c):
+	c.items[0].selected = True
+	br.submit()
+	handle_br(br,maindir)
+
+def indtype_handler(br,c):
+	topurl = br.geturl()
+	for val in ['0','1']:
+		br = Browser()
+		br.open(topurl)
+		br.select_form(nr = 1)
+		br['indtypeid'] = [v]
+		br.find_control('newyearid' + ('' if val == '0' else '2') + 'all').items[0] = True
+		br.submit()
+		handle_br(br,maindir)
+
+def rowid_handler(br):
+	c = br.find_control(predicate=lambda x : x.name == 'rowid' and not x.readonly)
+	rvalues = [i.attrs['value'] for i in c.items]
+	c = br.find_control(predicate=lambda x : x.name == 'columnid' and not x.readonly)
+	cvalues = [i.attrs['value'] for i in c.items]
+	br['rowid'] = min(rvalues)
+	br['columnid'] = min(cvalues)
+	br.submit()
+	handle_br(br,maindir)
+ 
+ 
 def get_us_investment_abroad(maindir):
     pass
     

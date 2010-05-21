@@ -262,7 +262,17 @@ def getStrs(collection,namelist):
             numlist.append([str(collection.totalVariables.index(m)) for m in collection.ColumnGroups[n]])
     return numlist
         
+
+def makestr(x):
+    v = rgetattr(r,x.split('.'))
+    try:
+        v = x.encode('utf-8')
+    except UnicodeEncodeError:
+        return x.decode('latin-1').encode('utf-8')
+    else:
+        return v
     
+        
     
 def addToIndex(R,d,collection,solr_interface,contentColNums = None, phraseCols = None, phraseColNums = None,DateFormat = None,timeColNameInds = None,timeColNameDivisions = None,timeColNamePhrases=None,timeColInds=None,timeCols=None,subColInd = None,OverallDate = '', OverallDateFormat = '', timeFormatter = None,reverseTimeFormatter = None,dateDivisions=None,datePhrases=None,mindate = None,maxdate = None,OverallLocation = None, spatialDivisions=None, spatialPhrases=None,spaceColNames = None, spaceColNameInds = None, spaceColNameDivisions = None, spaceColNamePhrases = None, spaceColInds = None):
         
