@@ -1,35 +1,66 @@
-@import compass/reset.sass
-@import compass/utilities/lists.sass
+@import partials/reset.sass
 @import partials/base.sass
-@import blueprint
-@import partials/theme.sass
-@import fancy_buttons.sass
 
-+blueprint-utilities
-+blueprint-typography
-+blueprint-debug
-+blueprint-grid
+///////////////////////////////////////////////////
+// General Formatting
+///////////////////////////////////////////////////
 
 body
-  color: #AAA
+  margin: 0
+  padding: 0
   background:
-    color: #{!bgcolor}
+    color: $bgColor
     image: url('../images/bg.jpg')
     repeat: no-repeat
+  font:
+    size: 100.01%
+    family: 'Droid Sans', arial, serif
+  color: $fontColor
+  line-height: 1.2
 
-#container
-  +container
+h1, .sitename
+  font:
+    family: 'Josefin Sans Std Light', arial, serif
 
-#header, #footer
-  +column(24)
-
-#header
-  ul
-    +inline-list
+///////////////////////////////////////////////////
+// Container
+///////////////////////////////////////////////////
 
 #content
-  +column(24)
+  width: 80%
   margin: auto
+
+///////////////////////////////////////////////////
+// Header
+///////////////////////////////////////////////////
+
+#header
+  background-color: $darkBrown
+  color: white
+  font-size: 20px
+  padding: 20px 10px 5px 120px
+  ul
+    +inline-list
+    li
+      padding: 5px
+
+#corner
+  position: absolute
+  top: 48px
+  left: 0
+
+///////////////////////////////////////////////////
+// Footer
+///////////////////////////////////////////////////
+
+///////////////////////////////////////////////////
+// Find
+///////////////////////////////////////////////////
+
+.sitename
+  text-align: center
+  font-size: 60px
+  padding: 10px
 
 #q
   width: 99.2%
@@ -38,34 +69,68 @@ body
 
 #numFound
   position: absolute
-  top: 0
-  right: 0
-  color: #{!base_color}
+  top: 15px
+  right: 10px
+  color: $bgColor
 
-#cluster_container
+.result
+  padding: 10px
+  margin: 10px 0px
+  background-color: white
+  border-top: 1px solid #a0a990
+  border-right: 2px solid #a0a990
+  border-bottom: 2px solid #a0a990
+  border-left: 1px solid #a0a990
+  +round(10,10,10,10)
+
+#group_container
   text-align: right
+  width: 100%
 
-#results
-  text-align: left
-  padding-bottom: 50px
+///////////////////////////////////////////////////
+// Theme Colors
+///////////////////////////////////////////////////
 
-a.button, button  
-  +fancy-button-structure
-  +fancy-button-colors
-  margin: 0 2px
-  vertical-align: middle
+.button
+  +clickable
 
-.term
-  +fancy-button-colors-matte(#ddd)
-  float: left
-  margin-top: 12px
+.c_one
+  background-color: $c_one
+  &:hover
+    background-color: $bgColor
+    color: $c_one
+.c_two
+  background-color: $c_two
+  &:hover
+    background-color: $bgColor
+    color: $c_two
+.c_three
+  background-color: $c_three
+  &:hover
+    background-color: $bgColor
+    color: $c_three
+.c_four
+  background-color: $c_four
+  &:hover
+    background-color: $bgColor
+    color: $c_four
+.c_five
+  background-color: $c_five
+  &:hover
+    background-color: $bgColor
+    color: $c_five
 
-#search_container, #terms
-  display: inline
 
 ///////////////////////////////////////////////////
 // Links
 ///////////////////////////////////////////////////
 
 a
-  color: #AAA
+  text-decoration: none
+  color: $linkColor
+  &:visited
+    color: $linkColor
+  &:active
+    color: $linkColor
+  &:hover
+    color: $linkColor

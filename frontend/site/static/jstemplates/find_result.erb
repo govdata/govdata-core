@@ -1,0 +1,13 @@
+<div id="numFound">Results: <%= response.numFound %></div>
+<div class='results'>
+    <% _.each(response.docs, function(doc) { %>
+        <div class='result'>
+            <div class='agency'><%= doc.agency %></div>
+            <div class='subagency'><%= doc.subagency %></div>
+            <div class='keywords'><%= doc.keywords %></div>
+            <div class='title'><%= doc.Title_t %></div>
+            <div class='description'><%= doc.Footer_t %></div>
+            <div class='mongoID'><%= doc.mongoID %></div>
+        </div>
+    <% }); %>
+</div>

@@ -25,7 +25,7 @@ EXPOSED_ACTIONS = ['find','find_one','group','skip','limit','sort','count','dist
 
 class JSONPHandler(tornado.web.RequestHandler):
     
-    CALLBACK = 'jsonp' # define callback argument name
+    CALLBACK = 'callback' # define callback argument name
     
     def finish (self, chunk=None):
         "" "Finishes this response, ending the HTTP Request."" "
