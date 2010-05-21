@@ -305,9 +305,9 @@ def addToIndex(R,d,collection,solr_interface,contentColNums = None, phraseCols =
         if i/10000 == i/float(10000):
             print '. . . at', i
                 
-        d['sliceContents'].append( ' '.join(ListUnion([([str(rgetattr(r,x.split('.')))] if rhasattr(r,x.split('.')) else []) if is_string_like(x) else [str(rgetattr(r,xx.split('.'))) for xx in x if rhasattr(r,xx.split('.'))] for x in contentColNums])))
+        d['sliceContents'].append( ' '.join(ListUnion([([makestr(x)] if rhasattr(r,x.split('.')) else []) if is_string_like(x) else [makestr(xx) for xx in x if rhasattr(r,xx.split('.'))] for x in contentColNums])))
         
-        sP = ListUnion([([s + ':' + str(rgetattr(r,x.split('.')))] if rhasattr(r,x.split('.')) else []) if is_string_like(x) else [s + ':' + str(rgetattr(r,xx.split('.'))) for xx in x if rhasattr(r,xx.split('.'))] for (s,x) in zip(phraseCols,phraseColNums)])
+        sP = ListUnion([([s + ':' + makestr(x)] if rhasattr(r,x.split('.')) else []) if is_string_like(x) else [s + ':' + makestr(xx) for xx in x if rhasattr(r,xx.split('.'))] for (s,x) in zip(phraseCols,phraseColNums)])
         for ssP in sP:
             if ssP not in d['slicePhrases']:
                 d['slicePhrases'].append(ssP)
