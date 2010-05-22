@@ -28,7 +28,11 @@ class GetHandler(tornado.web.RequestHandler):
     def get(self):
         
         args = self.request.arguments
-        args['querySequence'] = json.loads(args['querySequence'])
+        for k in args.keys():
+            args[k] = args[k][0]
+
+        args['querySequence'] = json.loads(args['querySequence']) 
+        
         if 'timeQuery' in args.keys():
             args['timeQuery'] = json.loads(args['timeQuery'])
         if 'spaceQuery' in args.keys():
