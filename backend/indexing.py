@@ -304,8 +304,11 @@ def addToIndex(R,d,collection,solr_interface,contentColNums = None, phraseCols =
 
         if i/10000 == i/float(10000):
             print '. . . at', i
-                
-        d['sliceContents'].append( ' '.join(ListUnion([([makestr(r,x)] if rhasattr(r,x.split('.')) else []) if is_string_like(x) else [makestr(r,xx) for xx in x if rhasattr(r,xx.split('.'))] for x in contentColNums])))
+        
+        if i < 100000:
+            d['sliceContents'].append( ' '.join(ListUnion([([makestr(r,x)] if rhasattr(r,x.split('.')) else []) if is_string_like(x) else [makestr(r,xx) for xx in x if rhasattr(r,xx.split('.'))] for x in contentColNums])))
+        else:
+            d['sliceContents'] = ''
         
         sP = ListUnion([([s + ':' + makestr(r,x)] if rhasattr(r,x.split('.')) else []) if is_string_like(x) else [s + ':' + makestr(r,xx) for xx in x if rhasattr(r,xx.split('.'))] for (s,x) in zip(phraseCols,phraseColNums)])
         for ssP in sP:
