@@ -358,7 +358,7 @@ def addToIndex(R,d,collection,solr_interface,contentColNums = None, phraseCols =
         d['begin_date'] = td.convertToDT(mindate)
         d['end_date'] = td.convertToDT(maxdate,convertMode='High')
         d['dateDivisions'] = ' '.join(uniqify(dateDivisions))
-        d['datePhrases'] = '|||'.join(datePhrases if d['volume'] < 10000 else datePhrases)
+        d['datePhrases'] = '|||'.join(datePhrases if d['volume'] < 10000 else uniqify(datePhrases))
 
     
     if 'SpaceColNames' in collection.ColumnGroups.keys():
