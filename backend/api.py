@@ -23,36 +23,27 @@ import functools
 EXPOSED_ACTIONS = ['find','find_one','group','skip','limit','sort','count','distinct']
 
 
-class JSONPHandler(tornado.web.RequestHandler):
-    
-    CALLBACK = 'callback' # define callback argument name
-
-    def finish (self, chunk=None):
-        "" "Finishes this response, ending the HTTP Request."" "
-        assert not self._finished
-        self.set_header("Content-Type", "text/javascript")
-        if chunk:
-            self.write(chunk)
-        # Get client callback method
-        try:
-            callback = tornado.web._utf8(self.get_argument(self.CALLBACK))
-        except:
-            callback = "?"
-        # format output with jsonp
-        self._write_buffer.insert(0, callback + '(')
-        self._write_buffer.append(')')
-        # call base method Class finish
-        super(JSONPHandler, self).finish() # chunk must be None
-
-
-class GetHandler(JSONPHandler):
+class GetHandler(tornado.web.RequestHandler):
+    @tornado.web.asynchronous
     def get(self):
-        self.write("Hello, get")
+        
+        args = self.request.arguments
+        args['querySequence'] = json.loads(args['querySequence'])
+        if 'timeQuery' in args.keys():
+            args['timeQuery'] = json.loads(args['timeQuery'])
+        if 'spaceQuery' in args.keys():
+            args['spaceQuery'] = json.loads(args['spaceQuery'])
+        self.do_get(args)
+
 
     @tornado.web.asynchronous
     def post(self):
 
         args = json.loads(self.request.body)
+        self.do_get(args)
+        
+    
+    def do_get(self,args)
         args = dict([(str(x),y) for (x,y) in args.items()])
         collectionName = args.pop('collectionName')
         querySequence = args.pop('querySequence')        
@@ -225,7 +216,7 @@ class GetHandler(JSONPHandler):
         self.add_handler(cmdCollection,command,None,0,-1,callback,_must_use_master=True,_is_command= True)
             
                 
-class FindHandler(JSONPHandler):
+class FindHandler(tornado.web.RequestHandler):
     @tornado.web.asynchronous
     def get(self):
         args = self.request.arguments
