@@ -308,7 +308,7 @@ def addToIndex(R,d,collection,solr_interface,contentColNums = None, phraseCols =
         if i < 100000:
             d['sliceContents'].append( ' '.join(ListUnion([([makestr(r,x)] if rhasattr(r,x.split('.')) else []) if is_string_like(x) else [makestr(r,xx) for xx in x if rhasattr(r,xx.split('.'))] for x in contentColNums])))
         else:
-            d['sliceContents'] = ''
+            d['sliceContents'] = []
         
         sP = ListUnion([([s + ':' + makestr(r,x)] if rhasattr(r,x.split('.')) else []) if is_string_like(x) else [s + ':' + makestr(r,xx) for xx in x if rhasattr(r,xx.split('.'))] for (s,x) in zip(phraseCols,phraseColNums)])
         for ssP in sP:
@@ -358,7 +358,7 @@ def addToIndex(R,d,collection,solr_interface,contentColNums = None, phraseCols =
         d['begin_date'] = td.convertToDT(mindate)
         d['end_date'] = td.convertToDT(maxdate,convertMode='High')
         d['dateDivisions'] = ' '.join(uniqify(dateDivisions))
-        d['datePhrases'] = '|||'.join(datePhrases)
+        d['datePhrases'] = '|||'.join(datePhrases if d['volume'] < 10000 else datePhrases)
 
     
     if 'SpaceColNames' in collection.ColumnGroups.keys():
@@ -371,7 +371,7 @@ def addToIndex(R,d,collection,solr_interface,contentColNums = None, phraseCols =
         
     if spatialDivisions:
         d['spatialDivisions'] = '|||'.join(uniqify(spatialDivisions))
-        d['spatialPhrases'] = '|||'.join(spatialPhrases)
+        d['spatialPhrases'] = '|||'.join(spatialPhrases if d['volume'] < 10000 else uniqify(spatialPhrases))
         if commonLocation:
             d['commonLocation'] = loc.phrase(commonLocation)
     
