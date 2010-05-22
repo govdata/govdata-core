@@ -43,7 +43,7 @@ class GetHandler(tornado.web.RequestHandler):
         self.do_get(args)
         
     
-    def do_get(self,args)
+    def do_get(self,args):
         args = dict([(str(x),y) for (x,y) in args.items()])
         collectionName = args.pop('collectionName')
         querySequence = args.pop('querySequence')        
