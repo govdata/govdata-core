@@ -337,7 +337,11 @@ def addToIndex(R,d,collection,solr_interface,contentColNums = None, phraseCols =
                     location = loc.integrate(OverallLocation,r[str(x)])
                     commonLocation = loc.intersect(commonLocation,r[str(x)]) if commonLocation != None else r[str(x)]
                     spatialDivisions += loc.divisions(location)
-                    spatialPhrases.append(location)
+                    if i < 10000:
+                        spatialPhrases.append(location)
+                    else:
+                        if location not in spatialPhrases:
+                            spatialPhrases.append(location)
                    
     d['sliceContents'] = ' '.join(d['sliceContents'])
     d['slicePhrases'] = ', '.join(d['slicePhrases'])
@@ -372,7 +376,6 @@ def addToIndex(R,d,collection,solr_interface,contentColNums = None, phraseCols =
         
     if spatialDivisions:
         d['spatialDivisions'] = ', '.join(uniqify(spatialDivisions))
-        spatialPhrases = spatialPhrases if d['volume'] < 10000 else uniqify(spatialPhrases)
         d['spatialPhrases'] = [loc.phrase(phrase) for phrase in spatialPhrases]
         d['spatialPhrasesTight'] = [loc.phrase2(phrase) for phrase in spatialPhrases]
         if commonLocation:
