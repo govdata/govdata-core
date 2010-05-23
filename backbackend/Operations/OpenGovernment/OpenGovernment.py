@@ -175,7 +175,7 @@ def backendProtocol(collectionName,parser,downloader = None, downloadProtocol= N
     
     StepList += [(ID + 'download_check',download_check,(download_root,incremental,downloadPath))]
         
-    StepList += [(ID + 'updateCollection',updateCollection,[(download_root,collectionName,parser,downloadPath,createPath,parserArgs,parserKwargs),{'incremental':incremental}]),
+    StepList += [(ID + 'updateCollection',updateCollection,[(download_root,collectionName,parser,downloadPath,createPath,{'parserArgs':parserArgs,'parserKwargs':parserKwargs,'incremental':incremental}]),
     (ID + 'updateCollectionIndex',indexing.updateCollectionIndex,(collectionName,createPath,indexPath),{'slicesCorrespondToIndexes':slicesCorrespondToIndexes})]
 
     if uptostep:
