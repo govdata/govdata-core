@@ -291,7 +291,7 @@ class csv_parser(dataIterator):
     
 
 @activate(lambda x :  (x[0] + '/',x[3]),lambda x : x[4])
-def updateCollection(download_dir,collectionName,parserClass,checkpath,certpath,parserArgs,parserKwargs,incremental=False):
+def updateCollection(download_dir,collectionName,parserClass,checkpath,certpath,parserArgs=None,parserKwargs=None,incremental=False):
     
     connection =  pm.Connection()
     db = connection['govdata']
