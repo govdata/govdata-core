@@ -117,6 +117,11 @@ def divisions(l):
 def phrase(l):
     """Human readable phrase"""
     return ', '.join([SPACE_DIVISIONS[x] + '=' + y  for (x,y) in l.items() if x != 'f'] + ([SPACE_DIVISIONS[x] + ' FIPS=' + y for (x,y) in l['f'].items()] if 'f' in l.keys() else []))
+
+def phrase2(l):
+    """Human readable phrase"""
+    return ', '.join([y  for (x,y) in l.items() if x != 'f'] + ([SPACE_DIVISIONS[x] + ' FIPS=' + y for (x,y) in l['f'].items()] if 'f' in l.keys() else []))
+
     
 def modPhrase(l):
     """phrase for phrase matching indexing"""

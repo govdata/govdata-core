@@ -114,7 +114,7 @@ def updateCollectionIndex(collectionName,incertpath,certpath, slicesCorrespondTo
             query = api.processArg(q,collection)
             if collection.find_one(query):
                 q.pop('__versionNumber__')       
-                print 'Adding:' , query, 'in', collectionName
+                print 'Adding:' , q, 'in', collectionName
                 sliceCursor = collection.find(query,timeout=False)
                 dd = d.copy()
                 queryID = [('collectionName',collectionName),('query',q)]
@@ -209,7 +209,7 @@ def initialize_argdict(d,ArgDict,collection):
         ol = Collection.OverallLocation
         ArgDict['OverallLocation'] = ol
         ArgDict['spatialDivisions'] = loc.divisions(ol)
-        ArgDict['spatialPhrases'] = [loc.phrase(ol)]
+        ArgDict['spatialPhrases'] = [ol]
     else:
         ol = None
         
@@ -219,7 +219,7 @@ def initialize_argdict(d,ArgDict,collection):
         ArgDict['spaceColNames'] = [loc.integrate(ol,x) for x in spaceColNames]
         ArgDict['spaceColNameInds'] = getNums(collection,spaceColNames)
         ArgDict['spaceColNameDivisions'] = [loc.divisions(x) for x in SpaceColNames]
-        ArgDict['spaceColNamePhrases'] = [loc.phrase(x) for x in SpaceColNames]
+        ArgDict['spaceColNamePhrases'] = [x for x in SpaceColNames]
         
     if 'SpaceColumns' in collection.ColumnGroups.keys():
         ArgDict['spaceColInds'] = getNums(collection,collection.ColumnGroups['SpaceColumns'])
@@ -266,9 +266,9 @@ def getStrs(collection,namelist):
 def makestr(r,x):
     v = rgetattr(r,x.split('.'))
     try:
-        v = x.encode('utf-8')
+        v = v.encode('utf-8')
     except UnicodeEncodeError:
-        return x.decode('latin-1').encode('utf-8')
+        return v.decode('latin-1').encode('utf-8')
     else:
         return v
     
@@ -337,9 +337,10 @@ def addToIndex(R,d,collection,solr_interface,contentColNums = None, phraseCols =
                     location = loc.integrate(OverallLocation,r[str(x)])
                     commonLocation = loc.intersect(commonLocation,r[str(x)]) if commonLocation != None else r[str(x)]
                     spatialDivisions += loc.divisions(location)
-                    spatialPhrases.append(loc.phrase(location))
+                    spatialPhrases.append(location)
                    
     d['sliceContents'] = ' '.join(d['sliceContents'])
+    d['slicePhrases'] = ', '.join(d['slicePhrases'])
     Subcollections = uniqify(Subcollections)
     d['columnNames'] = [collection.totalVariables[int(x)] for x in colnames if x.isdigit()]
     d['dimension'] = len(d['columnNames'])
@@ -358,20 +359,22 @@ def addToIndex(R,d,collection,solr_interface,contentColNums = None, phraseCols =
         d['begin_date'] = td.convertToDT(mindate)
         d['end_date'] = td.convertToDT(maxdate,convertMode='High')
         d['dateDivisions'] = ' '.join(uniqify(dateDivisions))
-        d['datePhrases'] = '|||'.join(datePhrases if d['volume'] < 10000 else uniqify(datePhrases))
+        d['datePhrases'] = ', '.join(datePhrases if d['volume'] < 10000 else uniqify(datePhrases))
 
     
     if 'SpaceColNames' in collection.ColumnGroups.keys():
         K = [k for (k,j) in enumerate(spaceColNameInds) if str(j) in colnames]
         spatialDivisions += uniqify(ListUnion([spaceColNameDivisions[k] for k in K]))
-        spatialPhrases += uniqify([spaceColPhrases[k] for k in K])  
+        spatialPhrases += uniqify([spaceColNamePhrases[k] for k in K])  
         for k in K:
             commonLocation = spaceColNames[k] if commonLocation == None else loc.intersect(commonLocation,spaceColNames[k])
 
         
     if spatialDivisions:
-        d['spatialDivisions'] = '|||'.join(uniqify(spatialDivisions))
-        d['spatialPhrases'] = '|||'.join(spatialPhrases if d['volume'] < 10000 else uniqify(spatialPhrases))
+        d['spatialDivisions'] = ', '.join(uniqify(spatialDivisions))
+        spatialPhrases = spatialPhrases if d['volume'] < 10000 else uniqify(spatialPhrases)
+        d['spatialPhrases'] = [loc.phrase(phrase) for phrase in spatialPhrases]
+        d['spatialPhrasesTight'] = [loc.phrase2(phrase) for phrase in spatialPhrases]
         if commonLocation:
             d['commonLocation'] = loc.phrase(commonLocation)
     
@@ -399,4 +402,4 @@ def addToIndex(R,d,collection,solr_interface,contentColNums = None, phraseCols =
 
 def coerceToFormat(md,format):
     if format == 'tplist':
-        return '|||'.join(md)
+        return ', '.join(md)
