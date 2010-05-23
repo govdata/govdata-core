@@ -337,11 +337,9 @@ def addToIndex(R,d,collection,solr_interface,contentColNums = None, phraseCols =
                     location = loc.integrate(OverallLocation,r[str(x)])
                     commonLocation = loc.intersect(commonLocation,r[str(x)]) if commonLocation != None else r[str(x)]
                     spatialDivisions += loc.divisions(location)
-                    if i < 10000:
+                    if i < 10000 or location not in spatialPhrases:
                         spatialPhrases.append(location)
-                    else:
-                        if location not in spatialPhrases:
-                            spatialPhrases.append(location)
+
                    
     d['sliceContents'] = ' '.join(d['sliceContents'])
     d['slicePhrases'] = ', '.join(d['slicePhrases'])
