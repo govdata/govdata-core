@@ -246,7 +246,7 @@ def getTableAndSignature(handler):
 
     cols = [{'id':id,'label':label,'type':getType(handler,i,id)} for (i,(id,label,processor)) in enumerate(handler.fields)]
 
-    signature = ''.join([r['c'][0]['v'] for r in handler.returnedObj['data']]).__hash__() 
+    signature = str(''.join([r['c'][0]['v'] for r in handler.returnedObj['data']]).__hash__())
    
     return {'cols':cols,'rows':handler.returnedObj['data']},signature
     
@@ -257,11 +257,11 @@ def getType(handler,i,id):
     else:
         dp = handler.returnedObj['data'][0]['c'][i]['v']
         if isinstance(dp,bool):
-            return 'Boolean'
+            return 'boolean'
         elif isinstance(dp,int) or isinstance(dp,float):
-            return 'Number'
+            return 'number'
         else:
-            return 'String'
+            return 'string'
 
 
 def wire_processor(handler,x,collection):
@@ -275,45 +275,56 @@ class TableHandler(GetHandler):
         for k in args.keys():
             args[k] = args[k][0]
             
+            
         tqx = wire_query_processor(args.get('tqx',''))
+        
+        self.responseHandler = tqx.get('responseHandler','google.visualization.Query.setResponse')
                   
         if 'sig' in tqx:
             
             self.status = 'warning'
             self.warnings = [{'reason':'not_modified'}]
             self.sig = tqx['sig']
-            self.reqid = tqx['reqid']
+            self.reqId = tqx['reqId']
             
             self.end()
                 
         else:
             out = tqx.get('out','json')
-            assert out == 'json', 'Only handles json.'
-            
-            self.reqid = tqx['query'].__hash__()
-           
-            query = json.loads(tqx['query'])
-            query['timeQuery'] = json.loads(query.get('timeQuery','null'))
-            query['spaceQuery'] = json.loads(query.get('spaceQuery','null'))
-   
-            query['querySequence'] = querySequence = json.loads(query['querySequence']) 
-            
-            actions = zip(*querySequence)[0]
-            
-            if set(actions) <= set(EXPOSED_ACTIONS):
-        
-                query['returnObj'] = True
-                query['stream'] = False                 
-                query['processor'] = functools.partial(wire_processor,self)
-                
-                self.get_response(query)
+            if out != 'json':
+                self.status = 'error'
+                self.errors = [{'reason':'not_supported','message':'Only Json format is supported, not ' + out + '.'}]
+                self.end()
                 
             else:
-            
-                self.status = 'error'
-                self.errors = [{'reason':'invalid_query'}]
+                print args['query']
                 
-                self.end()
+                self.reqId = tqx.get('reqId',str(args['query'].__hash__()))
+            
+                query = json.loads(args['query'])
+                
+                query['timeQuery'] = json.loads(query.get('timeQuery','null'))
+                query['spaceQuery'] = json.loads(query.get('spaceQuery','null'))
+    
+                print query['querySequence']
+                query['querySequence'] = querySequence = json.loads(query['querySequence']) 
+                
+                actions = zip(*querySequence)[0]
+                
+                if set(actions) <= set(EXPOSED_ACTIONS):
+            
+                    query['returnObj'] = True
+                    query['stream'] = False                 
+                    query['processor'] = functools.partial(wire_processor,self)
+                    
+                    self.get_response(query)
+                    
+                else:
+                
+                    self.status = 'error'
+                    self.errors = [{'reason':'invalid_query'}]
+                    
+                    self.end()
 
 
     def organize_fields(self,fields):
@@ -324,8 +335,8 @@ class TableHandler(GetHandler):
         else:
             fields = fields.keys()
 
-        ids = ['_id'] + fields
-        labels = ['_id'] + [vars[int(field)] for field in fields]
+        ids = ['_id'] + [field.encode('utf-8') for field in fields]
+        labels = ['_id'] + [str(vars[int(field)]) for field in fields]
         
         TimeColumns = self.collection.ColumnGroups.get('TimeColumns',[])
         SpaceColums = self.collection.ColumnGroups.get('SpaceColumns',[])
@@ -340,7 +351,7 @@ class TableHandler(GetHandler):
             else:
                 for t in TimeColumns:
                     self.field_types[t] = 'Date'
-            spaceformatter = loc.phrase2
+            spaceformatter = lambda  x : loc.phrase2(x).encode('utf-8')
         
         processors = []
         for label in labels:
@@ -351,7 +362,7 @@ class TableHandler(GetHandler):
             elif label == '_id':
                 processors.append(str)
             else:
-                processors.append(lambda x : x)
+                processors.append(lambda x : x.encode('utf-8') if is_string_like(x) else x)
                 
                 
         self.fields = zip(ids,labels,processors)
@@ -370,8 +381,8 @@ class TableHandler(GetHandler):
         if not hasattr(self,'status'):
             self.status = 'ok'
             
-        D = {}
-          
+        D = {}    
+        D['status'] = self.status
         if self.status == 'ok':
             D['table'],self.sig = getTableAndSignature(self)
 
@@ -379,13 +390,19 @@ class TableHandler(GetHandler):
             D['errors'] = self.errors
         elif self.status == 'warning':
             D['warnings'] == self.warnings
-            
-        D['reqid'] = self.reqid
-        D['status'] = self.status
-        D['sig'] = self.sig
-                    
-        self.write(GoogleJson(D))
          
+        if hasattr(self,'reqId'):
+            D['reqId'] = self.reqId
+        if hasattr(self,'sig'):
+            D['sig'] = self.sig
+            
+        D['version'] = '0.6'
+       
+        self.write(self.responseHandler + '(' + GoogleJson(D) + ');')
+        
+        #self.write("google.visualization.Query.setResponse({table:{rows:[{c:[{v:'CN'},{v:1.32297E9,f:'1322970000'},{v:137.0,f:'137'}]},{c:[{v:'IN'},{v:1.13013E9,f:'1130130000'},{v:336.0,f:'336'}]},{c:[{v:'US'},{v:3.03605941E8,f:'303605941'},{v:31.0,f:'31'}]},{c:[{v:'ID'},{v:2.31627E8,f:'231627000'},{v:117.0,f:'117'}]},{c:[{v:'BR'},{v:1.86315468E8,f:'186315468'},{v:22.0,f:'22'}]},{c:[{v:'PK'},{v:1.626525E8,f:'162652500'},{v:198.0,f:'198'}]},{c:[{v:'BD'},{v:1.58665E8,f:'158665000'},{v:1045.0,f:'1045'}]},{c:[{v:'NG'},{v:1.48093E8,f:'148093000'},{v:142.0,f:'142'}]},{c:[{v:'RU'},{v:1.41933955E8,f:'141933955'},{v:8.4,f:'8.4'}]},{c:[{v:'JP'},{v:1.2779E8,f:'127790000'},{v:339.0,f:'339'}]}],cols:[{id:'_B',label:'Country code',type:'string'},{id:'C',label:'Population',type:'number'},{id:'D',label:'Population Density',type:'number'}]},reqId:'0',status:'ok'});")
+        
+             
         self.finish()
         
 def GoogleJson(D):

@@ -335,7 +335,7 @@ def updateCollection(download_dir,collectionName,parserClass,checkpath,certpath,
             
         else:
             versionNumber = 0
-            IndexCols = [x for x in uniqify(['Subcollections'] + ListUnion(iterator.sliceCols) + ListUnion([iterator.ColumnGroups.get(k,[]) for k in ['IndexColumns','LabelColumns','TimeColumns','SpaceColumns']])) if x not in uniqueIndexes]
+            IndexCols = [x for x in uniqify(['Subcollections'] + ListUnion(iterator.sliceCols) + ListUnion([iterator.ColumnGroups.get(k,[]) for k in ['IndexColumns','LabelColumns','TimeColumns','SpaceColumns']])) if x not in uniqueIndexes and not '.' in x]
     
             totalVariables = SPECIAL_KEYS + uniqueIndexes + IndexCols
             VarMap = dict(zip(totalVariables,map(str,range(len(totalVariables)))))  

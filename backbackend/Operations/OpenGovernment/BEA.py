@@ -1186,8 +1186,8 @@ def SAPI_preparse(maindir):
 def loc_processor(f,x,level):   
     if level == 'ALLCOUNTY':
         return '{"c":' + repr(','.join(x.split(',')[:-1]).strip()) + ',"S":' + repr( x.split(',')[-1].strip()) +',"f":{"c":' + repr(f[2:]) + ',"s":' + repr(f[:2]) + '}}' 
-    elif level ==   'STATE':
-        return '{"f":{"s":' + repr(f[:2]) + '}}' 
+    elif level ==  'STATE':
+        return '{"s":' + REPR(x) + ',"f":{"s":' + repr(f[:2]) + '}}' 
     elif level == 'METRO':
         return '{"m":' + REPR(x) + ',"f":{"m":' + repr(f) + '}}' 
     elif level == 'CSA':
