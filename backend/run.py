@@ -17,7 +17,8 @@ class GovLove(tornado.web.Application):
         handlers = [
             (r"/", MainHandler),
             (r"/get", api.GetHandler),
-            (r"/find", api.FindHandler)
+            (r"/find", api.FindHandler),
+            (r"/table",api.TableHandler)
         ]
         settings = dict(
             template_path=os.path.join(os.path.dirname(__file__), "templates"),

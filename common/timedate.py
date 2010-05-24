@@ -161,6 +161,15 @@ def getLowest(tObj):
     return lowest
 
 
+def MongoToJSDateFormatter(DateFormat):
+    if 'Y' in DateFormat:
+        def Func(x):
+            D = tObjFlatten(x)
+            Y = D['Y']
+            m = D.get('m',0)
+            d = D.get('d',0)
+            return 'new Date(' + Y + ',' + m + ',' + d + ')'
+
 def convertToDT(tObj,convertMode = 'Low'):
     """Convert to python DateTime format"""
     assert convertMode in ['Low','High']

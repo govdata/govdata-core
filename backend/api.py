@@ -9,7 +9,7 @@ import pymongo as pm
 import pymongo.json_util
 from pymongo.code import Code
 from pymongo.objectid import ObjectId
-from common.utils import IsFile, listdir, is_string_like, ListUnion, Flatten
+from common.utils import IsFile, listdir, is_string_like, ListUnion, Flatten, is_num_like
 import common.mongo as CM
 import common.acursor as AC
 import common.timedate as td
@@ -22,7 +22,7 @@ import functools
 
 EXPOSED_ACTIONS = ['find','find_one','group','skip','limit','sort','count','distinct']
 
-
+              
 class GetHandler(tornado.web.RequestHandler):
     @tornado.web.asynchronous
     def get(self):
@@ -37,28 +37,31 @@ class GetHandler(tornado.web.RequestHandler):
             args['timeQuery'] = json.loads(args['timeQuery'])
         if 'spaceQuery' in args.keys():
             args['spaceQuery'] = json.loads(args['spaceQuery'])
-        self.do_get(args)
+            
+        self.get_response(args)
 
 
     @tornado.web.asynchronous
     def post(self):
 
         args = json.loads(self.request.body)
-        self.do_get(args)
+        self.get_response(args)
         
-    
-    def do_get(self,args):
+        
+    def get_response(self,args):
+        
         args = dict([(str(x),y) for (x,y) in args.items()])
         collectionName = args.pop('collectionName')
         querySequence = args.pop('querySequence')        
-        returnObj = args.pop('returnObj',True)   
-        returnMetadata = args.pop('returnMetadata',False)   
-        processor = args.pop('processor',None)        
-       
-        #get(collectionName,querySequence,fh=self,returnObj=returnObj,returnMetadata=returnMetadata,processor=processor,**args)
         
+        self.returnObj = args.pop('returnObj',False)   
+        self.stream = args.pop('stream',True)
+        
+        self.returnMetadata = args.pop('returnMetadata',False)   
+        self.processor = args.pop('processor',None)        
+               
         A,collection,needsVersioning,versionNumber,uniqueIndexes,vars = get_args(collectionName,querySequence,**args)
-       
+      
         self.collection = collection
         self.needsVersioning = needsVersioning
         self.versionNumber = versionNumber
@@ -68,19 +71,16 @@ class GetHandler(tornado.web.RequestHandler):
         self.subcols = []
         self.vNInd =  self.VarMap['__versionNumber__']
         self.retInd = self.VarMap['__retained__']
-        self.returnMetadata = returnMetadata
-        self.processor = processor
-  
- 
+                
+        self.begin()
+
+
         R = collection 
 
         for (a,p,k) in A[:-1]:
             R = getattr(R,a)(*p,**k)   
             
-        self.begin()
-                 
         (act,arg,karg) = A[-1]
-
         
         if act == 'count':
         
@@ -147,27 +147,33 @@ class GetHandler(tornado.web.RequestHandler):
             
             if isinstance(R,pm.cursor.Cursor):
             
-                self.write('[')
+                if self.stream:
+                    self.write('[')
                 
                 spec,fields,skip,limit = R._Cursor__spec,R._Cursor__fields,R._Cursor__skip,R._Cursor__limit
           
+                self.organize_fields(fields)
+                
                 self.add_handler(collection,spec,fields,skip,limit,loop)
          
             else:    
-            
-                self.write(json.dumps(R,default=pm.json_util.default))
+                if self.stream:
+                    self.write(json.dumps(R,default=pm.json_util.default))
                 self.end()
             
    
     def begin(self):
-    
-        self.write('{"data":')
         
-                    
+        if self.stream:
+            self.write('{"data":')
+        if self.returnObj:
+            self.returnedObj = {'data':[]}
+            
+                          
     def end(self):        
     
         io_loop = self.settings['io_loop']
-        sock = self.__socket
+        sock = self.socket
         io_loop.remove_handler(sock.fileno())
        
         returnMetadata = self.returnMetadata
@@ -178,10 +184,17 @@ class GetHandler(tornado.web.RequestHandler):
             subcols = self.subcols
             
             metadata = makemetadata(collection,sci,subcols)
-        
-            self.write(',"metadata":' + json.dumps(metadata,default=pm.json_util.default))    
-
-        self.write('}')        
+            
+            if self.stream:
+                 self.write(',"metadata":' + json.dumps(metadata,default=pm.json_util.default))    
+            if self.returnObj:
+                self.returnedObj["metadata"] = metadata
+                
+        if self.stream:
+            self.write('}')  
+            
+        if self.returnObj and not self.stream:
+            self.write(json.dumps(self.returnedObj,default=pm.json_util.default))
 
         self.finish()
           
@@ -201,7 +214,7 @@ class GetHandler(tornado.web.RequestHandler):
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         H = sock.connect(("localhost", 27017))
         sock.setblocking(0)
-        self.__socket = sock
+        self.socket = sock
            
         cursor = AC.Cursor(collection,spec,fields,skip,limit, slave_okay, timeout,tailable,_sock=sock,_must_use_master=_must_use_master, _is_command=_is_command)
         callback = functools.partial(callback,self,cursor)
@@ -218,7 +231,179 @@ class GetHandler(tornado.web.RequestHandler):
         callback = functools.partial(processor_handler,processor)
            
         self.add_handler(cmdCollection,command,None,0,-1,callback,_must_use_master=True,_is_command= True)
+        
+        
+
+    def organize_fields(self,fields,vars):
+        pass
+              
+def wire_query_processor(tqx):
+
+    return dict([(v.split(':')[0],':'.join(v.split(':')[1:])) for v in list(csv.reader([tqx],delimiter=';',escapechar='\\'))[0]])
+
+    
+def getTableAndSignature(handler):
+
+    cols = [{'id':id,'label':label,'type':getType(handler,i,id)} for (i,(id,label,processor)) in enumerate(handler.fields)]
+
+    signature = ''.join([r['c'][0]['v'] for r in handler.returnedObj['data']]).__hash__() 
+   
+    return {'cols':cols,'rows':handler.returnedObj['data']},signature
+    
+
+def getType(handler,i,id):
+    if id in handler.field_types.keys():
+        return handler.field_types[id]
+    else:
+        dp = handler.returnedObj['data'][0]['c'][i]['v']
+        if isinstance(dp,bool):
+            return 'Boolean'
+        elif isinstance(dp,int) or isinstance(dp,float):
+            return 'Number'
+        else:
+            return 'String'
+
+
+def wire_processor(handler,x,collection):
+    return {'c':[{'v': processor(x.get(id,None))} for (id,label,processor) in handler.fields]}
+
+import csv
+class TableHandler(GetHandler):
+    @tornado.web.asynchronous
+    def get(self):
+        args = self.request.arguments
+        for k in args.keys():
+            args[k] = args[k][0]
             
+        tqx = wire_query_processor(args.get('tqx',''))
+                  
+        if 'sig' in tqx:
+            
+            self.status = 'warning'
+            self.warnings = [{'reason':'not_modified'}]
+            self.sig = tqx['sig']
+            self.reqid = tqx['reqid']
+            
+            self.end()
+                
+        else:
+            out = tqx.get('out','json')
+            assert out == 'json', 'Only handles json.'
+            
+            self.reqid = tqx['query'].__hash__()
+           
+            query = json.loads(tqx['query'])
+            query['timeQuery'] = json.loads(query.get('timeQuery','null'))
+            query['spaceQuery'] = json.loads(query.get('spaceQuery','null'))
+   
+            query['querySequence'] = querySequence = json.loads(query['querySequence']) 
+            
+            actions = zip(*querySequence)[0]
+            
+            if set(actions) <= set(EXPOSED_ACTIONS):
+        
+                query['returnObj'] = True
+                query['stream'] = False                 
+                query['processor'] = functools.partial(wire_processor,self)
+                
+                self.get_response(query)
+                
+            else:
+            
+                self.status = 'error'
+                self.errors = [{'reason':'invalid_query'}]
+                
+                self.end()
+
+
+    def organize_fields(self,fields):
+        vars = self.collection.totalVariables
+        
+        if fields == None:
+            fields = self.VarMap.values()
+        else:
+            fields = fields.keys()
+
+        ids = ['_id'] + fields
+        labels = ['_id'] + [vars[int(field)] for field in fields]
+        
+        TimeColumns = self.collection.ColumnGroups.get('TimeColumns',[])
+        SpaceColums = self.collection.ColumnGroups.get('SpaceColumns',[])
+        
+        self.field_types = {}
+        
+        if hasattr(self.collection,'DateFormat'):
+            DateFormat = self.collection.DateFormat
+            timeformatter = td.MongoToJSDateFormatter(DateFormat)
+            if not timeformatter:
+                timeformatter = td.reverse(DateFormat)
+            else:
+                for t in TimeColumns:
+                    self.field_types[t] = 'Date'
+            spaceformatter = loc.phrase2
+        
+        processors = []
+        for label in labels:
+            if label in TimeColumns:
+                processors.append(timeformatter)
+            elif label in SpaceColums:
+                processors.append(spaceformatter)
+            elif label == '_id':
+                processors.append(str)
+            else:
+                processors.append(lambda x : x)
+                
+                
+        self.fields = zip(ids,labels,processors)
+
+
+    def post(self):
+        raise BaseException, 'post not handled by wire protocol'
+                           
+        
+    def end(self):
+    
+        io_loop = self.settings['io_loop']
+        sock = self.socket
+        io_loop.remove_handler(sock.fileno())
+          
+        if not hasattr(self,'status'):
+            self.status = 'ok'
+            
+        D = {}
+          
+        if self.status == 'ok':
+            D['table'],self.sig = getTableAndSignature(self)
+
+        elif self.status == 'error':       
+            D['errors'] = self.errors
+        elif self.status == 'warning':
+            D['warnings'] == self.warnings
+            
+        D['reqid'] = self.reqid
+        D['status'] = self.status
+        D['sig'] = self.sig
+                    
+        self.write(GoogleJson(D))
+         
+        self.finish()
+        
+def GoogleJson(D):
+    if isinstance(D,dict):
+        return  '{' + ','.join([str(k) + ':' + GoogleJson(v) for (k,v) in D.items()]) + '}'
+    elif isinstance(D,list) or isinstance(D,tuple):
+        return '[' + ','.join([GoogleJson(k) for k in D]) + ']'
+    elif is_string_like(D):
+        return repr(D)
+    elif is_num_like(D):
+        return str(D)
+    elif not D:
+        return 'null'
+    else:
+        print type(D)
+        raise ValueError, 'Value cant be converted.'
+        
+
                 
 class FindHandler(tornado.web.RequestHandler):
     @tornado.web.asynchronous
@@ -332,7 +517,10 @@ def loop(handler,cursor,sock,fd):
         if processor:
             r = processor(r,collection)
              
-        handler.write(json.dumps(r,default=pm.json_util.default) + ',')
+        if handler.stream:
+            handler.write(json.dumps(r,default=pm.json_util.default) + ',')
+        if handler.returnObj:
+            handler.returnedObj['data'].append(r)
 
         if sci and sci in r.keys():
             subcols.append((r['_id'],r[sci]))
@@ -342,7 +530,8 @@ def loop(handler,cursor,sock,fd):
 
         
     else:
-        handler.write(']')
+        if handler.stream:
+            handler.write(']')
         
         handler.end()
         

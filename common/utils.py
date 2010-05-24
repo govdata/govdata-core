@@ -61,6 +61,15 @@ def is_string_like(obj):
         return False
     return True
     
+def is_num_like(obj):
+
+    try:
+        obj + 0
+    except (TypeError, ValueError):
+        return False
+    return True    
+    
+    
 def ListUnion(ListOfLists):
 	'''
 	takes python list of python lists
