@@ -74,14 +74,14 @@ class GetHandler(tornado.web.RequestHandler):
                 
         self.begin()
 
-
         R = collection 
-
+        
         for (a,p,k) in A[:-1]:
             R = getattr(R,a)(*p,**k)   
             
         (act,arg,karg) = A[-1]
-        
+   
+            
         if act == 'count':
         
             spec,fields,skip,limit = R._Cursor__spec,R._Cursor__fields,R._Cursor__skip,R._Cursor__limit
@@ -144,14 +144,16 @@ class GetHandler(tornado.web.RequestHandler):
             
         else:
             R = getattr(R,act)(*arg,**karg)
-            
+ 
             if isinstance(R,pm.cursor.Cursor):
+
             
                 if self.stream:
                     self.write('[')
-                
+                    
                 spec,fields,skip,limit = R._Cursor__spec,R._Cursor__fields,R._Cursor__skip,R._Cursor__limit
-          
+   
+           
                 self.organize_fields(fields)
                 
                 self.add_handler(collection,spec,fields,skip,limit,loop)
@@ -168,14 +170,20 @@ class GetHandler(tornado.web.RequestHandler):
             self.write('{"data":')
         if self.returnObj:
             self.returnedObj = {'data':[]}
-            
-                          
-    def end(self):        
+
+
+        
+    def end(self):
     
         io_loop = self.settings['io_loop']
         sock = self.socket
         io_loop.remove_handler(sock.fileno())
-       
+        sock.close()
+        self.done()            
+                          
+                          
+    def done(self):        
+
         returnMetadata = self.returnMetadata
 
         if returnMetadata:
@@ -195,7 +203,8 @@ class GetHandler(tornado.web.RequestHandler):
             
         if self.returnObj and not self.stream:
             self.write(json.dumps(self.returnedObj,default=pm.json_util.default))
-
+            
+       
         self.finish()
           
 
@@ -215,12 +224,14 @@ class GetHandler(tornado.web.RequestHandler):
         H = sock.connect(("localhost", 27017))
         sock.setblocking(0)
         self.socket = sock
-           
+        
         cursor = AC.Cursor(collection,spec,fields,skip,limit, slave_okay, timeout,tailable,_sock=sock,_must_use_master=_must_use_master, _is_command=_is_command)
+        
         callback = functools.partial(callback,self,cursor)
         io_loop = self.settings['io_loop']
+
         io_loop.add_handler(sock.fileno(), callback, io_loop.READ)  
-        
+
         cursor._refresh()
     
     
@@ -239,17 +250,26 @@ class GetHandler(tornado.web.RequestHandler):
               
 def wire_query_processor(tqx):
 
-    return dict([(v.split(':')[0],':'.join(v.split(':')[1:])) for v in list(csv.reader([tqx],delimiter=';',escapechar='\\'))[0]])
+    #return dict([(v.split(':')[0],':'.join(v.split(':')[1:])) for v in list(csv.reader([tqx],delimiter=';',escapechar='\\'))[0]])
+    return dict([(v.split(':')[0],v.split(':')[-1]) for v in tqx.split(';')])
+
 
     
-def getTableAndSignature(handler):
+def getTable(handler):
 
-    cols = [{'id':id,'label':label,'type':getType(handler,i,id)} for (i,(id,label,processor)) in enumerate(handler.fields)]
-
-    signature = str(''.join([r['c'][0]['v'] for r in handler.returnedObj['data']]).__hash__())
-   
-    return {'cols':cols,'rows':handler.returnedObj['data']},signature
+    if handler.returnedObj['data']:
+	
+		cols = [{'id':id,'label':label,'type':getType(handler,i,id)} for (i,(id,label,processor)) in enumerate(handler.fields)]
+	
+		#signature = str(''.join([r['c'][0]['v'] for r in handler.returnedObj['data']]).__hash__())
     
+    else:
+    	
+    	cols = [{'id':id,'label':label,'type':'string'} for (i,(id,label,processor)) in enumerate(handler.fields)]
+    	handler.status = 'warning'
+    	handler.warnings = [{'reason':'other','message':'No results.'}]
+    	
+    return {'cols':cols,'rows':handler.returnedObj['data']}
 
 def getType(handler,i,id):
     if id in handler.field_types.keys():
@@ -267,46 +287,43 @@ def getType(handler,i,id):
 def wire_processor(handler,x,collection):
     return {'c':[{'v': processor(x.get(id,None))} for (id,label,processor) in handler.fields]}
 
-import csv
 class TableHandler(GetHandler):
+
     @tornado.web.asynchronous
     def get(self):
         args = self.request.arguments
         for k in args.keys():
             args[k] = args[k][0]
             
-            
-        tqx = wire_query_processor(args.get('tqx',''))
-        
+    
+        tqx = wire_query_processor(args.get('tqx',''))       
         self.responseHandler = tqx.get('responseHandler','google.visualization.Query.setResponse')
-                  
-        if 'sig' in tqx:
-            
+        print str(args['tq'])
+        self.sig = str(args['tq'].__hash__())
+
+        query = json.loads(args['tq'])
+                
+        if 'sig' in tqx.keys() and self.sig == tqx['sig']:
             self.status = 'warning'
             self.warnings = [{'reason':'not_modified'}]
-            self.sig = tqx['sig']
-            self.reqId = tqx['reqId']
-            
-            self.end()
+            self.reqId = tqx['reqId'] 
+            self.done()
                 
         else:
+
             out = tqx.get('out','json')
             if out != 'json':
                 self.status = 'error'
                 self.errors = [{'reason':'not_supported','message':'Only Json format is supported, not ' + out + '.'}]
-                self.end()
+                self.done()
                 
             else:
-                print args['query']
                 
-                self.reqId = tqx.get('reqId',str(args['query'].__hash__()))
-            
-                query = json.loads(args['query'])
+                self.reqId = tqx.get('reqId',self.sig)
                 
                 query['timeQuery'] = json.loads(query.get('timeQuery','null'))
                 query['spaceQuery'] = json.loads(query.get('spaceQuery','null'))
     
-                print query['querySequence']
                 query['querySequence'] = querySequence = json.loads(query['querySequence']) 
                 
                 actions = zip(*querySequence)[0]
@@ -324,7 +341,7 @@ class TableHandler(GetHandler):
                     self.status = 'error'
                     self.errors = [{'reason':'invalid_query'}]
                     
-                    self.end()
+                    self.done()
 
 
     def organize_fields(self,fields):
@@ -370,26 +387,22 @@ class TableHandler(GetHandler):
 
     def post(self):
         raise BaseException, 'post not handled by wire protocol'
-                           
         
-    def end(self):
-    
-        io_loop = self.settings['io_loop']
-        sock = self.socket
-        io_loop.remove_handler(sock.fileno())
-          
+                               
+    def done(self):
         if not hasattr(self,'status'):
             self.status = 'ok'
-            
+                   
         D = {}    
-        D['status'] = self.status
+        
         if self.status == 'ok':
-            D['table'],self.sig = getTableAndSignature(self)
-
-        elif self.status == 'error':       
+            D['table'] = getTable(self)
+            
+        D['status'] = self.status    
+        if self.status == 'error':       
             D['errors'] = self.errors
         elif self.status == 'warning':
-            D['warnings'] == self.warnings
+            D['warnings'] = self.warnings
          
         if hasattr(self,'reqId'):
             D['reqId'] = self.reqId
@@ -397,12 +410,8 @@ class TableHandler(GetHandler):
             D['sig'] = self.sig
             
         D['version'] = '0.6'
-       
+
         self.write(self.responseHandler + '(' + GoogleJson(D) + ');')
-        
-        #self.write("google.visualization.Query.setResponse({table:{rows:[{c:[{v:'CN'},{v:1.32297E9,f:'1322970000'},{v:137.0,f:'137'}]},{c:[{v:'IN'},{v:1.13013E9,f:'1130130000'},{v:336.0,f:'336'}]},{c:[{v:'US'},{v:3.03605941E8,f:'303605941'},{v:31.0,f:'31'}]},{c:[{v:'ID'},{v:2.31627E8,f:'231627000'},{v:117.0,f:'117'}]},{c:[{v:'BR'},{v:1.86315468E8,f:'186315468'},{v:22.0,f:'22'}]},{c:[{v:'PK'},{v:1.626525E8,f:'162652500'},{v:198.0,f:'198'}]},{c:[{v:'BD'},{v:1.58665E8,f:'158665000'},{v:1045.0,f:'1045'}]},{c:[{v:'NG'},{v:1.48093E8,f:'148093000'},{v:142.0,f:'142'}]},{c:[{v:'RU'},{v:1.41933955E8,f:'141933955'},{v:8.4,f:'8.4'}]},{c:[{v:'JP'},{v:1.2779E8,f:'127790000'},{v:339.0,f:'339'}]}],cols:[{id:'_B',label:'Country code',type:'string'},{id:'C',label:'Population',type:'number'},{id:'D',label:'Population Density',type:'number'}]},reqId:'0',status:'ok'});")
-        
-             
         self.finish()
         
 def GoogleJson(D):
@@ -510,42 +519,46 @@ def loop(handler,cursor,sock,fd):
     processor = handler.processor
     
     while hasdata:
-        r = cursor.next()
+        try:
+            r = cursor.next()
+        except StopIteration:
+            cursor._Cursor__die()
+            break
+        else:
 
-        if len(cursor._Cursor__data) == 0:
-            hasdata = False
-            
-               
-        if handler.needsVersioning: 
-            rV = r[handler.vNInd]
-            if rV > versionNumber:
-                s = dict([(VarMap[k],r[VarMap[k]]) for k in uniqueIndexes] + [(vNInd,{'$gte':versionNumber,'$lt':rV}),(retInd,True)])
-                H = collection.find(s).sort(vNInd,pm.DESCENDING)
-                for h in H:
-                    for hh in h.keys():
-                        if hh not in SPECIAL_KEYS:
-                            r[hh] = h[hh]
-                        if '__addedKeys__' in h.keys():
-                            for g in h['__addedKeys__']:
-                                r.pop(g)
-             
-                r[vNInd] = versionNumber
-         
-        if processor:
-            r = processor(r,collection)
-             
-        if handler.stream:
-            handler.write(json.dumps(r,default=pm.json_util.default) + ',')
-        if handler.returnObj:
-            handler.returnedObj['data'].append(r)
-
-        if sci and sci in r.keys():
-            subcols.append((r['_id'],r[sci]))
-
+			if len(cursor._Cursor__data) == 0:
+				hasdata = False
+				
+				   
+			if handler.needsVersioning: 
+				rV = r[handler.vNInd]
+				if rV > versionNumber:
+					s = dict([(VarMap[k],r[VarMap[k]]) for k in uniqueIndexes] + [(vNInd,{'$gte':versionNumber,'$lt':rV}),(retInd,True)])
+					H = collection.find(s).sort(vNInd,pm.DESCENDING)
+					for h in H:
+						for hh in h.keys():
+							if hh not in SPECIAL_KEYS:
+								r[hh] = h[hh]
+							if '__addedKeys__' in h.keys():
+								for g in h['__addedKeys__']:
+									r.pop(g)
+				 
+					r[vNInd] = versionNumber
+			 
+			if processor:
+				r = processor(r,collection)
+				 
+			if handler.stream:
+				handler.write(json.dumps(r,default=pm.json_util.default) + ',')
+			if handler.returnObj:
+				handler.returnedObj['data'].append(r)
+	
+			if sci and sci in r.keys():
+				subcols.append((r['_id'],r[sci]))
+    
     if cursor.alive:
-        cursor._refresh()
-
-        
+		cursor._refresh()
+  
     else:
         if handler.stream:
             handler.write(']')

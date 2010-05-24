@@ -446,6 +446,7 @@ class Cursor(object):
             except AutoReconnect:
                 db.connection._reset()
                 raise
+
             self.__id = response["cursor_id"]
     
             # starting from doesn't get set on getmore's for tailable cursors
@@ -454,6 +455,7 @@ class Cursor(object):
     
             self.__retrieved += response["number_returned"]
             self.__data = response["data"]
+         
             self.__id = response["cursor_id"]
 
 
