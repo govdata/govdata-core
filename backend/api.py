@@ -992,14 +992,17 @@ def actQueries(Q,O):
         q = Q[p]
         o = td.rgetattr(O,p)
         if o != None:
-            if not (hasattr(q,'keys') and any([a.startswith('$') for a in q.keys()])):
+            if q == {'$exists': False}:
+                return False
+            elif not (hasattr(q,'keys') and any([a.startswith('$') for a in q.keys()])):
                 if q != o:
                     return False
             elif hasattr(q,'keys') and all([a.startswith('$') for a in q.keys()]):
                 if not all([actionAct(a,q[a],o) for a in q.keys()]):
                     return False
         else:
-            return False
+            if q != {'$exists': False}:
+                return False
             
     return True
         
