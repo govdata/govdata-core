@@ -1285,7 +1285,7 @@ def PI_metadata(maindir):
     AllMeta['Source'] = [('Agency',{'Name':'Department of Commerce','ShortName':'DOC'}),('Subagency',{'Name':'Bureau of Economic Analysis','ShortName':'BEA'}),('Program','Regional Economic Accounts'), ('Dataset','Personal Income')]
     AllMeta['TopicHierarchy']  = ('Agency','Subagency','Dataset','Category','Subcategory','SubjectHierarchy')
     AllMeta['UniqueIndexes'] = ['Location','Table','LineCode']
-    AllMeta['ColumnGroups'] = {'SpaceColumns' : ['Location']}
+    AllMeta['ColumnGroups'] = {'SpaceColumns' : ['Location'],'SubjectHierarchy':['Level_' + str(i) for i in range(7)]}
     AllMeta['DateFormat'] = 'YYYYqmm'
     AllMeta['sliceCols'] = [['Location.c','Location.m','Location.s','Table','SubjectHierarchy']]
     AllMeta['phraseCols'] = ['Table','SubjectHierarchy','Line','LineCode']  
@@ -1303,7 +1303,7 @@ class pi_parser(OG.csv_parser):
         self.Data = tb.tabarray(SVfile = file,verbosity = 0)
         self.IND = 0
        
-        for k in ['TimeColNames','SubjectHierarchy']:
+        for k in ['TimeColNames']:
             self.metadata['']['ColumnGroups'][k] = uniqify(self.metadata['']['ColumnGroups'].get(k,[]) + self.Data.coloring.get(k,[]))
         
         if 'LineFootnote' in self.Data.metadata.keys():

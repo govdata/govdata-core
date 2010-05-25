@@ -165,10 +165,11 @@ def MongoToJSDateFormatter(DateFormat):
     if 'Y' in DateFormat:
         def Func(x):
             D = tObjFlatten(x)
-            Y = D['Y']
-            m = D.get('m',0)
-            d = D.get('d',0)
+            Y = str(D['Y'])
+            m = str(D.get('m',0))
+            d = str(D.get('d',0))
             return 'new Date(' + Y + ',' + m + ',' + d + ')'
+    return Func
 
 def convertToDT(tObj,convertMode = 'Low'):
     """Convert to python DateTime format"""
