@@ -1146,3 +1146,9 @@ def find(q, timeQuery = None, spaceQuery = None, hlParams=None,facetParams=None,
                     
     return solr.queryUrl(q,hlParams,facetParams,mltParams,**params)
         
+        
+        
+#=-=-=-=-=-=-=-=-=-=-=-=-=-
+#META
+#=-=-=-=-=-=-=-=-=-=-=-=-=-
+

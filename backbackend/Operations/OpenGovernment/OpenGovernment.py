@@ -13,7 +13,7 @@ import gridfs as gfs
 import cPickle as pickle
 import tabular as tb
 from common.utils import IsFile, listdir, is_string_like, ListUnion,createCertificate, uniqify, IsDir
-from common.mongo import cleanCollection, SPECIAL_KEYS
+from common.mongo import cleanCollection, SPECIAL_KEYS, Collection
 import common.timedate as td
 import common.location as loc
 import re
@@ -536,4 +536,25 @@ def processRecord(c,collection,VarMap,uniqueIndexes,versionNumber,specialKeyInds
             
     id = collection.insert(c)
     return id
+    
+    
+def updateSourceDB(collectionNames = None):
 
+    connection = pm.Connection()
+    db = connection['govdata']
+    if collectionNames == None:
+        collectionNames = [n for n in db.collection_names() if not '__' in n and '.' not in n]
+    
+    sName = '____SOURCES____'
+    sCollection = db[sName]
+    
+    if sName not in db.collection_names():
+        sCollection.ensure_index('collectionName',unique=True,dropDups=True)
+    
+    for collectionName in collectionNames:
+        print 'updating', collectionName , 'metadata in source DB.'
+        collection = Collection(collectionName,connection=connection)
+        rec = {'metadata':collection.metadata,'version':collection.currentVersion,'source':collection.Source}
+        sCollection.update({'collectionName':collectionName},{'$set':rec},upsert=True)
+   
+    
