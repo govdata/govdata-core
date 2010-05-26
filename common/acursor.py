@@ -585,12 +585,13 @@ class asyncCursorHandler(tornado.web.RequestHandler):
             self.write('{')
         if self.returnObj:
             self.data = []
-                    
+ 
+ 
     def end(self):
  
         if self.stream:
             self.write('}')  
-                   
+        
         if self.returnObj and not self.stream:
             self.write(json.dumps(self.data,default=pm.json_util.default))
             
@@ -634,15 +635,20 @@ class asyncCursorHandler(tornado.web.RequestHandler):
         
 
     def add_async_cursor(self,collection,querySequence):
-            
+        
+        self.collection = collection
+        
+        if not hasattr(self,'processor'):
+            self.processor = None
+        
         self.begin()        
         
         R = collection 
         
-        for (a,p,k) in querySequence[:-1]:
+        for (a,(p,k)) in querySequence[:-1]:
             R = getattr(R,a)(*p,**k)   
             
-        (act,arg,karg) = querySequence[-1]
+        (act,(arg,karg)) = querySequence[-1]
     
     
         if act == 'count':
@@ -717,7 +723,7 @@ class asyncCursorHandler(tornado.web.RequestHandler):
                 spec,fields,skip,limit = R._Cursor__spec,R._Cursor__fields,R._Cursor__skip,R._Cursor__limit
            
                 self.organize_fields(fields)
-                
+
                 self.add_handler(collection,spec,fields,skip,limit,loop)
          
             else:    
@@ -742,7 +748,7 @@ def loop(handler,cursor,sock,fd):
 
     collection = handler.collection
     processor = handler.processor
-    
+        
     while hasdata:
         try:
             r = cursor.next()

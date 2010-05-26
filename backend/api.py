@@ -65,7 +65,6 @@ class GetHandler(asyncCursorHandler):
                
         A,collection,needsVersioning,versionNumber,uniqueIndexes,vars = get_args(collectionName,querySequence,**passed_args)
         
-        self.collection = collection
         self.needsVersioning = needsVersioning
         self.versionNumber = versionNumber
         self.uniqueIndexes = uniqueIndexes
@@ -315,26 +314,25 @@ def get_args(collectionName,querySequence,timeQuery=None, spaceQuery = None, ver
         posArgs = []
         kwArgs = []
         for (action,args) in querySequence:
-            if args:
-                if action not in EXPOSED_ACTIONS:
-                    raise ValueError, 'Action type ' + str(action) + ' not recognized or exposed.'                  
-                (posargs,kwargs) = getArgs(args)    
-                
-                if needsVersioning and  'fields' in kwargs.keys() and  action in ['find','find_one']:
-                    kwargs['fields'] += ['__versionNumber__'] + uniqueIndexes
+        
+            if action not in EXPOSED_ACTIONS:
+                raise ValueError, 'Action type ' + str(action) + ' not recognized or exposed.'                  
+            (posargs,kwargs) = getArgs(args)    
+            
+            if needsVersioning and  'fields' in kwargs.keys() and  action in ['find','find_one']:
+                kwargs['fields'] += ['__versionNumber__'] + uniqueIndexes
 
-                
-                posargs = tuple([processArg(arg,collection) for arg in posargs])
-                kwargs = dict([(argname,processArg(arg,collection)) for (argname,arg) in kwargs.items()])
+            
+            posargs = tuple([processArg(arg,collection) for arg in posargs])
+            kwargs = dict([(argname,processArg(arg,collection)) for (argname,arg) in kwargs.items()])
 
-            else:
-                posargs = ()
-                kwargs = {}
+
             posArgs.append(posargs)
             kwArgs.append(kwargs)
 
  
-        return zip(Actions,posArgs,kwArgs),collection,needsVersioning,versionNumber,uniqueIndexes,vars
+        
+        return zip(Actions,zip(posArgs,kwArgs)),collection,needsVersioning,versionNumber,uniqueIndexes,vars
 
 
 def get(*args,**kwargs):
@@ -346,7 +344,7 @@ def get(*args,**kwargs):
     A,collection,needsVersioning,versionNumber,uniqueIndexes,vars = get_args(*args,**kwargs)
     
     R = collection  
-    for (a,p,k) in A:
+    for (a,(p,k)) in A:
         R = getattr(R,a)(*p,**k)    
     
     VarMap = dict(zip(vars,[str(x) for x in range(len(vars))]))  
@@ -556,6 +554,9 @@ def getArgs(args):
     elif isinstance(args,tuple):
         posargs = args
         kwargs = {}
+    elif args == None:
+        posargs = ()
+        kwargs = {}
     else:
         raise ValueError, 'querySequence'   
     
@@ -566,45 +567,6 @@ def getArgs(args):
 #=-=-=-=-=-=-=-=-=-=-=-=-=-
 #Wire Protocol
 #=-=-=-=-=-=-=-=-=-=-=-=-=-
-
-        
-def wire_query_processor(tqx):
-
-    #return dict([(v.split(':')[0],':'.join(v.split(':')[1:])) for v in list(csv.reader([tqx],delimiter=';',escapechar='\\'))[0]])
-    return dict([(v.split(':')[0],v.split(':')[-1]) for v in tqx.split(';')])
-    
-def getTable(handler):
-
-    if handler.data:
-    
-        cols = [{'id':id,'label':label,'type':getType(handler,i,id)} for (i,(id,label,processor)) in enumerate(handler.fields)]
-    
-        #signature = str(''.join([r['c'][0]['v'] for r in handler.returnedObj['data']]).__hash__())
-    
-    else:
-        
-        cols = [{'id':id,'label':label,'type':'string'} for (i,(id,label,processor)) in enumerate(handler.fields)]
-        handler.status = 'warning'
-        handler.warnings = [{'reason':'other','message':'No results.'}]
-        
-    return {'cols':cols,'rows':handler.data}
-
-
-def getType(handler,i,id):
-    if id in handler.field_types.keys():
-        return handler.field_types[id]
-    else:
-        dp = handler.data[0]['c'][i]['v']
-        if isinstance(dp,bool):
-            return 'boolean'
-        elif isinstance(dp,int) or isinstance(dp,float):
-            return 'number'
-        else:
-            return 'string'
-
-
-def wire_processor(handler,x,collection):
-    return {'c':[{'v': processor(x.get(id,None))} for (id,label,processor) in handler.fields]}
 
 class TableHandler(GetHandler):
 
@@ -740,7 +702,45 @@ class TableHandler(GetHandler):
         self.finish()
         
         
+def wire_query_processor(tqx):
 
+    #return dict([(v.split(':')[0],':'.join(v.split(':')[1:])) for v in list(csv.reader([tqx],delimiter=';',escapechar='\\'))[0]])
+    return dict([(v.split(':')[0],v.split(':')[-1]) for v in tqx.split(';')])
+    
+def getTable(handler):
+
+    if handler.data:
+    
+        cols = [{'id':id,'label':label,'type':getType(handler,i,id)} for (i,(id,label,processor)) in enumerate(handler.fields)]
+    
+        #signature = str(''.join([r['c'][0]['v'] for r in handler.returnedObj['data']]).__hash__())
+    
+    else:
+        
+        cols = [{'id':id,'label':label,'type':'string'} for (i,(id,label,processor)) in enumerate(handler.fields)]
+        handler.status = 'warning'
+        handler.warnings = [{'reason':'other','message':'No results.'}]
+        
+    return {'cols':cols,'rows':handler.data}
+
+
+def getType(handler,i,id):
+    if id in handler.field_types.keys():
+        return handler.field_types[id]
+    else:
+        dp = handler.data[0]['c'][i]['v']
+        if isinstance(dp,bool):
+            return 'boolean'
+        elif isinstance(dp,int) or isinstance(dp,float):
+            return 'number'
+        else:
+            return 'string'
+
+
+def wire_processor(handler,x,collection):
+    return {'c':[{'v': processor(x.get(id,None))} for (id,label,processor) in handler.fields]}
+
+        
 class TimelineHandler(TableHandler):    
 
     def end(self):
@@ -945,5 +945,35 @@ def find(q, timeQuery = None, spaceQuery = None, hlParams=None,facetParams=None,
         facetParams = {'field':['agency','subagency','dataset','dateDivisions']}
                     
     return solr.queryUrl(q,hlParams,facetParams,mltParams,**params)
+                
+                
+#=-=-=-=-=-=-=-=-=-=-=-=-=-
+#SOURCES
+#=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+class SourceHandler(asyncCursorHandler):
+
+    @tornado.web.asynchronous
+    def get(self):
+        args = self.request.arguments
+        for k in args:
+            args[k] = args[k][0]
+        
+        if args.has_key('querySequence'):
+            querySequence = json.loads(args['querySequence'])
+        else:
+            querySequence = [('find',None)]            
+        
+        querySequence = [(action,getArgs(args)) for (action,args) in querySequence]
         
         
+        self.stream = False
+        self.returnObj = True
+        
+        collection = pm.Connection()['govdata']['____SOURCES____']
+        
+        self.add_async_cursor(collection,querySequence)
+        
+            
+
+
