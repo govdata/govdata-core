@@ -959,14 +959,17 @@ class SourceHandler(asyncCursorHandler):
         for k in args:
             args[k] = args[k][0]
         
-        if args.has_key('querySequence'):
-            querySequence = json.loads(args['querySequence'])
-            if querySequence[0][0] not in ['find','find_one']:
-                querySequence.insert(0,('find',None))
-        else:
-            querySequence = [('find',None)]            
         
-        querySequence = [(str(action),getArgs(args)) for (action,args) in querySequence]
+        querySequence = json.loads(args.get('querySequence','[]'))
+
+        if (not querySequence) or querySequence[0][0] not in ['find','find_one']:
+                querySequence.insert(0,['find',None])
+           
+        querySequence = [[str(action),list(getArgs(args))] for (action,args) in querySequence]
+
+        
+        if querySequence[0][1][0] == () or not (querySequence[0][1][0][0].has_key('version_offset') or querySequence[0][1][0][0].has_key('version')):
+            querySequence[0][1][0] = setArgTuple(querySequence[0][1][0],'version_offset',0)        
         
         self.stream = False
         self.returnObj = True

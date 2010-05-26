@@ -595,6 +595,8 @@ class asyncCursorHandler(tornado.web.RequestHandler):
         if self.stream:
             self.write('}')  
         
+        if self.returnObj and not self.stream:
+            self.write(json.dumps(self.data,default=pm.json_util.default))
             
         self.finish()
         
@@ -787,7 +789,10 @@ def processor_handler(processor,handler,cursor,sock,fd):
     else:
         result = r
     
-    handler.write(json.dumps(result,default=pm.json_util.default))
+    if handler.stream:
+        handler.write(json.dumps(result,default=pm.json_util.default))
+    if handler.returnObj:
+        handler.data = result
         
     handler.done()    
     

@@ -561,8 +561,9 @@ def updateSourceDBFromCollections(collectionNames = None):
 
         subcollections = collection.metadata.items()
         if old_version_number != new_version_number:
-            rec = {'name':collectionName,'version':new_version_number,'subcollections':subcollections,'metadata':collection.metadata[''],'source':collection.Source,'iscollection':True}
+            rec = {'name':collectionName,'version':new_version_number,'version_offset':-1,'subcollections':subcollections,'metadata':collection.metadata[''],'source':collection.Source,'iscollection':True}
             sCollection.insert(rec,safe=True)
+            sCollection.update({'name':collectionName},{'$inc':{'version_offset':1}})
         else:
             rec = {'subcollections':subcollections,'metadata':collection.metadata[''],'source':collection.Source,'iscollection':True}
             sCollection.update({'name':collectionName,'version':new_version_number},{'$set':rec},upsert=True)
@@ -598,8 +599,10 @@ def updateSourceDBByHand(data):
             
         rec['iscollection'] = False
         rec['version'] = new_version_number
+        rec['version_offset'] = -1
  
         if new:
             sCollection.insert(rec,safe=True)
+            sCollection.update({'name':name},{'$inc':{'version_offset':1}})
    
     
