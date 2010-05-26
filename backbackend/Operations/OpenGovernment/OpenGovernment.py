@@ -538,7 +538,7 @@ def processRecord(c,collection,VarMap,uniqueIndexes,versionNumber,specialKeyInds
     return id
     
     
-def updateSourceDB(collectionNames = None):
+def updateSourceDBFromCollections(collectionNames = None):
 
     connection = pm.Connection()
     db = connection['govdata']
@@ -549,12 +549,57 @@ def updateSourceDB(collectionNames = None):
     sCollection = db[sName]
     
     if sName not in db.collection_names():
-        sCollection.ensure_index('collectionName',unique=True,dropDups=True)
+        sCollection.ensure_index([('name',pm.ASCENDING),('version',pm.DESCENDING)],unique=True,dropDups=True)
     
     for collectionName in collectionNames:
         print 'updating', collectionName , 'metadata in source DB.'
         collection = Collection(collectionName,connection=connection)
-        rec = {'metadata':collection.metadata,'version':collection.currentVersion,'source':collection.Source}
-        sCollection.update({'collectionName':collectionName},{'$set':rec},upsert=True)
+                
+        old_version = sCollection.find_one({'name':collectionName})
+        old_version_number = old_version['version'] if old_version else -1
+        new_version_number = collection.currentVersion
+
+        subcollections = collection.metadata.items()
+        if old_version_number != new_version_number:
+            rec = {'name':collectionName,'version':new_version_number,'subcollections':subcollections,'metadata':collection.metadata[''],'source':collection.Source,'iscollection':True}
+            sCollection.insert(rec,safe=True)
+        else:
+            rec = {'subcollections':subcollections,'metadata':collection.metadata[''],'source':collection.Source,'iscollection':True}
+            sCollection.update({'name':collectionName,'version':new_version_number},{'$set':rec},upsert=True)
+        
+
+def updateSourceDBByHand(data):
+
+    connection = pm.Connection()
+    db = connection['govdata']
+    
+    sName = '____SOURCES____'
+    sCollection = db[sName]
+    
+    if sName not in db.collection_names():
+        sCollection.ensure_index([('name',pm.ASCENDING),('version',pm.DESCENDING)],unique=True,dropDups=True)
+        
+    data_collections = sCollection.find({'iscollection':True}).distinct('name')
+    
+    for rec in data:
+        assert hasattr(rec,'keys') and rec.keys() == ['name','metadata','source']
+        name = rec['name']
+        assert name not in data_collections
+        
+        old_version = sCollection.find_one({'name':name})
+
+        if old_version:
+            old_version_number = old_version['version']
+            new = all([v and v == old_version.get(k,None) for (k,v) in rec.items()])
+            new_version_number = old_version_number + new
+        else:
+            new_version_number = 0
+            new = True
+            
+        rec['iscollection'] = False
+        rec['version'] = new_version_number
+ 
+        if new:
+            sCollection.insert(rec,safe=True)
    
     

@@ -16,14 +16,24 @@
 
 import struct
 import warnings
-
 from pymongo import helpers
 import pymongo.message as Message
 from pymongo.code import Code
 from pymongo.errors import (InvalidOperation,
                             AutoReconnect)
 from pymongo.son import SON
+import pymongo as pm
+import pymongo.json_util
+from pymongo.objectid import ObjectId
 import socket
+import tornado.httpclient
+import tornado.web
+import os
+import json
+
+from common.utils import IsFile, listdir, is_string_like, ListUnion, Flatten, is_num_like, uniqify
+import functools
+
 
 _QUERY_OPTIONS = {
     "tailable_cursor": 2,
@@ -558,3 +568,239 @@ class Cursor(object):
         assert operation == struct.unpack("<i", header[12:])[0]
 
         return self.__receive_data_on_socket(length - 16, sock)
+        
+#=-=-=-=-=-=-=-=-=-=-=-=-=-
+#ASYNC MONGO STUFF
+#=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+
+class asyncCursorHandler(tornado.web.RequestHandler):
+
+
+    def organize_fields(self,fields):
+        pass
+        
+    def begin(self):    
+        if self.stream:
+            self.write('{')
+        if self.returnObj:
+            self.data = []
+                    
+    def end(self):
+ 
+        if self.stream:
+            self.write('}')  
+                   
+        if self.returnObj and not self.stream:
+            self.write(json.dumps(self.data,default=pm.json_util.default))
+            
+        self.finish()
+        
+
+    def add_handler(self,collection,spec,fields,skip,limit,callback,_must_use_master=False,_is_command=False):
+    
+        if fields is not None:
+            if not fields:
+                fields = ["_id"]
+            fields = collection._fields_list_to_dict(fields)
+    
+        slave_okay = collection.database.connection.slave_okay
+        timeout = True
+        tailable = False
+        
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        H = sock.connect(("localhost", 27017))
+        sock.setblocking(0)
+        self.socket = sock
+        
+        cursor = Cursor(collection,spec,fields,skip,limit, slave_okay, timeout,tailable,_sock=sock,_must_use_master=_must_use_master, _is_command=_is_command)
+        
+        callback = functools.partial(callback,self,cursor)
+        io_loop = self.settings['io_loop']
+    
+        io_loop.add_handler(sock.fileno(), callback, io_loop.READ)  
+    
+        cursor._refresh()
+    
+    
+    def add_command_handler(self,collection,command,processor):
+    
+        cmdCollection = collection.database['$cmd']
+        
+        callback = functools.partial(processor_handler,processor)
+           
+        self.add_handler(cmdCollection,command,None,0,-1,callback,_must_use_master=True,_is_command= True)
+        
+
+    def add_async_cursor(self,collection,querySequence):
+            
+        self.begin()        
+        
+        R = collection 
+        
+        for (a,p,k) in querySequence[:-1]:
+            R = getattr(R,a)(*p,**k)   
+            
+        (act,arg,karg) = querySequence[-1]
+    
+    
+        if act == 'count':
+        
+            spec,fields,skip,limit = R._Cursor__spec,R._Cursor__fields,R._Cursor__skip,R._Cursor__limit
+            
+            command = {"query":spec,"fields":fields,"count":collection.name}
+            
+            with_limit_and_skip = karg.get('with_limit_and_skip',False)
+            
+            if with_limit_and_skip:
+                if limit:
+                    command["limit"] = limit
+                if skip:
+                    command["skip"] = handler.__skip           
+                    
+            self.add_command_handler(collection,command,process_count)        
+    
+    
+        elif act == 'distinct':
+        
+            spec = R._Cursor__spec
+            
+            command = {"distinct":collection.name,"key":arg[0]}
+            if spec:
+                command['query'] = spec
+            
+            self.add_command_handler(collection,command,process_distinct)
+       
+        elif act == 'find_one':
+        
+            spec = arg[0]
+            fields = karg.get('fields',None)
+            
+            if spec is None:
+                spec = SON()
+            elif isinstance(spec, ObjectId):
+                spec = SON({"_id": spec})
+            
+            callback = functools.partial(processor_handler,None)
+            
+            self.add_handler(collection,spec,fields,0,-1,callback)
+            
+        elif act == 'group':
+        
+            key,condition,initial,reduce = arg
+            finalize = karg.get('finalize')
+            group = {}
+            if isinstance(key, basestring):
+                group["$keyf"] = Code(processJSValue(key,collection))
+            elif key is not None:
+                group = {"key": collection._fields_list_to_dict(key)}
+            group["ns"] = collection.name
+            group["$reduce"] = Code(processJSValue(reduce,collection))
+            group["cond"] = condition
+            group["initial"] = initial
+            if finalize is not None:
+                group["finalize"] = Code(finalize)            
+                
+            command = {"group":group}
+    
+            self.add_command_handler(collection,command,process_group) 
+            
+        else:
+            R = getattr(R,act)(*arg,**karg)
+    
+            if isinstance(R,pm.cursor.Cursor):
+    
+                if self.stream:
+                    self.write('[')
+                    
+                spec,fields,skip,limit = R._Cursor__spec,R._Cursor__fields,R._Cursor__skip,R._Cursor__limit
+           
+                self.organize_fields(fields)
+                
+                self.add_handler(collection,spec,fields,skip,limit,loop)
+         
+            else:    
+                if self.stream:
+                    self.write(json.dumps(R,default=pm.json_util.default))
+                self.end()
+               
+           
+    def done(self):
+    
+        io_loop = self.settings['io_loop']
+        sock = self.socket
+        io_loop.remove_handler(sock.fileno())
+        sock.close()
+        
+        self.end()    
+    
+    
+def loop(handler,cursor,sock,fd):
+    
+    hasdata = True
+
+    collection = handler.collection
+    processor = handler.processor
+    
+    while hasdata:
+        try:
+            r = cursor.next()
+        except StopIteration:
+            cursor._Cursor__die()
+            break
+        else:
+
+            if len(cursor._Cursor__data) == 0:
+                hasdata = False
+                    
+            if processor:
+                r = processor(r,handler,collection)
+                 
+            if handler.stream:
+                handler.write(json.dumps(r,default=pm.json_util.default) + ',')
+            if handler.returnObj:
+                handler.data.append(r)
+    
+    if cursor.alive:
+        cursor._refresh()
+  
+    else:
+        if handler.stream:
+            handler.write(']')
+        
+        handler.done()
+
+
+def processor_handler(processor,handler,cursor,sock,fd):
+
+    r = cursor.next()
+    if processor != None:
+        result = processor(r)
+    else:
+        result = r
+    
+    handler.write(json.dumps(result,default=pm.json_util.default))
+        
+    handler.done()    
+    
+
+def process_count(r):
+
+    if r.get("errmsg", "") == "ns missing":
+        result = 0
+    else:
+        result = int(r["n"])
+        
+    return result
+       
+def process_distinct(r):
+
+    return r["values"]
+    
+def process_group(r):
+
+    return r["retval"]    
+
+                          
+

@@ -7,23 +7,23 @@ import json
 import ast
 import pymongo as pm
 import pymongo.json_util
-from pymongo.code import Code
-from pymongo.objectid import ObjectId
 from common.utils import IsFile, listdir, is_string_like, ListUnion, Flatten, is_num_like, uniqify
 import common.mongo as CM
-import common.acursor as AC
 import common.timedate as td
 import common.location as loc
 import common.solr as solr
-import tornado.ioloop
-import socket
 import functools
+from common.acursor import asyncCursorHandler
+
+
+#=-=-=-=-=-=-=-=-=-=-=-=-=-
+#GET
+#=-=-=-=-=-=-=-=-=-=-=-=-=    
 
 
 EXPOSED_ACTIONS = ['find','find_one','group','skip','limit','sort','count','distinct']
 
-              
-class GetHandler(tornado.web.RequestHandler):
+class GetHandler(asyncCursorHandler):
     @tornado.web.asynchronous
     def get(self):
         
@@ -58,12 +58,13 @@ class GetHandler(tornado.web.RequestHandler):
         self.stream = args.pop('stream',True)
         
         self.returnMetadata = args.pop('returnMetadata',False)   
-        self.processor = args.pop('processor',None)        
+        
+        self.processor = functools.partial(gov_processor,args.pop('processor',None))
        
         passed_args = dict([(key,args.get(key,None)) for key in ['timeQuery','spaceQuery','versionNumber']])
                
         A,collection,needsVersioning,versionNumber,uniqueIndexes,vars = get_args(collectionName,querySequence,**passed_args)
-              
+        
         self.collection = collection
         self.needsVersioning = needsVersioning
         self.versionNumber = versionNumber
@@ -73,118 +74,23 @@ class GetHandler(tornado.web.RequestHandler):
         self.subcols = []
         self.vNInd =  self.VarMap['__versionNumber__']
         self.retInd = self.VarMap['__retained__']
-                
-        self.begin()
-
-        R = collection 
         
-        for (a,p,k) in A[:-1]:
-            R = getattr(R,a)(*p,**k)   
-            
-        (act,arg,karg) = A[-1]
-   
-            
-        if act == 'count':
+        self.add_async_cursor(collection,A)
         
-            spec,fields,skip,limit = R._Cursor__spec,R._Cursor__fields,R._Cursor__skip,R._Cursor__limit
-            
-            command = {"query":spec,"fields":fields,"count":collection.name}
-            
-            with_limit_and_skip = karg.get('with_limit_and_skip',False)
-            
-            if with_limit_and_skip:
-                if limit:
-                    command["limit"] = limit
-                if skip:
-                    command["skip"] = self.__skip           
-                    
-            self.add_command_handler(collection,command,process_count)        
 
-  
-        elif act == 'distinct':
-        
-            spec = R._Cursor__spec
-            
-            command = {"distinct":collection.name,"key":arg[0]}
-            if spec:
-                command['query'] = spec
-            
-            self.add_command_handler(collection,command,process_distinct)
-       
-        elif act == 'find_one':
-        
-            spec = arg[0]
-            fields = karg.get('fields',None)
-            
-            if spec is None:
-                spec = SON()
-            elif isinstance(spec, ObjectId):
-                spec = SON({"_id": spec})
-            
-            callback = functools.partial(processor_handler,None)
-            
-            self.add_handler(collection,spec,fields,0,-1,callback)
-            
-        elif act == 'group':
-            key,condition,initial,reduce = arg
-            finalize = karg.get('finalize')
-            group = {}
-            if isinstance(key, basestring):
-                group["$keyf"] = Code(processJSValue(key,collection))
-            elif key is not None:
-                group = {"key": collection._fields_list_to_dict(key)}
-            group["ns"] = collection.name
-            group["$reduce"] = Code(processJSValue(reduce,collection))
-            group["cond"] = condition
-            group["initial"] = initial
-            if finalize is not None:
-                group["finalize"] = Code(finalize)            
-                
-            command = {"group":group}
-
-            self.add_command_handler(collection,command,process_group) 
-            
-        else:
-            R = getattr(R,act)(*arg,**karg)
- 
-            if isinstance(R,pm.cursor.Cursor):
-
-            
-                if self.stream:
-                    self.write('[')
-                    
-                spec,fields,skip,limit = R._Cursor__spec,R._Cursor__fields,R._Cursor__skip,R._Cursor__limit
-           
-                self.organize_fields(fields)
-                
-                self.add_handler(collection,spec,fields,skip,limit,loop)
-         
-            else:    
-                if self.stream:
-                    self.write(json.dumps(R,default=pm.json_util.default))
-                self.end()
-            
-   
     def begin(self):
         
         if self.stream:
             self.write('{"data":')
         if self.returnObj:
-            self.returnedObj = {'data':[]}
+            self.data = []
+            
+                              
+    def end(self):        
 
-
-        
-    def end(self):
-    
-        io_loop = self.settings['io_loop']
-        sock = self.socket
-        io_loop.remove_handler(sock.fileno())
-        sock.close()
-        self.done()            
-                          
-                          
-    def done(self):        
-
+        if self.returnObj:
+            returnedObj = {'data':self.data}
+            
         returnMetadata = self.returnMetadata
 
         if returnMetadata:
@@ -197,441 +103,20 @@ class GetHandler(tornado.web.RequestHandler):
             if self.stream:
                  self.write(',"metadata":' + json.dumps(metadata,default=pm.json_util.default))    
             if self.returnObj:
-                self.returnedObj["metadata"] = metadata
+                returnedObj["metadata"] = metadata
                 
         if self.stream:
             self.write('}')  
-            
+                   
         if self.returnObj and not self.stream:
-            self.write(json.dumps(self.returnedObj,default=pm.json_util.default))
+            self.write(json.dumps(returnedObj,default=pm.json_util.default))
             
        
         self.finish()
           
 
-    def add_handler(self,collection,spec,fields,skip,limit,callback,_must_use_master=False,_is_command=False):
-    
-        if fields is not None:
-            if not fields:
-                fields = ["_id"]
-            fields = collection._fields_list_to_dict(fields)
-    
-        slave_okay = collection.database.connection.slave_okay
-        timeout = True
-        tailable = False
-        
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        H = sock.connect(("localhost", 27017))
-        sock.setblocking(0)
-        self.socket = sock
-        
-        cursor = AC.Cursor(collection,spec,fields,skip,limit, slave_okay, timeout,tailable,_sock=sock,_must_use_master=_must_use_master, _is_command=_is_command)
-        
-        callback = functools.partial(callback,self,cursor)
-        io_loop = self.settings['io_loop']
+def gov_processor(processor,r,handler,collection):
 
-        io_loop.add_handler(sock.fileno(), callback, io_loop.READ)  
-
-        cursor._refresh()
-    
-    
-    def add_command_handler(self,collection,command,processor):
-    
-        cmdCollection = collection.database['$cmd']
-        
-        callback = functools.partial(processor_handler,processor)
-           
-        self.add_handler(cmdCollection,command,None,0,-1,callback,_must_use_master=True,_is_command= True)
-        
-        
-
-    def organize_fields(self,fields,vars):
-        pass
-              
-def wire_query_processor(tqx):
-
-    #return dict([(v.split(':')[0],':'.join(v.split(':')[1:])) for v in list(csv.reader([tqx],delimiter=';',escapechar='\\'))[0]])
-    return dict([(v.split(':')[0],v.split(':')[-1]) for v in tqx.split(';')])
-
-
-    
-def getTable(handler):
-
-    if handler.returnedObj['data']:
-    
-        cols = [{'id':id,'label':label,'type':getType(handler,i,id)} for (i,(id,label,processor)) in enumerate(handler.fields)]
-    
-        #signature = str(''.join([r['c'][0]['v'] for r in handler.returnedObj['data']]).__hash__())
-    
-    else:
-        
-        cols = [{'id':id,'label':label,'type':'string'} for (i,(id,label,processor)) in enumerate(handler.fields)]
-        handler.status = 'warning'
-        handler.warnings = [{'reason':'other','message':'No results.'}]
-        
-    return {'cols':cols,'rows':handler.returnedObj['data']}
-
-
-def getType(handler,i,id):
-    if id in handler.field_types.keys():
-        return handler.field_types[id]
-    else:
-        dp = handler.returnedObj['data'][0]['c'][i]['v']
-        if isinstance(dp,bool):
-            return 'boolean'
-        elif isinstance(dp,int) or isinstance(dp,float):
-            return 'number'
-        else:
-            return 'string'
-
-
-def wire_processor(handler,x,collection):
-    return {'c':[{'v': processor(x.get(id,None))} for (id,label,processor) in handler.fields]}
-
-
-
-class TableHandler(GetHandler):
-
-    @tornado.web.asynchronous
-    def get(self):
-        args = self.request.arguments
-        for k in args.keys():
-            args[k] = args[k][0]
-        self.args = args
-            
-    
-        tqx = wire_query_processor(args.get('tqx',''))       
-        self.responseHandler = tqx.get('responseHandler','google.visualization.Query.setResponse')
-        self.sig = str(args['tq'].__hash__())
-
-        query = json.loads(args['tq'])
-        self.queryVal = query
-                
-        if 'sig' in tqx.keys() and self.sig == tqx['sig']:
-            self.status = 'warning'
-            self.warnings = [{'reason':'not_modified'}]
-            self.reqId = tqx['reqId'] 
-            self.done()
-                
-        else:
-
-            out = tqx.get('out','json')
-            if out != 'json':
-                self.status = 'error'
-                self.errors = [{'reason':'not_supported','message':'Only Json format is supported, not ' + out + '.'}]
-                self.done()
-                
-            else:
-                
-                self.reqId = tqx.get('reqId',self.sig)
-                
-                query['timeQuery'] = json.loads(query.get('timeQuery','null'))
-                query['spaceQuery'] = json.loads(query.get('spaceQuery','null'))
-                query['querySequence'] = querySequence = json.loads(query['querySequence']) 
-                
-                actions = zip(*querySequence)[0]
-                
-                if set(actions) <= set(EXPOSED_ACTIONS) and 'find' == actions[0]:
-            
-                    query['returnObj'] = True
-                    query['stream'] = False                 
-                    query['processor'] = functools.partial(wire_processor,self)
-                    
-                    self.field_order = querySequence[0][1][1].get('fields',None)
-                    
-                    self.get_response(query)
-                    
-                else:
-                
-                    self.status = 'error'
-                    self.errors = [{'reason':'invalid_query'}]
-                    
-                    self.done()
-
-
-    def organize_fields(self,fields):
-        vars = self.collection.totalVariables
-        
-        if fields == None:
-            fields = map(str,range(len(vars)))
-        else:
-            fields = fields.keys()
-            fields.sort()
-            
-        if self.field_order:
-            fields = uniqify(ListUnion([[self.VarMap[kk] for kk in self.collection.ColumnGroups.get(k,[k])] for k in self.field_order]) + [k for k in fields if vars[int(k)] not in self.field_order])
-
-
-        ids = ['_id'] + [field.encode('utf-8') for field in fields]
-        labels = ['_id'] + [str(vars[int(field)]) for field in fields]
-        
-        TimeColumns = self.collection.ColumnGroups.get('TimeColumns',[])
-        SpaceColums = self.collection.ColumnGroups.get('SpaceColumns',[])
-        
-        self.field_types = {}
-        
-        if hasattr(self.collection,'DateFormat'):
-            DateFormat = self.collection.DateFormat
-            timeformatter = td.MongoToJSDateFormatter(DateFormat)
-            if not timeformatter:
-                timeformatter = td.reverse(DateFormat)
-            else:
-                for t in TimeColumns:
-                    self.field_types[t] = 'date'
-            spaceformatter = lambda  x : loc.phrase2(x).encode('utf-8')
-        
-        processors = []
-        for label in labels:
-            if label in TimeColumns:
-                processors.append(timeformatter)
-            elif label in SpaceColums:
-                processors.append(spaceformatter)
-            elif label == '_id':
-                processors.append(str)
-            else:
-                processors.append(lambda x : x.encode('utf-8') if is_string_like(x) else x)
-                
-                
-        self.fields = zip(ids,labels,processors)
-
-    def post(self):
-        raise BaseException, 'post not handled by wire protocol'
-        
-                               
-    def done(self):
-        if not hasattr(self,'status'):
-            self.status = 'ok'
-                   
-        D = {}    
-        
-        if self.status == 'ok':
-            D['table'] = getTable(self)
-            
-        D['status'] = self.status    
-        if self.status == 'error':       
-            D['errors'] = self.errors
-        elif self.status == 'warning':
-            D['warnings'] = self.warnings
-         
-        if hasattr(self,'reqId'):
-            D['reqId'] = self.reqId
-        if hasattr(self,'sig'):
-            D['sig'] = self.sig
-            
-        D['version'] = '0.6'
-
-        self.write(self.responseHandler + '(' + GoogleJson(D) + ');')
-        self.finish()
-        
-        
-
-class TimelineHandler(TableHandler):    
-
-    def done(self):
-        if not hasattr(self,'status'):
-            self.status = 'ok'
-                   
-        D = {}    
-        
-        if self.status == 'ok':
-            table = getTimelineTable(self)
-            if table:  D['table'] = table
-            
-        D['status'] = self.status    
-        if self.status == 'error':       
-            D['errors'] = self.errors
-        elif self.status == 'warning':
-            D['warnings'] = self.warnings
-         
-        if hasattr(self,'reqId'):
-            D['reqId'] = self.reqId
-        if hasattr(self,'sig'):
-            D['sig'] = self.sig
-            
-        D['version'] = '0.6'
-
-        self.write(self.responseHandler + '(' + GoogleJson(D) + ');')
-        self.finish()
- 
- 
-def infertimecol(collection):
-    if hasattr(collection,'DateFormat') and 'Y' in collection.DateFormat:
-        if collection.ColumnGroups.has_key('TimeColNames'):
-            return '__keys__'
-        elif collection.ColumnGroups.has_key('TimeColumns') and collection.ColumnGroups['TimeColumns']:
-            return collection.ColumnGroups['TimeColumns'][0]
-            
-     
-def getTimelineTable(handler):
-
-    obj = handler.returnedObj['data']
-    if not obj:
-        handler.status = 'error'
-        handler.errors = [{'reason':'other','message':'No results.'}]
-        return
-
-    timecol = handler.queryVal.get('timecol',None)
-    
-    if timecol == None:
-        timecol = infertimecol(handler.collection)
-
-    if timecol == None:
-        handler.status = 'error'
-        handler.errors = [{'reason':'other','message':'TimeCol not found.'}]
-        return        
-     
-  
-    cols = [{'id':id,'label':label,'type':getType(handler,i,id)} for (i,(id,label,processor)) in enumerate(handler.fields)]
-    labels  = [c['label'] for c in cols]
-    
-    if timecol == '__keys__':
-    
-        timecolname = handler.queryVal.get('timecolname','Date')
-        
-        labelcols =  handler.collection.metadata['']['ColumnGroups']['LabelColumns']
-        assert set(labelcols) <= set(labels)
-        labelcolInds = [labels.index(l) for l in labelcols]
-        
-        timevalNames = [name for name in labels if name in handler.collection.ColumnGroups['TimeColNames']]
-        timevalNames.sort()
-                  
-        timevalInds = [labels.index(x) for x in timevalNames]
-        
-        timevalNames = uniqify(ListUnion([[labels[i] for i in timevalInds if r['c'][i]['v'] != None] for r in obj]))
-        timevalNames.sort()
-        timevalInds = [labels.index(x) for x in timevalNames]
-
-        formatter1 = td.mongotimeformatter(handler.collection.DateFormat)
-        formatter2 = td.MongoToJSDateFormatter(handler.collection.DateFormat)
-        timevals = [formatter2(formatter1(x)) for x in timevalNames]
-        
-        othercols = [', '.join([r['c'][l]['v'] for l in labelcolInds if r['c'][l]['v']]) for r in obj]
-        
-        cols = [{'id':'Date','label': timecolname, 'type':'date'}] + [{'id':o,'label': o, 'type':'number'} for  o in othercols]
-        
-        obj = [{'c': [{'v':tv}] + [r['c'][i] for r in obj]}  for (i,tv) in zip(timevalInds,timevals)]
-        #obj = [[tv] + [r['c'][i] for r in obj]  for (i,tv) in zip(timevalInds,timevals)]
-                
-    
-    elif timecol in handler.vars:
-        
-
-        assert timecol in labels
-        timecolInd = labels.index(timecol)
-        assert cols[timecolInd]['type'] == 'Date'
-
-
-        if timecolInd != 0:
-            cols.insert(cols.pop(timeColInd),0)            
-            for r in obj:
-                r['c'].insert(r['c'].pop(timeColInd),0)        
-    
-
-        
-        
-    return {'cols':cols,'rows':obj}
-
-import re
-dateRe = re.compile('new[\s]+Date\([\s]*[\d]+[\s]*,[\s]*[\d]+[\s]*,[\s]*[\d]+[\s]*\)')
-        
-def GoogleJson(D):
-    if isinstance(D,dict):
-        return  '{' + ','.join([str(k) + ':' + GoogleJson(v) for (k,v) in D.items()]) + '}'
-    elif isinstance(D,list) or isinstance(D,tuple):
-        return '[' + ','.join([GoogleJson(k) for k in D]) + ']'
-    elif is_string_like(D):
-        if dateRe.match(D):
-            return D   
-        else:
-            return repr(D)
-    elif is_num_like(D):
-        return str(D)
-    elif not D:
-        return 'undefined'
-    else:
-        print type(D)
-        raise ValueError, 'Value cant be converted.'
-        
-
-                
-class FindHandler(tornado.web.RequestHandler):
-    @tornado.web.asynchronous
-    def get(self):
-        args = self.request.arguments
-        assert 'q' in args.keys() and len(args['q']) == 1
-        query = args['q'][0]
-        args.pop('q')
-        args['wt'] = args.get('wt','json') # set default wt = 'json'
-        http = tornado.httpclient.AsyncHTTPClient()
-        http.fetch(find(query,**args),callback=self.async_callback(self.create_responder(**args)))
-    
-    def create_responder(self,**params):
-        def responder(response):
-            if response.error: raise tornado.web.HTTPError(500)
-            wt = params.get('wt',None)
-            if wt == 'json':
-                self.write(response.body)
-            elif wt == 'python':
-                X = ast.literal_eval(response.body)
-                #do stuff to X
-                jsonstr = json.dumps(X,default=pm.json_util.default)
-                self.write(jsonstr)
-            self.finish()
-        return responder
-    
-    @tornado.web.asynchronous
-    def post(self):
-        args = json.loads(self.request.body)
-        args = dict([(str(x),y) for (x,y) in args.items()])
-        query = args.pop('q')
-        args['wt'] = args.get('wt','json') # set default wt = 'json'
-        http = tornado.httpclient.AsyncHTTPClient()
-        http.fetch(find(query,**args),callback=self.async_callback(self.create_responder(**args)))
-        
-
-
-#=-=-=-=-=-=-=-=-=-=-=-=-=-
-#GET
-#=-=-=-=-=-=-=-=-=-=-=-=-=-
-
-def processor_handler(processor,handler,cursor,sock,fd):
-
-    r = cursor.next()
-    if processor != None:
-        result = processor(r)
-    else:
-        result = r
-    
-    handler.write(json.dumps(result,default=pm.json_util.default))
-        
-    handler.end()    
-    
-
-def process_count(r):
-
-    if r.get("errmsg", "") == "ns missing":
-        result = 0
-    else:
-        result = int(r["n"])
-        
-    return result
-       
-
-def process_distinct(r):
-
-    return r["values"]
-    
-def process_group(r):
-
-    return r["retval"]    
-    
-
-def loop(handler,cursor,sock,fd):
-    
-    hasdata = True
-
-    collection = handler.collection
     needsVersioning = handler.needsVersioning
     versionNumber = handler.versionNumber
     uniqueIndexes = handler.uniqueIndexes
@@ -640,56 +125,31 @@ def loop(handler,cursor,sock,fd):
     subcols = handler.subcols
     vNInd =  handler.vNInd
     retInd = handler.retInd
-    processor = handler.processor
-    
-    while hasdata:
-        try:
-            r = cursor.next()
-        except StopIteration:
-            cursor._Cursor__die()
-            break
-        else:
 
-            if len(cursor._Cursor__data) == 0:
-                hasdata = False
-                
-                   
-            if handler.needsVersioning: 
-                rV = r[handler.vNInd]
-                if rV > versionNumber:
-                    s = dict([(VarMap[k],r[VarMap[k]]) for k in uniqueIndexes] + [(vNInd,{'$gte':versionNumber,'$lt':rV}),(retInd,True)])
-                    H = collection.find(s).sort(vNInd,pm.DESCENDING)
-                    for h in H:
-                        for hh in h.keys():
-                            if hh not in SPECIAL_KEYS:
-                                r[hh] = h[hh]
-                            if '__addedKeys__' in h.keys():
-                                for g in h['__addedKeys__']:
-                                    r.pop(g)
-                 
-                    r[vNInd] = versionNumber
-             
-            if processor:
-                r = processor(r,collection)
-                 
-            if handler.stream:
-                handler.write(json.dumps(r,default=pm.json_util.default) + ',')
-            if handler.returnObj:
-                handler.returnedObj['data'].append(r)
-    
-            if sci and sci in r.keys():
-                subcols.append((r['_id'],r[sci]))
-    
-    if cursor.alive:
-        cursor._refresh()
-  
-    else:
-        if handler.stream:
-            handler.write(']')
+    if handler.needsVersioning: 
+        rV = r[handler.vNInd]
+        if rV > versionNumber:
+            s = dict([(VarMap[k],r[VarMap[k]]) for k in uniqueIndexes] + [(vNInd,{'$gte':versionNumber,'$lt':rV}),(retInd,True)])
+            H = collection.find(s).sort(vNInd,pm.DESCENDING)
+            for h in H:
+                for hh in h.keys():
+                    if hh not in SPECIAL_KEYS:
+                        r[hh] = h[hh]
+                    if '__addedKeys__' in h.keys():
+                        for g in h['__addedKeys__']:
+                            r.pop(g)
+         
+            r[vNInd] = versionNumber
+     
+    if processor:
+        r = processor(r,collection)
         
-        handler.end()
+    if sci and sci in r.keys():
+        subcols.append((r['_id'],r[sci]))
         
+    return r
 
+       
 def get_args(collectionName,querySequence,timeQuery=None, spaceQuery = None, versionNumber=None):
     """
     collectionName : String => collection name e.g. BEA_NIPA
@@ -730,11 +190,9 @@ def get_args(collectionName,querySequence,timeQuery=None, spaceQuery = None, ver
     
     needsVersioning = versionNumber != 'ALL' and versionNumber != currentVersion
     vars = collection.totalVariables
-    uniqueIndexes = collection.UniqueIndexes
-     
+    uniqueIndexes = collection.UniqueIndexes   
     
     ColumnGroups = collection.ColumnGroups
-
 
     if versionNumber != 'ALL':  
         insertions = []
@@ -749,7 +207,7 @@ def get_args(collectionName,querySequence,timeQuery=None, spaceQuery = None, ver
                 posargs = setArgTuple(posargs,'__retained__',{'$exists':False})
                 posargs = setArgTuple(posargs,'__originalVersion__',{'$lte':versionNumber})
                 querySequence[i] = (action,[posargs,kwargs])  
-            elif action in ['count','distinct']:
+            elif action in ['count','distinct'] and i == 0 :
                 insertions.append((i,('find',   ({'__versionNumber__':{'$gte':versionNumber},'__retained__':{'$exists':False},'__originalVersion__':{'$lte':versionNumber}},))))
             
         for (i,v) in insertions:
@@ -1104,9 +562,351 @@ def getArgs(args):
     return (posargs,kwargs)
     
     
+    
+#=-=-=-=-=-=-=-=-=-=-=-=-=-
+#Wire Protocol
+#=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+        
+def wire_query_processor(tqx):
+
+    #return dict([(v.split(':')[0],':'.join(v.split(':')[1:])) for v in list(csv.reader([tqx],delimiter=';',escapechar='\\'))[0]])
+    return dict([(v.split(':')[0],v.split(':')[-1]) for v in tqx.split(';')])
+    
+def getTable(handler):
+
+    if handler.data:
+    
+        cols = [{'id':id,'label':label,'type':getType(handler,i,id)} for (i,(id,label,processor)) in enumerate(handler.fields)]
+    
+        #signature = str(''.join([r['c'][0]['v'] for r in handler.returnedObj['data']]).__hash__())
+    
+    else:
+        
+        cols = [{'id':id,'label':label,'type':'string'} for (i,(id,label,processor)) in enumerate(handler.fields)]
+        handler.status = 'warning'
+        handler.warnings = [{'reason':'other','message':'No results.'}]
+        
+    return {'cols':cols,'rows':handler.data}
+
+
+def getType(handler,i,id):
+    if id in handler.field_types.keys():
+        return handler.field_types[id]
+    else:
+        dp = handler.data[0]['c'][i]['v']
+        if isinstance(dp,bool):
+            return 'boolean'
+        elif isinstance(dp,int) or isinstance(dp,float):
+            return 'number'
+        else:
+            return 'string'
+
+
+def wire_processor(handler,x,collection):
+    return {'c':[{'v': processor(x.get(id,None))} for (id,label,processor) in handler.fields]}
+
+class TableHandler(GetHandler):
+
+    @tornado.web.asynchronous
+    def get(self):
+        args = self.request.arguments
+        for k in args.keys():
+            args[k] = args[k][0]
+        self.args = args
+            
+    
+        tqx = wire_query_processor(args.get('tqx',''))       
+        self.responseHandler = tqx.get('responseHandler','google.visualization.Query.setResponse')
+        self.sig = str(args['tq'].__hash__())
+
+        query = json.loads(args['tq'])
+        self.queryVal = query
+                
+        if 'sig' in tqx.keys() and self.sig == tqx['sig']:
+            self.status = 'warning'
+            self.warnings = [{'reason':'not_modified'}]
+            self.reqId = tqx['reqId'] 
+            self.end()
+                
+        else:
+
+            out = tqx.get('out','json')
+            if out != 'json':
+                self.status = 'error'
+                self.errors = [{'reason':'not_supported','message':'Only Json format is supported, not ' + out + '.'}]
+                self.end()
+                
+            else:
+                
+                self.reqId = tqx.get('reqId',self.sig)
+                
+                query['timeQuery'] = json.loads(query.get('timeQuery','null'))
+                query['spaceQuery'] = json.loads(query.get('spaceQuery','null'))
+                query['querySequence'] = querySequence = json.loads(query['querySequence']) 
+                
+                actions = zip(*querySequence)[0]
+                
+                if set(actions) <= set(EXPOSED_ACTIONS) and 'find' == actions[0]:
+            
+                    query['returnObj'] = True
+                    query['stream'] = False                 
+                    query['processor'] = functools.partial(wire_processor,self)
+                    
+                    self.field_order = querySequence[0][1][1].get('fields',None)
+                    
+                    self.get_response(query)
+                    
+                else:
+                
+                    self.status = 'error'
+                    self.errors = [{'reason':'invalid_query'}]
+                    
+                    self.end()
+
+
+    def organize_fields(self,fields):
+        vars = self.collection.totalVariables
+        
+        if fields == None:
+            fields = map(str,range(len(vars)))
+        else:
+            fields = fields.keys()
+            fields.sort()
+            
+        if self.field_order:
+            fields = uniqify(ListUnion([[self.VarMap[kk] for kk in self.collection.ColumnGroups.get(k,[k])] for k in self.field_order]) + [k for k in fields if vars[int(k)] not in self.field_order])
+
+
+        ids = ['_id'] + [field.encode('utf-8') for field in fields]
+        labels = ['_id'] + [str(vars[int(field)]) for field in fields]
+        
+        TimeColumns = self.collection.ColumnGroups.get('TimeColumns',[])
+        SpaceColums = self.collection.ColumnGroups.get('SpaceColumns',[])
+        
+        self.field_types = {}
+        
+        if hasattr(self.collection,'DateFormat'):
+            DateFormat = self.collection.DateFormat
+            timeformatter = td.MongoToJSDateFormatter(DateFormat)
+            if not timeformatter:
+                timeformatter = td.reverse(DateFormat)
+            else:
+                for t in TimeColumns:
+                    self.field_types[t] = 'date'
+            spaceformatter = lambda  x : loc.phrase2(x).encode('utf-8')
+        
+        processors = []
+        for label in labels:
+            if label in TimeColumns:
+                processors.append(timeformatter)
+            elif label in SpaceColums:
+                processors.append(spaceformatter)
+            elif label == '_id':
+                processors.append(str)
+            else:
+                processors.append(lambda x : x.encode('utf-8') if is_string_like(x) else x)
+                
+                
+        self.fields = zip(ids,labels,processors)
+
+    def post(self):
+        raise BaseException, 'post not handled by wire protocol'
+        
+                               
+    def end(self):
+        if not hasattr(self,'status'):
+            self.status = 'ok'
+                   
+        D = {}    
+        
+        if self.status == 'ok':
+            D['table'] = getTable(self)
+            
+        D['status'] = self.status    
+        if self.status == 'error':       
+            D['errors'] = self.errors
+        elif self.status == 'warning':
+            D['warnings'] = self.warnings
+         
+        if hasattr(self,'reqId'):
+            D['reqId'] = self.reqId
+        if hasattr(self,'sig'):
+            D['sig'] = self.sig
+            
+        D['version'] = '0.6'
+
+        self.write(self.responseHandler + '(' + GoogleJson(D) + ');')
+        self.finish()
+        
+        
+
+class TimelineHandler(TableHandler):    
+
+    def end(self):
+        if not hasattr(self,'status'):
+            self.status = 'ok'
+                   
+        D = {}    
+        
+        if self.status == 'ok':
+            table = getTimelineTable(self)
+            if table:  D['table'] = table
+            
+        D['status'] = self.status    
+        if self.status == 'error':       
+            D['errors'] = self.errors
+        elif self.status == 'warning':
+            D['warnings'] = self.warnings
+         
+        if hasattr(self,'reqId'):
+            D['reqId'] = self.reqId
+        if hasattr(self,'sig'):
+            D['sig'] = self.sig
+            
+        D['version'] = '0.6'
+
+        self.write(self.responseHandler + '(' + GoogleJson(D) + ');')
+        self.finish()
+ 
+ 
+def infertimecol(collection):
+    if hasattr(collection,'DateFormat') and 'Y' in collection.DateFormat:
+        if collection.ColumnGroups.has_key('TimeColNames'):
+            return '__keys__'
+        elif collection.ColumnGroups.has_key('TimeColumns') and collection.ColumnGroups['TimeColumns']:
+            return collection.ColumnGroups['TimeColumns'][0]
+            
+     
+def getTimelineTable(handler):
+
+    obj = handler.data
+    if not obj:
+        handler.status = 'error'
+        handler.errors = [{'reason':'other','message':'No results.'}]
+        return
+
+    timecol = handler.queryVal.get('timecol',None)
+    
+    if timecol == None:
+        timecol = infertimecol(handler.collection)
+
+    if timecol == None:
+        handler.status = 'error'
+        handler.errors = [{'reason':'other','message':'TimeCol not found.'}]
+        return        
+     
+    cols = [{'id':id,'label':label,'type':getType(handler,i,id)} for (i,(id,label,processor)) in enumerate(handler.fields)]
+    labels  = [c['label'] for c in cols]
+    
+    if timecol == '__keys__':
+    
+        timecolname = handler.queryVal.get('timecolname','Date')
+        
+        labelcols =  handler.collection.metadata['']['ColumnGroups']['LabelColumns']
+        assert set(labelcols) <= set(labels)
+        labelcolInds = [labels.index(l) for l in labelcols]
+        
+        timevalNames = [name for name in labels if name in handler.collection.ColumnGroups['TimeColNames']]
+        timevalNames.sort()
+                  
+        timevalInds = [labels.index(x) for x in timevalNames]
+        
+        timevalNames = uniqify(ListUnion([[labels[i] for i in timevalInds if r['c'][i]['v'] != None] for r in obj]))
+        timevalNames.sort()
+        timevalInds = [labels.index(x) for x in timevalNames]
+
+        formatter1 = td.mongotimeformatter(handler.collection.DateFormat)
+        formatter2 = td.MongoToJSDateFormatter(handler.collection.DateFormat)
+        timevals = [formatter2(formatter1(x)) for x in timevalNames]
+        
+        othercols = [', '.join([r['c'][l]['v'] for l in labelcolInds if r['c'][l]['v']]) for r in obj]
+        
+        cols = [{'id':'Date','label': timecolname, 'type':'date'}] + [{'id':o,'label': o, 'type':'number'} for  o in othercols]
+        
+        obj = [{'c': [{'v':tv}] + [r['c'][i] for r in obj]}  for (i,tv) in zip(timevalInds,timevals)]
+        #obj = [[tv] + [r['c'][i] for r in obj]  for (i,tv) in zip(timevalInds,timevals)]
+                
+    
+    elif timecol in handler.vars:
+        
+
+        assert timecol in labels
+        timecolInd = labels.index(timecol)
+        assert cols[timecolInd]['type'] == 'Date'
+
+
+        if timecolInd != 0:
+            cols.insert(cols.pop(timeColInd),0)            
+            for r in obj:
+                r['c'].insert(r['c'].pop(timeColInd),0)        
+   
+        
+    return {'cols':cols,'rows':obj}
+
+import re
+dateRe = re.compile('new[\s]+Date\([\s]*[\d]+[\s]*,[\s]*[\d]+[\s]*,[\s]*[\d]+[\s]*\)')
+        
+def GoogleJson(D):
+    if isinstance(D,dict):
+        return  '{' + ','.join([str(k) + ':' + GoogleJson(v) for (k,v) in D.items()]) + '}'
+    elif isinstance(D,list) or isinstance(D,tuple):
+        return '[' + ','.join([GoogleJson(k) for k in D]) + ']'
+    elif is_string_like(D):
+        if dateRe.match(D):
+            return D   
+        else:
+            return repr(D)
+    elif is_num_like(D):
+        return str(D)
+    elif not D:
+        return 'undefined'
+    else:
+        print type(D)
+        raise ValueError, 'Value cant be converted.'
+        
+
+
+    
 #=-=-=-=-=-=-=-=-=-=-=-=-=-
 #FIND
 #=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+               
+class FindHandler(tornado.web.RequestHandler):
+    @tornado.web.asynchronous
+    def get(self):
+        args = self.request.arguments
+        assert 'q' in args.keys() and len(args['q']) == 1
+        query = args['q'][0]
+        args.pop('q')
+        args['wt'] = args.get('wt','json') # set default wt = 'json'
+        http = tornado.httpclient.AsyncHTTPClient()
+        http.fetch(find(query,**args),callback=self.async_callback(self.create_responder(**args)))
+    
+    def create_responder(self,**params):
+        def responder(response):
+            if response.error: raise tornado.web.HTTPError(500)
+            wt = params.get('wt',None)
+            if wt == 'json':
+                self.write(response.body)
+            elif wt == 'python':
+                X = ast.literal_eval(response.body)
+                #do stuff to X
+                jsonstr = json.dumps(X,default=pm.json_util.default)
+                self.write(jsonstr)
+            self.finish()
+        return responder
+    
+    @tornado.web.asynchronous
+    def post(self):
+        args = json.loads(self.request.body)
+        args = dict([(str(x),y) for (x,y) in args.items()])
+        query = args.pop('q')
+        args['wt'] = args.get('wt','json') # set default wt = 'json'
+        http = tornado.httpclient.AsyncHTTPClient()
+        http.fetch(find(query,**args),callback=self.async_callback(self.create_responder(**args)))
+        
 
 
 def find(q, timeQuery = None, spaceQuery = None, hlParams=None,facetParams=None,mltParams = None, **params):
@@ -1147,8 +947,3 @@ def find(q, timeQuery = None, spaceQuery = None, hlParams=None,facetParams=None,
     return solr.queryUrl(q,hlParams,facetParams,mltParams,**params)
         
         
-        
-#=-=-=-=-=-=-=-=-=-=-=-=-=-
-#META
-#=-=-=-=-=-=-=-=-=-=-=-=-=-
-
