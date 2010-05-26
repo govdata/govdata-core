@@ -487,6 +487,7 @@ class Cursor(object):
         self.__data is already non-empty. Raises OperationFailure when the
         cursor cannot be refreshed due to an error on the query.
         """
+        
 
         if len(self.__data) or self.__killed:
             return
@@ -498,8 +499,10 @@ class Cursor(object):
                               self.__collection.full_name,
                               self.__skip, self.__limit,
                               self.__query_spec(), self.__fields)
+                 
             self.__request_id = message[0]  
             
+
             self.__send_message(message)
             
 
@@ -592,8 +595,6 @@ class asyncCursorHandler(tornado.web.RequestHandler):
         if self.stream:
             self.write('}')  
         
-        if self.returnObj and not self.stream:
-            self.write(json.dumps(self.data,default=pm.json_util.default))
             
         self.finish()
         
@@ -616,7 +617,7 @@ class asyncCursorHandler(tornado.web.RequestHandler):
         self.socket = sock
         
         cursor = Cursor(collection,spec,fields,skip,limit, slave_okay, timeout,tailable,_sock=sock,_must_use_master=_must_use_master, _is_command=_is_command)
-        
+       
         callback = functools.partial(callback,self,cursor)
         io_loop = self.settings['io_loop']
     
@@ -630,7 +631,7 @@ class asyncCursorHandler(tornado.web.RequestHandler):
         cmdCollection = collection.database['$cmd']
         
         callback = functools.partial(processor_handler,processor)
-           
+        
         self.add_handler(cmdCollection,command,None,0,-1,callback,_must_use_master=True,_is_command= True)
         
 
@@ -779,7 +780,7 @@ def loop(handler,cursor,sock,fd):
 
 
 def processor_handler(processor,handler,cursor,sock,fd):
-
+    
     r = cursor.next()
     if processor != None:
         result = processor(r)

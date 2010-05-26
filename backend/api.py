@@ -961,17 +961,20 @@ class SourceHandler(asyncCursorHandler):
         
         if args.has_key('querySequence'):
             querySequence = json.loads(args['querySequence'])
+            if querySequence[0][0] not in ['find','find_one']:
+                querySequence.insert(0,('find',None))
         else:
             querySequence = [('find',None)]            
         
-        querySequence = [(action,getArgs(args)) for (action,args) in querySequence]
-        
+        querySequence = [(str(action),getArgs(args)) for (action,args) in querySequence]
         
         self.stream = False
         self.returnObj = True
         
-        collection = pm.Connection()['govdata']['____SOURCES____']
-        
+        connection = pm.Connection()
+        db = connection['govdata']
+        collection = db['____SOURCES____']
+
         self.add_async_cursor(collection,querySequence)
         
             
