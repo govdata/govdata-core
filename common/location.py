@@ -146,23 +146,24 @@ def integrate(l1,l2):
         
 def intersect(l1,l2):
     """Intersects two space objects"""
-    I = dict([(k,l1[k]) for k in set(l1.keys()).intersection(l2.keys())])
-    
-    for (k,v) in l2.items():
-        if k in I.keys() and v != I[k]:
-            if is_string_like(v):
-                for j in SPACE_HIERARCHY[k]:
-                    if j in I.keys():
-                        I.pop(j)
-            else:
-                D = intersect(I[k],v)
-                if D:
-                    I[k] = D
-                else:
-                    I.pop(k)
+    if l1 and l2 :
+        I = dict([(k,l1[k]) for k in set(l1.keys()).intersection(l2.keys())])
         
-    return I
-    
+        for (k,v) in l2.items():
+            if k in I.keys() and v != I[k]:
+                if is_string_like(v):
+                    for j in SPACE_HIERARCHY[k]:
+                        if j in I.keys():
+                            I.pop(j)
+                else:
+                    D = intersect(I[k],v)
+                    if D:
+                        I[k] = D
+                    else:
+                        I.pop(k)
+            
+        return I
+        
     
 def generateQueries(spaceQuery):    
     """Generates queries for get in mongo"""
