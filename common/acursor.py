@@ -638,7 +638,7 @@ class asyncCursorHandler(tornado.web.RequestHandler):
         
 
     def add_async_cursor(self,collection,querySequence):
-        
+
         self.collection = collection
         
         if not hasattr(self,'processor'):
@@ -649,6 +649,7 @@ class asyncCursorHandler(tornado.web.RequestHandler):
         R = collection 
         
         for (a,(p,k)) in querySequence[:-1]:
+            k = dict([(str(kk),v) for (kk,v) in k.items()])
             R = getattr(R,a)(*p,**k)   
             
         (act,(arg,karg)) = querySequence[-1]
@@ -782,7 +783,6 @@ def loop(handler,cursor,sock,fd):
 
 
 def processor_handler(processor,handler,cursor,sock,fd):
-    
     r = cursor.next()
     if processor != None:
         result = processor(r)

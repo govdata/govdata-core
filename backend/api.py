@@ -51,6 +51,7 @@ class GetHandler(asyncCursorHandler):
     def get_response(self,args):
         
         args = dict([(str(x),y) for (x,y) in args.items()])
+
         collectionName = args.pop('collectionName')
         querySequence = args.pop('querySequence')        
         
@@ -65,6 +66,7 @@ class GetHandler(asyncCursorHandler):
                
         A,collection,needsVersioning,versionNumber,uniqueIndexes,vars = get_args(collectionName,querySequence,**passed_args)
         
+    
         self.needsVersioning = needsVersioning
         self.versionNumber = versionNumber
         self.uniqueIndexes = uniqueIndexes
@@ -193,6 +195,7 @@ def get_args(collectionName,querySequence,timeQuery=None, spaceQuery = None, ver
     
     ColumnGroups = collection.ColumnGroups
 
+
     if versionNumber != 'ALL':  
         insertions = []
         for (i,(action,args)) in enumerate(querySequence):
@@ -275,7 +278,7 @@ def get_args(collectionName,querySequence,timeQuery=None, spaceQuery = None, ver
         sQ = None
         SpaceColNamesToReturn = 'ALL'
 
-                        
+
     if querySequence and (sQ or tQ):
         for (i,(action,args)) in enumerate(querySequence):
             if action in ['find','find_one']:
@@ -306,7 +309,6 @@ def get_args(collectionName,querySequence,timeQuery=None, spaceQuery = None, ver
                         
                 querySequence[i] = (action,[posargs,kwargs])                    
                 
-
     if querySequence:
     
         [Actions, Args] = zip(*querySequence)
@@ -314,7 +316,7 @@ def get_args(collectionName,querySequence,timeQuery=None, spaceQuery = None, ver
         posArgs = []
         kwArgs = []
         for (action,args) in querySequence:
-        
+
             if action not in EXPOSED_ACTIONS:
                 raise ValueError, 'Action type ' + str(action) + ' not recognized or exposed.'                  
             (posargs,kwargs) = getArgs(args)    
@@ -325,12 +327,11 @@ def get_args(collectionName,querySequence,timeQuery=None, spaceQuery = None, ver
             
             posargs = tuple([processArg(arg,collection) for arg in posargs])
             kwargs = dict([(argname,processArg(arg,collection)) for (argname,arg) in kwargs.items()])
-
+            
 
             posArgs.append(posargs)
             kwArgs.append(kwargs)
 
- 
         
         return zip(Actions,zip(posArgs,kwArgs)),collection,needsVersioning,versionNumber,uniqueIndexes,vars
 
@@ -606,6 +607,7 @@ class TableHandler(GetHandler):
                 query['timeQuery'] = json.loads(query.get('timeQuery','null'))
                 query['spaceQuery'] = json.loads(query.get('spaceQuery','null'))
                 query['querySequence'] = querySequence = json.loads(query['querySequence']) 
+                         
                 
                 actions = zip(*querySequence)[0]
                 
@@ -966,17 +968,19 @@ class SourceHandler(asyncCursorHandler):
                 querySequence.insert(0,['find',None])
            
         querySequence = [[str(action),list(getArgs(args))] for (action,args) in querySequence]
-
+    
         
         if querySequence[0][1][0] == () or not (querySequence[0][1][0][0].has_key('version_offset') or querySequence[0][1][0][0].has_key('version')):
             querySequence[0][1][0] = setArgTuple(querySequence[0][1][0],'version_offset',0)        
         
+    
         self.stream = False
         self.returnObj = True
         
         connection = pm.Connection()
         db = connection['govdata']
         collection = db['____SOURCES____']
+
 
         self.add_async_cursor(collection,querySequence)
         
