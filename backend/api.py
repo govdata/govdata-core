@@ -64,9 +64,9 @@ class GetHandler(asyncCursorHandler):
        
         passed_args = dict([(key,args.get(key,None)) for key in ['timeQuery','spaceQuery','versionNumber']])
                
+ 
         A,collection,needsVersioning,versionNumber,uniqueIndexes,vars = get_args(collectionName,querySequence,**passed_args)
         
-    
         self.needsVersioning = needsVersioning
         self.versionNumber = versionNumber
         self.uniqueIndexes = uniqueIndexes
@@ -195,7 +195,6 @@ def get_args(collectionName,querySequence,timeQuery=None, spaceQuery = None, ver
     
     ColumnGroups = collection.ColumnGroups
 
-
     if versionNumber != 'ALL':  
         insertions = []
         for (i,(action,args)) in enumerate(querySequence):
@@ -278,7 +277,6 @@ def get_args(collectionName,querySequence,timeQuery=None, spaceQuery = None, ver
         sQ = None
         SpaceColNamesToReturn = 'ALL'
 
-
     if querySequence and (sQ or tQ):
         for (i,(action,args)) in enumerate(querySequence):
             if action in ['find','find_one']:
@@ -291,9 +289,11 @@ def get_args(collectionName,querySequence,timeQuery=None, spaceQuery = None, ver
                     remove = (TimeColNames if TimeColNamesToReturn != 'ALL' else []) + (SpaceColNames if SpaceColNamesToReturn != 'ALL' else [])
                     retain = (TimeColNamesToReturn if TimeColNamesToReturn != 'ALL' else []) + (SpaceColNamesToReturn if SpaceColNamesToReturn != 'ALL' else [])
 
-                    retainCols = set(vars).difference(set(remove).difference(retain))
-                    
-                    kwargs['fields'] = list(retainCols.intersection(kwargs['fields'])) if 'fields' in kwargs else list(retainCols) 
+                    if 'fields' in kwargs:
+                        kwargs['fields'] += retain
+                    else:
+                        retainCols = set(vars).difference(set(remove).difference(retain))
+                        kwargs['fields'] =  list(retainCols) 
             
                     #posargs = setArgTuple(posargs,tuple(retain),{'$exists':True})
                                                 
@@ -312,7 +312,7 @@ def get_args(collectionName,querySequence,timeQuery=None, spaceQuery = None, ver
     if querySequence:
     
         [Actions, Args] = zip(*querySequence)
-         
+          
         posArgs = []
         kwArgs = []
         for (action,args) in querySequence:
@@ -331,7 +331,6 @@ def get_args(collectionName,querySequence,timeQuery=None, spaceQuery = None, ver
 
             posArgs.append(posargs)
             kwArgs.append(kwargs)
-
         
         return zip(Actions,zip(posArgs,kwArgs)),collection,needsVersioning,versionNumber,uniqueIndexes,vars
 
@@ -578,7 +577,6 @@ class TableHandler(GetHandler):
             args[k] = args[k][0]
         self.args = args
             
-    
         tqx = wire_query_processor(args.get('tqx',''))       
         self.responseHandler = tqx.get('responseHandler','google.visualization.Query.setResponse')
         self.sig = str(args['tq'].__hash__())
@@ -616,7 +614,7 @@ class TableHandler(GetHandler):
                     query['returnObj'] = True
                     query['stream'] = False                 
                     query['processor'] = functools.partial(wire_processor,self)
-                    
+                           
                     self.field_order = querySequence[0][1][1].get('fields',None)
                     
                     self.get_response(query)
@@ -633,13 +631,13 @@ class TableHandler(GetHandler):
         vars = self.collection.totalVariables
         
         if fields == None:
-            fields = map(str,range(len(vars)))
+            fields = map(str,range(len(SPECIAL_KEYS),len(vars)))
         else:
             fields = fields.keys()
             fields.sort()
             
         if self.field_order:
-            fields = uniqify(ListUnion([[self.VarMap[kk] for kk in self.collection.ColumnGroups.get(k,[k])] for k in self.field_order]) + [k for k in fields if vars[int(k)] not in self.field_order])
+            fields = uniqify(ListUnion([[self.VarMap[kk] for kk in self.collection.ColumnGroups.get(k,[k])] for k in self.field_order]) + [k for k in fields if k != '_id' and vars[int(k)] not in self.field_order])
 
 
         ids = ['_id'] + [field.encode('utf-8') for field in fields]
@@ -669,8 +667,7 @@ class TableHandler(GetHandler):
             elif label == '_id':
                 processors.append(str)
             else:
-                processors.append(lambda x : x.encode('utf-8') if is_string_like(x) else x)
-                
+                processors.append(lambda x : x if is_num_like(x) else str(x))
                 
         self.fields = zip(ids,labels,processors)
 
@@ -712,10 +709,7 @@ def wire_query_processor(tqx):
 def getTable(handler):
 
     if handler.data:
-    
         cols = [{'id':id,'label':label,'type':getType(handler,i,id)} for (i,(id,label,processor)) in enumerate(handler.fields)]
-    
-        #signature = str(''.join([r['c'][0]['v'] for r in handler.returnedObj['data']]).__hash__())
     
     else:
         
@@ -767,8 +761,9 @@ class TimelineHandler(TableHandler):
             D['sig'] = self.sig
             
         D['version'] = '0.6'
-
+        
         self.write(self.responseHandler + '(' + GoogleJson(D) + ');')
+
         self.finish()
  
  
@@ -824,7 +819,7 @@ def getTimelineTable(handler):
         
         othercols = [', '.join([r['c'][l]['v'] for l in labelcolInds if r['c'][l]['v']]) for r in obj]
         
-        cols = [{'id':'Date','label': timecolname, 'type':'date'}] + [{'id':o,'label': o, 'type':'number'} for  o in othercols]
+        cols = [{'id':'Date','label': timecolname, 'type':'date'}] + [{'id':str(j),'label': o, 'type':'number'} for  (j,o) in enumerate(othercols)]
         
         obj = [{'c': [{'v':tv}] + [r['c'][i] for r in obj]}  for (i,tv) in zip(timevalInds,timevals)]
         #obj = [[tv] + [r['c'][i] for r in obj]  for (i,tv) in zip(timevalInds,timevals)]
@@ -843,12 +838,12 @@ def getTimelineTable(handler):
             for r in obj:
                 r['c'].insert(r['c'].pop(timeColInd),0)        
    
-        
     return {'cols':cols,'rows':obj}
 
 import re
 dateRe = re.compile('new[\s]+Date\([\s]*[\d]+[\s]*,[\s]*[\d]+[\s]*,[\s]*[\d]+[\s]*\)')
-        
+from numpy import isnan 
+
 def GoogleJson(D):
     if isinstance(D,dict):
         return  '{' + ','.join([str(k) + ':' + GoogleJson(v) for (k,v) in D.items()]) + '}'
@@ -860,9 +855,12 @@ def GoogleJson(D):
         else:
             return repr(D)
     elif is_num_like(D):
-        return str(D)
+        if isnan(D):
+            return '0'
+        else:
+            return str(D)
     elif not D:
-        return 'undefined'
+        return '0'
     else:
         print type(D)
         raise ValueError, 'Value cant be converted.'
