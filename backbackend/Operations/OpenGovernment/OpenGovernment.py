@@ -369,7 +369,7 @@ def updateCollection(download_dir,collectionName,parserClass,checkpath,certpath,
     
         toParse = ListUnion([RecursiveFileList(source + '__PARSE__') for source in sources])
     
-        completeSpace = False
+        completeSpace = True
         
         SpaceCache = {}    
         for file in toParse:

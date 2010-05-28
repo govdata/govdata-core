@@ -309,7 +309,7 @@ def NEA_preparser2(inpath,filepath,metadatapath,L = None):
     AllMeta['UniqueIndexes'] = ['TableNo','Line']
     AllMeta['ColumnGroups'] = ColGroups
     AllMeta['DateFormat'] = 'YYYYqmm'
-    AllMeta['sliceCols'] = [['Section','Table','Topics']]
+    AllMeta['sliceCols'] = [['Section','Table','Level_0','Level_1','Level_2','Level_3','Level_4','Level_5']]
     AllMeta['phraseCols'] = ['Section','Table','Topics','Line','TableNo']
 
     
@@ -491,7 +491,7 @@ def FAT_preparser2(maindir):
     AllMeta['UniqueIndexes'] = ['TableNo','Line']
     AllMeta['ColumnGroups'] = ColGroups
     AllMeta['DateFormat'] = 'YYYYqmm'
-    AllMeta['sliceCols'] = [['Section','Table','Topics']]
+    AllMeta['sliceCols'] = [['Section','Table','Level_0','Level_1','Level_2','Level_3','Level_4','Level_5']]
     AllMeta['phraseCols'] = ['Section','Table','Topics','Line','TableNo']
     
     Subcollections = Metadict
@@ -1287,7 +1287,7 @@ def PI_metadata(maindir):
     AllMeta['UniqueIndexes'] = ['Location','Table','LineCode']
     AllMeta['ColumnGroups'] = {'SpaceColumns' : ['Location'],'SubjectHierarchy':['Level_' + str(i) for i in range(7)]}
     AllMeta['DateFormat'] = 'YYYYqmm'
-    AllMeta['sliceCols'] = [['Location.c','Location.m','Location.s','Table','SubjectHierarchy']]
+    AllMeta['sliceCols'] = [['Location.c','Location.m','Location.s','Table',x] for x in in ['Level_' + str(i) for i in range(7)]]
     AllMeta['phraseCols'] = ['Table','SubjectHierarchy','Line','LineCode']  
     Metadata[''] = AllMeta
     

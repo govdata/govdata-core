@@ -34,10 +34,11 @@ def getQueryList(collection,keys,atVersion,toVersion,slicesCorrespondToIndexes):
     VarMap = dict(zip(totalVariables,[str(x) for x in range(len(totalVariables))]))
     origInd = VarMap['__originalVersion__'] ; retInd = VarMap['__retained__'] ; vNInd = VarMap['__versionNumber__']
     keys = [str(x) for x in keys]
+    existence = [(k,{'$exists':True,'$ne':''}) for k in keys]
     if keys:
-        Q1 = api.processArg(dict([(origInd,{'$gt':atVersion}),(vNInd,toVersion)] + [(k,{'$exists':True}) for k in keys]),collection)
-        Q2 = api.processArg(dict([(retInd,{'$exists':False}),(vNInd,{'$lt':toVersion,'$gte':atVersion})] + [(k,{'$exists':True}) for k in keys]),collection)
-        Q3 = api.processArg(dict([(retInd,True),(vNInd,{'$lt':toVersion,'$gte':atVersion}),(origInd,{'$lte':atVersion})] + [(k,{'$exists':True}) for k in keys]),collection)
+        Q1 = api.processArg(dict([(origInd,{'$gt':atVersion}),(vNInd,toVersion)] + existence),collection)
+        Q2 = api.processArg(dict([(retInd,{'$exists':False}),(vNInd,{'$lt':toVersion,'$gte':atVersion})] + existence),collection)
+        Q3 = api.processArg(dict([(retInd,True),(vNInd,{'$lt':toVersion,'$gte':atVersion}),(origInd,{'$lte':atVersion})] + existence),collection)
         colnames = [k for k in keys if k.split('.')[0] in collection.totalVariables]
         colgroups = [k for k in keys if k in collection.ColumnGroups]
         T= ListUnion([collection.ColumnGroups[k] for k in colgroups])
@@ -92,7 +93,7 @@ def updateCollectionIndex(collectionName,incertpath,certpath, slicesCorrespondTo
   
     sliceColTuples = getSliceColTuples(collection)
 
-    d,ArgDict = initialize_argdict(d,ArgDict,collection)
+    d,ArgDict = initialize_argdict(collection)
 
     S = ourSolr.query('collectionName:' + collectionName,fl = 'versionNumber',sort='versionNumber desc',wt = 'json')
     existing_slice = ast.literal_eval(S)['response']['docs']
@@ -147,11 +148,112 @@ def addToIndex(query,d,collection,solr_interface,contentColNums = None, phraseCo
         datePhrases = datePhrases[:]
     if spaceColNames == None:
         spaceColNames = []
-
-
         
     #stats
     d['volume'] = collection.find(query).count()
+    
+    if d['volume'] < 1000:
+        smallAdd(d,query,collection,contentColNums, phraseColNums, phraseCols , timeColInds ,timeColNames , timeColNameInds ,timeColNameDivisions ,timeColNamePhrases ,OverallDate , OverallDateFormat, timeFormatter ,reverseTimeFormatter ,dateDivisions ,datePhrases ,mindate ,maxdate ,OverallLocation , spaceColNames , spaceColInds ,subColInd )
+    else:
+        largeAdd(d,query,collection,contentColNums, phraseColNums, phraseCols , timeColInds ,timeColNames , timeColNameInds ,timeColNameDivisions ,timeColNamePhrases ,OverallDate, OverallDateFormat, timeFormatter ,reverseTimeFormatter ,dateDivisions ,datePhrases ,mindate ,maxdate ,OverallLocation , spaceColNames , spaceColInds ,subColInd)
+
+    Subcollections = uniqify(ListUnion(collection.find(query).distinct(str(subColInd))))
+    metadata = collection.metadata['']
+    for sc in Subcollections:
+        metadata.update(collection.metadata.get(sc,{}))
+    for k in metadata.keys():
+        if k in STANDARD_META:
+            if k in STANDARD_META_FORMATS.keys():
+                val = coerceToFormat(metadata[k],STANDARD_META_FORMATS[k])
+                if val:
+                    d[str(k)] = val
+            else:
+                d[str(k)] = str(metadata[k])
+        else:
+            if is_string_like(metadata[k]):
+                d[str(k) + '_t'] = metadata[k]        
+    
+    #return d
+    solr_interface.add(**d)
+   
+    
+def smallAdd(d,query,collection,contentColNums, phraseColNums, phraseCols , timeColInds ,timeColNames , timeColNameInds ,timeColNameDivisions ,timeColNamePhrases ,OverallDate, OverallDateFormat, timeFormatter ,reverseTimeFormatter ,dateDivisions ,datePhrases ,mindate ,maxdate ,OverallLocation , spaceColNames , spaceColInds ,subColInd ):
+
+    R = collection.find(query,timeout=False)
+    colnames = []
+    d['sliceContents'] = []
+    d['slicePhrases'] = []
+    Subcollections = []
+    
+    spaceVals = spaceColNames
+    commonLocation = OverallLocation    
+    for sv in spaceColNames:
+        commonLocation = loc.intersect(commonLocation,sv)
+        if not commonLocation:
+            break     
+
+    for (i,r) in enumerate(R):
+    
+        d['sliceContents'].append( ' '.join(ListUnion([([makestr(r,x)] if rhasattr(r,x.split('.')) else []) if is_string_like(x) else [makestr(r,xx) for xx in x if rhasattr(r,xx.split('.'))] for x in contentColNums])))
+        
+        sP = ListUnion([([s + ':' + makestr(r,x)] if rhasattr(r,x.split('.')) else []) if is_string_like(x) else [s + ':' + makestr(r,xx) for xx in x if rhasattr(r,xx.split('.'))] for (s,x) in zip(phraseCols,phraseColNums)])
+        for ssP in sP:
+            if ssP not in d['slicePhrases']:
+                d['slicePhrases'].append(ssP)
+        
+        colnames  = uniqify(colnames + r.keys())
+        
+        if subColInd:
+            Subcollections += r[str(subColInd)]
+                
+        if timeColInds:
+            for x in timeColInds:
+                if str(x) in r.keys():
+                    time = r[str(x)]
+                    if OverallDate:
+                        time = timeFormatter(OverallDate + reverseTimeFormatter(time))
+                    dateDivisions += td.getLowest(time)
+                    datePhrases.append(td.phrase(time))     
+                    mindate = td.makemin(mindate,time)
+                    maxdate = td.makemax(maxdate,time)
+        if spaceColInds:
+            for x in spaceColInds:
+                if str(x) in r.keys():
+                    location = loc.integrate(OverallLocation,r[str(x)])
+                    commonLocation = loc.intersect(commonLocation,r[str(x)]) if commonLocation != None else None
+                    spaceVals.append(location)
+                   
+    d['sliceContents'] = ' '.join(d['sliceContents'])
+    d['slicePhrases'] = ', '.join(d['slicePhrases'])
+    Subcollections = uniqify(Subcollections)
+    d['columnNames'] = [collection.totalVariables[int(x)] for x in colnames if x.isdigit()]
+    d['dimension'] = len(d['columnNames'])
+    #time/date
+        
+    if OverallDateFormat:
+        d['dateFormat'] = OverallDateFormat
+        
+        if 'TimeColNames' in collection.ColumnGroups.keys():
+            K = [k for (k,j) in enumerate(timeColNameInds) if str(j) in colnames]
+            dateDivisions += uniqify(ListUnion([timeColNameDivisions[k] for k in K]))
+            mindate = td.makemin(mindate,min([timeColNames[k] for k in K]))
+            maxdate = td.makemax(maxdate,max([timeColNames[k] for k in K]))         
+            datePhrases += uniqify([timeColNamePhrases[k] for k in K])
+        
+        d['begin_date'] = td.convertToDT(mindate)
+        d['end_date'] = td.convertToDT(maxdate,convertMode='High')
+        d['dateDivisions'] = ' '.join(uniqify(dateDivisions))
+        d['datePhrases'] = ', '.join(datePhrases if d['volume'] < 10000 else uniqify(datePhrases))
+
+    if spaceVals:
+        d['spatialDivisions'] = ', '.join(uniqify(ListUnion(map(loc.divisions,spaceVals))))
+        d['spatialPhrases'] = uniqify(map(loc.phrase,spaceVals))
+        d['spatialPhrasesTight'] = uniqify(map(loc.phrase2,spaceVals))
+        
+    return d
+    
+def largeAdd(d,query,collection,contentColNums, phraseColNums, phraseCols , timeColInds ,timeColNames , timeColNameInds ,timeColNameDivisions ,timeColNamePhrases ,OverallDate , OverallDateFormat, timeFormatter ,reverseTimeFormatter ,dateDivisions ,datePhrases ,mindate ,maxdate ,OverallLocation , spaceColNames , spaceColInds ,subColInd ):
+
    
     exists = []
     check = range(len(collection.totalVariables))
@@ -223,25 +325,7 @@ def addToIndex(query,d,collection,solr_interface,contentColNums = None, phraseCo
     d['sliceContents'] = ' '.join(uniqify(ListUnion([contents[x] for x in contentColNums])))
     d['slicePhrases'] = ', '.join(ListUnion([[y + '=' + xx for xx in contents[x]] for (x,y) in zip(phraseColNums,phraseCols)]))
 
-
-    Subcollections = uniqify(ListUnion(collection.find(query).distinct(str(subColInd))))
-    metadata = collection.metadata['']
-    for sc in Subcollections:
-        metadata.update(collection.metadata.get(sc,{}))
-    for k in metadata.keys():
-        if k in STANDARD_META:
-            if k in STANDARD_META_FORMATS.keys():
-                val = coerceToFormat(metadata[k],STANDARD_META_FORMATS[k])
-                if val:
-                    d[str(k)] = val
-            else:
-                d[str(k)] = str(metadata[k])
-        else:
-            if is_string_like(metadata[k]):
-                d[str(k) + '_t'] = metadata[k]        
-    
-    solr_interface.add(**d)
-    
+    return d
     
 def initialize_argdict(collection):
 
