@@ -135,7 +135,7 @@ def updateCollectionIndex(collectionName,incertpath,certpath, slicesCorrespondTo
     createCertificate(certpath,'Collection ' + collectionName + ' indexed.')        
 
 
-def addToIndex(query,d,collection,solr_interface,contentColNums = None, phraseColNums = None, phraseCols = None, timeColInds=None,timeColNames=None, timeColNameInds = None,timeColNameDivisions = None,timeColNamePhrases=None,OverallDate = '', OverallDateFormat = '', timeFormatter = None,reverseTimeFormatter = None,dateDivisions=None,datePhrases=None,mindate = None,maxdate = None,OverallLocation = None, spaceColNames = None, spaceColInds = None,subColInd = None):
+def addToIndex(query,d,collection,solr_interface,contentColNums = None, phraseColNums = None, phraseCols = None, timeColInds=None,timeColNames=None, timeColNameInds = None,timeColNameDivisions = None,timeColNamePhrases=None,OverallDate = '', OverallDateFormat = '', timeFormatter = None,reverseTimeFormatter = None,dateDivisions=None,datePhrases=None,mindate = None,maxdate = None,OverallLocation = None, spaceColNames = None, spaceColInds = None,subColInd = None,Return=False):
 
     if dateDivisions == None:
         dateDivisions = []
@@ -147,6 +147,7 @@ def addToIndex(query,d,collection,solr_interface,contentColNums = None, phraseCo
         datePhrases = datePhrases[:]
     if spaceColNames == None:
         spaceColNames = []
+    
         
     #stats
     d['volume'] = collection.find(query).count()
@@ -174,8 +175,10 @@ def addToIndex(query,d,collection,solr_interface,contentColNums = None, phraseCo
             if is_string_like(metadata[k]):
                 d[str(k) + '_t'] = metadata[k]        
     
-    #return d
-    solr_interface.add(**d)
+    if Return:
+        return d
+    else:
+        solr_interface.add(**d)
    
     
 def smallAdd(d,query,collection,contentColNums, phraseColNums, phraseCols , timeColInds ,timeColNames , timeColNameInds ,timeColNameDivisions ,timeColNamePhrases ,OverallDate, OverallDateFormat, timeFormatter ,reverseTimeFormatter ,dateDivisions ,datePhrases ,mindate ,maxdate ,OverallLocation , spaceColNames , spaceColInds ,subColInd ):
@@ -256,7 +259,7 @@ def smallAdd(d,query,collection,contentColNums, phraseColNums, phraseCols , time
     
 def largeAdd(d,query,collection,contentColNums, phraseColNums, phraseCols , timeColInds ,timeColNames , timeColNameInds ,timeColNameDivisions ,timeColNamePhrases ,OverallDate , OverallDateFormat, timeFormatter ,reverseTimeFormatter ,dateDivisions ,datePhrases ,mindate ,maxdate ,OverallLocation , spaceColNames , spaceColInds ,subColInd ):
 
-   
+    print '0'
     exists = []
     check = range(len(collection.totalVariables))
     while check:
@@ -269,6 +272,7 @@ def largeAdd(d,query,collection,contentColNums, phraseColNums, phraseCols , time
             check.sort()
             exists += [(pos,collection.totalVariables[pos]) for pos in new]
     
+    print '1'
     exists = [e for e in exists if e[1] not in SPECIAL_KEYS] 
     (colnums,colnames) = zip(*exists)
     
@@ -288,6 +292,7 @@ def largeAdd(d,query,collection,contentColNums, phraseColNums, phraseCols , time
             mindate = td.makemin(mindate,min(dateColVals),)
             maxdate = td.makemax(maxdate,max(dateColVals),)
       
+  
         if timeColNameInds:
             K = [k for (k,j) in enumerate(timeColNameInds) if k in colnums]
             dateDivisions += uniqify(ListUnion([timeColNameDivisions[k] for k in K]))
@@ -302,7 +307,8 @@ def largeAdd(d,query,collection,contentColNums, phraseColNums, phraseCols , time
         d['end_date'] = td.convertToDT(maxdate,convertMode='High')
         d['dateDivisions'] = ' '.join(uniqify(dateDivisions))
         d['datePhrases'] = ', '.join(datePhrases)
-      
+    
+    print '2'    
     if spaceColInds:
         spaceColVals = ListUnion([collection.find(query).distinct(str(t)) for t in spaceColInds if t in colnums])
         spaceColVals = [loc.integrate(OverallLocation,scv) for scv in spaceColVals]   
@@ -321,10 +327,12 @@ def largeAdd(d,query,collection,contentColNums, phraseColNums, phraseCols , time
     if commonLocation:
         d['commonLocation'] = loc.phrase(commonLocation)
  
-        
+    print '3'    
     contents = dict([(x,collection.find(query).distinct(x)) for x in uniqify(contentColNums + phraseColNums)])
 
+    print '4'
     d['sliceContents'] = ' '.join(uniqify(ListUnion([contents[x] for x in contentColNums])))
+    print '5'
     d['slicePhrases'] = ', '.join(ListUnion([[y + '=' + xx for xx in contents[x]] for (x,y) in zip(phraseColNums,phraseCols)]))
 
     return d
@@ -428,15 +436,22 @@ def initialize_argdict(collection):
         
     return d, ArgDict
 
-   
 def getSliceColTuples(collection):
     sliceColList = collection.sliceCols
     sliceColU = uniqify(ListUnion(sliceColList))
-    OK = dict([(x,x in collection.ColumnGroups.keys() or len(api.get(collection.name,[('distinct',(x,))])['data']) > 1) for x in sliceColU])
+    sliceColInds = getStrs(collection,sliceColU)
+    OK = dict([(x,x in collection.ColumnGroups.keys() or MoreThanOne(collection,y)) for (y,x) in zip(sliceColInds,sliceColU)])
     sliceColList = [tuple([x for x in sliceColU if x in sc and OK[x]]) for sc in sliceColList]
     sliceColTuples = uniqify(ListUnion([subTuples(sc) for sc in sliceColList]))
     
     return sliceColTuples
+    
+def MoreThanOne(collection,key):
+    v1 = rgetattr(list(collection.find({key:{'$exists':True}}).sort([(key,-1)]).limit(1))[0],key.split('.'))
+    v2 = rgetattr(list(collection.find({key:{'$exists':True}}).sort([(key,1)]).limit(1))[0],key.split('.'))
+    return v1 != v2
+ 
+
     
     
 def getNums(collection,namelist):
