@@ -309,7 +309,10 @@ def NEA_preparser2(inpath,filepath,metadatapath,L = None):
     AllMeta['UniqueIndexes'] = ['TableNo','Line']
     AllMeta['ColumnGroups'] = ColGroups
     AllMeta['DateFormat'] = 'YYYYqmm'
-    AllMeta['sliceCols'] = [['Section','Table','Level_0','Level_1','Level_2','Level_3','Level_4','Level_5']]
+    
+    
+    
+    AllMeta['sliceCols'] = [['Section','Table','Level_0','Level_1','Level_2', x] for x in ['Level_3','Level_4','Level_5']]
     AllMeta['phraseCols'] = ['Section','Table','Topics','Line','TableNo']
 
     

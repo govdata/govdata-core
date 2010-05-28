@@ -137,7 +137,6 @@ def updateCollectionIndex(collectionName,incertpath,certpath, slicesCorrespondTo
 
 def addToIndex(query,d,collection,solr_interface,contentColNums = None, phraseColNums = None, phraseCols = None, timeColInds=None,timeColNames=None, timeColNameInds = None,timeColNameDivisions = None,timeColNamePhrases=None,OverallDate = '', OverallDateFormat = '', timeFormatter = None,reverseTimeFormatter = None,dateDivisions=None,datePhrases=None,mindate = None,maxdate = None,OverallLocation = None, spaceColNames = None, spaceColInds = None,subColInd = None):
 
-
     if dateDivisions == None:
         dateDivisions = []
     else:
@@ -151,6 +150,8 @@ def addToIndex(query,d,collection,solr_interface,contentColNums = None, phraseCo
         
     #stats
     d['volume'] = collection.find(query).count()
+    
+    contentColNums = [i for i in contentColNums if i not in query.keys()]
     
     if d['volume'] < 1000:
         smallAdd(d,query,collection,contentColNums, phraseColNums, phraseCols , timeColInds ,timeColNames , timeColNameInds ,timeColNameDivisions ,timeColNamePhrases ,OverallDate , OverallDateFormat, timeFormatter ,reverseTimeFormatter ,dateDivisions ,datePhrases ,mindate ,maxdate ,OverallLocation , spaceColNames , spaceColInds ,subColInd )
@@ -192,6 +193,7 @@ def smallAdd(d,query,collection,contentColNums, phraseColNums, phraseCols , time
         if not commonLocation:
             break     
 
+    
     for (i,r) in enumerate(R):
     
         d['sliceContents'].append( ' '.join(ListUnion([([makestr(r,x)] if rhasattr(r,x.split('.')) else []) if is_string_like(x) else [makestr(r,xx) for xx in x if rhasattr(r,xx.split('.'))] for x in contentColNums])))
@@ -336,9 +338,9 @@ def initialize_argdict(collection):
     
     if hasattr(collection,'contentCols'):
         contentColList = ListUnion([[x] if x.split('.')[0] in collection.totalVariables else collection.ColumnGroups.get(x,[]) for x in collection.contentCols])
-        contentCols = list(set(contentColList).difference(sliceColList))
+        contentCols = uniqify(contentColList + sliceColList)
     else:
-        contentCols = []
+        contentCols = sliceColList
     contentColNums = getStrs(collection,contentCols)
     ArgDict['contentColNums'] = contentColNums
     if hasattr(collection,'phraseCols'):
