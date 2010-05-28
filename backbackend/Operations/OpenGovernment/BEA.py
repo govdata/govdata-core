@@ -1287,7 +1287,7 @@ def PI_metadata(maindir):
     AllMeta['UniqueIndexes'] = ['Location','Table','LineCode']
     AllMeta['ColumnGroups'] = {'SpaceColumns' : ['Location'],'SubjectHierarchy':['Level_' + str(i) for i in range(7)]}
     AllMeta['DateFormat'] = 'YYYYqmm'
-    AllMeta['sliceCols'] = [['Location.c','Location.m','Location.s','Table',x] for x in in ['Level_' + str(i) for i in range(7)]]
+    AllMeta['sliceCols'] = [['Location.c','Location.m','Location.s','Table',x] for x in ['Level_' + str(i) for i in range(7)]]
     AllMeta['phraseCols'] = ['Table','SubjectHierarchy','Line','LineCode']  
     Metadata[''] = AllMeta
     
