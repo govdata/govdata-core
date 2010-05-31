@@ -12,7 +12,7 @@ import pymongo as pm
 import gridfs as gfs
 import cPickle as pickle
 import tabular as tb
-from common.utils import IsFile, listdir, is_string_like, ListUnion,createCertificate, uniqify, IsDir
+from common.utils import IsFile, listdir, is_string_like, ListUnion,createCertificate, uniqify, IsDir, Flatten
 from common.mongo import cleanCollection, SPECIAL_KEYS, Collection
 import common.timedate as td
 import common.location as loc
@@ -273,13 +273,14 @@ class csv_parser(dataIterator):
     def next(self):
         if self.IND < len(self.Data):
             r = self.Data[self.IND]
-            r = [float(xx) if isinstance(xx,float) else int(xx) if isinstance(xx,int) else xx for xx in r]  
-            r = dict(zip(self.Data.dtype.names,r))
+            r = dict([(self.Data.dtype.names[i],float(xx) if isinstance(xx,float) else int(xx) if isinstance(xx,int) else xx) for (i,xx) in enumerate(r) if xx != ''])
             
             if 'Subcollections' in r.keys():
                 r['Subcollections'] = r['Subcollections'].split(',')
-            if 'Location' in r.keys():
-                r['Location'] = eval(r['Location'])
+                
+            for k in self.ColumnGroups.get('TimeColumns',[]) + self.ColumnGroups.get('SpaceColumns',[]):
+                if k in r.keys():
+                    r[k] = eval(r[k])
             
             self.IND += 1
                 
@@ -298,10 +299,12 @@ def updateCollection(download_dir,collectionName,parserClass,checkpath,certpath,
     assert not '__' in collectionName, 'collectionName must not contain consecutive underscores'
     metaCollectionName = '__' + collectionName + '__'
     versionName = '__' + collectionName + '__VERSIONS__'
+    sliceDBName =  '__' + collectionName + '__SLICES__'
     
     collection = db[collectionName]
     metacollection = db[metaCollectionName]
-    versions = db[versionName]        
+    versions = db[versionName]     
+    sliceDB = db[sliceDBName]
             
     if incremental:     
         if versionName not in db.collection_names():
@@ -319,11 +322,21 @@ def updateCollection(download_dir,collectionName,parserClass,checkpath,certpath,
     if parserKwargs == None:
         parserKwargs = {}
         
+        
     if sources:
         iterator = parserClass(sources[0],*parserArgs,**parserKwargs)
     
         assert hasattr(iterator,'UniqueIndexes'),  'No unique indexes specified'
         uniqueIndexes = iterator.UniqueIndexes
+        ColumnGroups = iterator.ColumnGroups
+        
+        sliceColTuples = getSliceColTuples(iterator.sliceCols)
+        sliceColList = uniqify(Flatten(ListUnion(sliceColTuples)))
+        ContentCols = set(sliceColList + getContentCols(iterator))
+            
+        if hasattr(iterator,'DateFormat'):
+            TimeFormatter = td.mongotimeformatter(iterator.DateFormat)
+            
     
         if collectionName in db.collection_names():
             versionNumber = max(versions.distinct('__versionNumber__')) + 1
@@ -332,12 +345,15 @@ def updateCollection(download_dir,collectionName,parserClass,checkpath,certpath,
             VarMap = dict(zip(totalVariables,[str(x) for x in range(len(totalVariables))]))   
             
             #check things are the same 
+            #and check consistent  do so for all soruces
             
         else:
             versionNumber = 0
-            IndexCols = [x for x in uniqify(['Subcollections'] + ListUnion([iterator.ColumnGroups.get(s,[s]) for s in ListUnion(iterator.sliceCols)]) + ListUnion([iterator.ColumnGroups.get(k,[]) for k in ['IndexColumns','LabelColumns','TimeColumns','SpaceColumns']])) if x not in uniqueIndexes and not '.' in x]      
-    
+            IndexCols = uniqify([x for x in ['Subcollections'] + sliceColList + ListUnion([ColumnGroups.get(k,[]) for k in ['IndexColumns','LabelColumns','TimeColumns','SpaceColumns']]) if x not in uniqueIndexes])
+            
             totalVariables = SPECIAL_KEYS + uniqueIndexes + IndexCols
+            
+            assert not any(['.' in x or ('__' in x and x not in SPECIAL_KEYS) or x in ColumnGroups.keys() for x in totalVariables])
             
             VarMap = dict(zip(totalVariables,map(str,range(len(totalVariables)))))  
             
@@ -346,13 +362,12 @@ def updateCollection(download_dir,collectionName,parserClass,checkpath,certpath,
     
             for col in IndexCols:
                 collection.ensure_index(VarMap[col])
+            
+            sliceDB.ensure_index('slice',unique=True,dropDups=True)
                 
                 
         vNInd = VarMap['__versionNumber__']
         retInd = VarMap['__retained__']
-        
-        if hasattr(iterator,'DateFormat'):
-            TimeFormatter = td.mongotimeformatter(iterator.DateFormat)
         
         specialKeyInds = [VarMap[k] for k in SPECIAL_KEYS]
     
@@ -365,8 +380,7 @@ def updateCollection(download_dir,collectionName,parserClass,checkpath,certpath,
             spcs = iterator.ColumnGroups['SpaceColumns']
         else:
             spcs = []
-    
-    
+                  
         toParse = ListUnion([RecursiveFileList(source + '__PARSE__') for source in sources])
     
         completeSpace = False
@@ -379,9 +393,10 @@ def updateCollection(download_dir,collectionName,parserClass,checkpath,certpath,
             
             for c in iterator: 
                 newVars = [x for x in c.keys() if not x in totalVariables]
-                assert all(['__' not in x for x in newVars]) , '__ must not appear in key names.'     
+                assert not any (['__' in x or '.' in x or x in ColumnGroups.keys() for x in newVars]) , '__ and . must not appear in key names.'     
                 totalVariables += newVars
                 VarMap.update(dict(zip(newVars,map(str,range(len(totalVariables) - len(newVars),len(totalVariables))))))
+                
                 for tc in tcs:   #time handling 
                     if tc in c.keys():
                         c[tc] = TimeFormatter(c[tc])
@@ -393,13 +408,15 @@ def updateCollection(download_dir,collectionName,parserClass,checkpath,certpath,
                                 c[spc] = SpaceCache[t].copy()
                             else:
                                 c[spc] = loc.SpaceComplete(c[spc])
-                                SpaceCache[t] = c[spc].copy()            
-                processRecord(c,collection,VarMap,uniqueIndexes,versionNumber,specialKeyInds,incremental)
+                                SpaceCache[t] = c[spc].copy()      
+                
+                processRecord(c,collection,VarMap,totalVariables,uniqueIndexes,versionNumber,specialKeyInds,incremental,sliceDB,sliceColTuples,ContentCols)
+                
         if incremental:
-            collection.update({vNInd:versionNumber - 1, retInd : {'$exists':False}}, {'$set':{vNInd:versionNumber}})        
+            collection.update({vNInd:versionNumber - 1, retInd : {'$exists':False}}, {'$set':{vNInd:versionNumber}})                    
+            sliceDB.update({},{'$set':{'version':versionNumber}})
     
-    
-        updateMetacollection(iterator, metacollection,incremental,versionNumber,totalVariables)
+        updateMetacollection(iterator, metacollection,incremental,versionNumber,totalVariables,tcs,spcs)
         
         updateAssociatedFiles(sources,collection)
         
@@ -409,6 +426,33 @@ def updateCollection(download_dir,collectionName,parserClass,checkpath,certpath,
     createCertificate(certpath,'Collection ' + collectionName + ' written to DB.')
 
 
+
+def getContentCols(iterator):
+
+    if hasattr(iterator,'contentCols'):
+        contentColList = ListUnion([iterator.ColumnGroups.get(x,[x]) for x in iterator.contentCols])
+    else:
+        contentColList =  []
+    
+    if hasattr(iterator,'phraseCols'):
+        phraseColList = ListUnion([iterator.ColumnGroups.get(x,[x]) for x in iterator.phraseCols])
+    else:
+        phraseColList = []
+    
+    return contentColList + phraseColList
+    
+    
+def getSliceColTuples(sliceCols):
+    sliceColList = sliceCols
+    sliceColTuples = uniqify(ListUnion([subTuples(tuple(sc)) for sc in sliceColList]))
+    return sliceColTuples
+    
+    
+import itertools   
+def subTuples(T):
+    ind = itertools.product(*[[0,1]]*len(T))
+    return [tuple([t for (t,k) in zip(T,I) if k]) for I in ind]
+    
 
 def updateVersionHistory(versionNumber, versions,startInc,endInc):
 
@@ -431,13 +475,21 @@ def updateAssociatedFiles(sources,collection):
                 G.put(S,filename = file)   
                 
 
-def updateMetacollection(iterator, metacollection,incremental,versionNumber,totalVariables):
+def updateMetacollection(iterator, metacollection,incremental,versionNumber,totalVariables,tcs,spcs):
     
     metadata = iterator.metadata
     
     metadata['']['totalVariables'] = totalVariables
     metadata['']['Source'] = pm.son.SON(metadata['']['Source'])
-       
+    
+    translators = metadata[''].get('translators',{})
+    for t in tcs:
+        translators[t] = {'module':'common.timedate','name':'phrase'}
+    for s in spcs:
+        translators[s] = {'module':'common.location','name':'phrase2'}
+    
+    metadata['']['translators'] = translators    
+
     metacollection.ensure_index([('__name__',pm.DESCENDING),('__versionNumber__',pm.DESCENDING)], unique=True)   
     
     if incremental:
@@ -459,7 +511,7 @@ def updateMetacollection(iterator, metacollection,incremental,versionNumber,tota
                     metadata['']['ColumnGroups'][k] = previousMetadata['']['ColumnGroups'][k]
                 else:
                     metadata['']['ColumnGroups'][k] += previousMetadata['']['ColumnGroups'][k] 
-                    
+                                
 
     for k in metadata.keys():
         x = metadata[k]
@@ -468,7 +520,7 @@ def updateMetacollection(iterator, metacollection,incremental,versionNumber,tota
         id = metacollection.insert(x,safe=True)
             
 
-def processRecord(c,collection,VarMap,uniqueIndexes,versionNumber,specialKeyInds,incremental):
+def processRecord(c,collection,VarMap,totalVariables,uniqueIndexes,versionNumber,specialKeyInds,incremental,sliceDB,sliceColTuples,ContentCols):
     """Function which adds a given record to a collection, handling the incremental version properly.  
     
         The basic logic is:  to add a given record 'c':
@@ -522,22 +574,39 @@ def processRecord(c,collection,VarMap,uniqueIndexes,versionNumber,specialKeyInds
         if newkeys:
             diff[aKInd] = newkeys
         
-        if diff:
+        if diff:   
+            DIFF = ContentCols.intersection([totalVariables[int(k)] for k in diff.keys()])
             diff.update(s)
             collection.update(s,diff)
             print 'Diff:' ,  diff
         else:
+            DIFF = False
             c['_id'] = H['_id']
             collection.remove(s)
                 
     else:
         print 'New:' , [c[VarMap[k]] for k in uniqueIndexes] 
         c[origInd] = versionNumber
+        diff = c
+        DIFF = True
             
-    id = collection.insert(c)
+    id = collection.insert(c) 
+    sliceInsert(c,collection,sliceColTuples,VarMap,sliceDB,DIFF,versionNumber)
+    
     return id
     
-    
+     
+def sliceInsert(c,collection,sliceColTuples,VarMap,sliceDB,DIFF,version):        
+    for sct in sliceColTuples:
+        if all([VarMap[k] in c.keys() if is_string_like(k) else any([VarMap[kk] in c.keys() for kk in k]) for k in sct]):
+            slice = pm.son.SON([(k,c[VarMap[k]]) for k in Flatten(sct) if VarMap[k] in c.keys()])
+            if not sliceDB.find_one({'slice':slice,'version':version}):
+                print 'newslice',slice
+                if DIFF:
+                    sliceDB.update({'slice':slice},{'$set':{'version':version,'original':version}},upsert=True)
+                else:
+                    sliceDB.update({'slice':slice},{'$set':{'version':version}})
+
 def updateSourceDBFromCollections(collectionNames = None):
 
     connection = pm.Connection()

@@ -309,10 +309,9 @@ def NEA_preparser2(inpath,filepath,metadatapath,L = None):
     AllMeta['UniqueIndexes'] = ['TableNo','Line']
     AllMeta['ColumnGroups'] = ColGroups
     AllMeta['DateFormat'] = 'YYYYqmm'
+
     
-    
-    
-    AllMeta['sliceCols'] = [['Section','Table','Level_0','Level_1','Level_2', x] for x in ['Level_3','Level_4','Level_5']]
+    AllMeta['sliceCols'] = [['Section','Table','Level_0','Level_1','Level_2', ('Level_3','Level_4','Level_5')]]
     AllMeta['phraseCols'] = ['Section','Table','Topics','Line','TableNo']
 
     
@@ -494,7 +493,7 @@ def FAT_preparser2(maindir):
     AllMeta['UniqueIndexes'] = ['TableNo','Line']
     AllMeta['ColumnGroups'] = ColGroups
     AllMeta['DateFormat'] = 'YYYYqmm'
-    AllMeta['sliceCols'] = [['Section','Table','Level_0','Level_1','Level_2','Level_3','Level_4','Level_5']]
+    AllMeta['sliceCols'] = [['Section','Table','Level_0','Level_1','Level_2',('Level_3','Level_4','Level_5')]]
     AllMeta['phraseCols'] = ['Section','Table','Topics','Line','TableNo']
     
     Subcollections = Metadict
@@ -786,6 +785,8 @@ def RegionalGDP_Preparse2(maindir):
         X = X.addcols([['NAICS']*len(X),['M']*len(X)],names=['IndClass','Subcollections'])
         X.saveSV(outpath + str(i+LenR) + '.tsv',metadata=['dialect','names','formats'])
 
+	    
+    IH = tuple(X.coloring['IndustryHierarchy'])
     
     AllKeys = uniqify(ListUnion([k.keys() for k in Metadict.values()]))
     AllMeta = {}
@@ -803,8 +804,9 @@ def RegionalGDP_Preparse2(maindir):
     ColGroups['SpaceColumns'] = ['Location']
     AllMeta['ColumnGroups'] = ColGroups
     AllMeta['DateFormat'] = 'YYYYqmm'
+
     
-    AllMeta['sliceCols'] = [['Location.s', 'Location.m', 'IndustryHierarchy'] ,['Location.s', 'Location.m','Component'],['IndustryHierarchy','Component']]
+    AllMeta['sliceCols'] = [['Location', IH] ,['Location','Component'],[IH,'Component']]
     AllMeta['phraseCols'] = ['Component', 'IndClass', 'IndustryHierarchy','Industry','Units','Units']    
 
     Subcollections[''] = AllMeta
@@ -1290,7 +1292,7 @@ def PI_metadata(maindir):
     AllMeta['UniqueIndexes'] = ['Location','Table','LineCode']
     AllMeta['ColumnGroups'] = {'SpaceColumns' : ['Location'],'SubjectHierarchy':['Level_' + str(i) for i in range(7)]}
     AllMeta['DateFormat'] = 'YYYYqmm'
-    AllMeta['sliceCols'] = [['Location.c','Location.m','Location.s','Table',x] for x in ['Level_' + str(i) for i in range(7)]]
+    AllMeta['sliceCols'] = [['Location','Table',tuple(['Level_' + str(i) for i in range(7)])]]
     AllMeta['phraseCols'] = ['Table','SubjectHierarchy','Line','LineCode']  
     Metadata[''] = AllMeta
     

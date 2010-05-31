@@ -443,7 +443,7 @@ class bls_parser(OG.dataIterator):
         if sliceCols:
             D['sliceCols'] = sliceCols
         else:
-            D['sliceCols'] = [[g for g in labelcols if g.lower().split('.')[0] not in ['footnote','seasonal','periodicity','location']] + (['Location.' + x for x in dict(self.spacecols).values() if not x.startswith('f.')] if self.spacecols else [])]
+            D['sliceCols'] = [[g for g in labelcols if g.lower().split('.')[0] not in ['footnote','seasonal','periodicity','location']] + (['Location'] if self.spacecols else [])]
 
         print 'Added general metadata.'
         

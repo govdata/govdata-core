@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 from common.mongo import Collection, cleanCollection, SPECIAL_KEYS
-from common.utils import IsFile, listdir, is_string_like, ListUnion, uniqify,createCertificate, rgetattr,rhasattr, dictListUniqify
+from common.utils import IsFile, listdir, is_string_like, ListUnion, uniqify,createCertificate, rgetattr,rhasattr, dictListUniqify, Flatten
 import common.timedate as td
 import common.location as loc
 import common.solr as ourSolr
@@ -91,8 +91,6 @@ def updateCollectionIndex(collectionName,incertpath,certpath, slicesCorrespondTo
     collection = Collection(collectionName)
     currentVersion = collection.currentVersion
   
-    sliceColTuples = getSliceColTuples(collection)
-
     d,ArgDict = initialize_argdict(collection)
 
     S = ourSolr.query('collectionName:' + collectionName,fl = 'versionNumber',sort='versionNumber desc',wt = 'json')
@@ -104,38 +102,52 @@ def updateCollectionIndex(collectionName,incertpath,certpath, slicesCorrespondTo
         atVersion = -1
 
     solr_interface = solr.SolrConnection("http://localhost:8983/solr")    
+    
+    sliceDB = collection.slices
+    
+    for r in sliceDB.find({'original':{'$gt':atVersion},'version':currentVersion},timeout=False):      
+        q = r['slice']  
+        print 'Adding:' , q, 'in', collectionName    
+        dd = d.copy()       
+        addToIndex(q,dd,collection,solr_interface,**ArgDict)  
+        
 
-    for sliceCols in sliceColTuples:
-        Q = getQueryList(collection,sliceCols,atVersion,currentVersion,slicesCorrespondToIndexes)
-        for q in Q:
-            q = pm.son.SON(q)
-            q['__versionNumber__'] = currentVersion
-            query = api.processArg(q,collection)
-            if collection.find_one(query):
-                q.pop('__versionNumber__')       
-                print 'Adding:' , q, 'in', collectionName
-                dd = d.copy()
-                queryID = [('collectionName',collectionName),('query',q)]
-                dd['collectionName'] = collectionName
-                dd['query'] = json.dumps(q,default=ju.default)
-                dd['mongoID'] = hashlib.sha1(json.dumps(queryID,default=ju.default)).hexdigest()
-                dd['mongoText'] = ', '.join([key + '=' + value for (key,value) in q.items()])
-                dd['versionNumber'] = currentVersion
-                addToIndex(query,dd,collection,solr_interface,**ArgDict)  
-            else:
-                q.pop('__versionNumber__')
-                queryID = [('collectionName',collectionName),('query',q)]
-                mongoID = hashlib.sha1(json.dumps(queryID,default=ju.default)).hexdigest()
-                print 'deleting', mongoID, queryID
-                solr_interface.delete_query('mongoID:' + mongoID)
+    for r in sliceDB.find({'version':{'$gte':atVersion,'$lt':currentVersion},'original':{'$lte':atVersion}},timeout=False):
+        q = r['slice']
+        ID = mongoID(q)
+        print 'deleting', ID, q
+        solr_interface.delete_query('mongoID:' + ID)
                 
         
     solr_interface.commit()
     
     createCertificate(certpath,'Collection ' + collectionName + ' indexed.')        
 
+def queryToText(q,translators):
+    return ', '.join([key + '=' + (translators[key](value) if translators.has_key(key) else value) for (key,value) in q.items()])
+    
 
-def addToIndex(query,d,collection,solr_interface,contentColNums = None, phraseColNums = None, phraseCols = None, timeColInds=None,timeColNames=None, timeColNameInds = None,timeColNameDivisions = None,timeColNamePhrases=None,OverallDate = '', OverallDateFormat = '', timeFormatter = None,reverseTimeFormatter = None,dateDivisions=None,datePhrases=None,mindate = None,maxdate = None,OverallLocation = None, spaceColNames = None, spaceColInds = None,subColInd = None,Return=False):
+def mongoID(q,collectionName):
+    queryID = [('collectionName',collectionName),('query',q)]
+    return hashlib.sha1(json.dumps(queryID,default=ju.default)).hexdigest()
+    
+    
+def addToIndex(q,d,collection,solr_interface,contentColNums = None, timeColInds=None,timeColNames=None, timeColNameInds = None,timeColNameDivisions = None,timeColNamePhrases=None,OverallDate = '', OverallDateFormat = '', timeFormatter = None,reverseTimeFormatter = None,dateDivisions=None,datePhrases=None,mindate = None,maxdate = None,OverallLocation = None, spaceColNames = None, spaceColInds = None,subColInd = None,Return=False):
+
+
+    q['__versionNumber__'] = collection.currentVersion
+    query = api.processArg(q,collection)
+    q.pop('__versionNumber__') 
+    
+    d['collectionName'] = collection.name
+    
+    d['query'] = json.dumps(q,default=ju.default)
+    
+    d['mongoID'] = mongoID(q,collection.name)
+    
+    d['mongoText'] = queryToText(q,collection.translators)
+    
+    d['versionNumber'] = collection.currentVersion
 
     if dateDivisions == None:
         dateDivisions = []
@@ -155,9 +167,9 @@ def addToIndex(query,d,collection,solr_interface,contentColNums = None, phraseCo
     contentColNums = [i for i in contentColNums if i not in query.keys()]
     
     if d['volume'] < 1000:
-        smallAdd(d,query,collection,contentColNums, phraseColNums, phraseCols , timeColInds ,timeColNames , timeColNameInds ,timeColNameDivisions ,timeColNamePhrases ,OverallDate , OverallDateFormat, timeFormatter ,reverseTimeFormatter ,dateDivisions ,datePhrases ,mindate ,maxdate ,OverallLocation , spaceColNames , spaceColInds ,subColInd )
+        smallAdd(d,query,collection,contentColNums, timeColInds ,timeColNames , timeColNameInds ,timeColNameDivisions ,timeColNamePhrases ,OverallDate , OverallDateFormat, timeFormatter ,reverseTimeFormatter ,dateDivisions ,datePhrases ,mindate ,maxdate ,OverallLocation , spaceColNames , spaceColInds ,subColInd )
     else:
-        largeAdd(d,query,collection,contentColNums, phraseColNums, phraseCols , timeColInds ,timeColNames , timeColNameInds ,timeColNameDivisions ,timeColNamePhrases ,OverallDate, OverallDateFormat, timeFormatter ,reverseTimeFormatter ,dateDivisions ,datePhrases ,mindate ,maxdate ,OverallLocation , spaceColNames , spaceColInds ,subColInd)
+        largeAdd(d,query,collection,contentColNums,  timeColInds ,timeColNames , timeColNameInds ,timeColNameDivisions ,timeColNamePhrases ,OverallDate, OverallDateFormat, timeFormatter ,reverseTimeFormatter ,dateDivisions ,datePhrases ,mindate ,maxdate ,OverallLocation , spaceColNames , spaceColInds ,subColInd)
 
     Subcollections = uniqify(ListUnion(collection.find(query).distinct(str(subColInd))))
     metadata = collection.metadata['']
@@ -181,7 +193,7 @@ def addToIndex(query,d,collection,solr_interface,contentColNums = None, phraseCo
         solr_interface.add(**d)
    
     
-def smallAdd(d,query,collection,contentColNums, phraseColNums, phraseCols , timeColInds ,timeColNames , timeColNameInds ,timeColNameDivisions ,timeColNamePhrases ,OverallDate, OverallDateFormat, timeFormatter ,reverseTimeFormatter ,dateDivisions ,datePhrases ,mindate ,maxdate ,OverallLocation , spaceColNames , spaceColInds ,subColInd ):
+def smallAdd(d,query,collection,contentColNums, timeColInds ,timeColNames , timeColNameInds ,timeColNameDivisions ,timeColNamePhrases ,OverallDate, OverallDateFormat, timeFormatter ,reverseTimeFormatter ,dateDivisions ,datePhrases ,mindate ,maxdate ,OverallLocation , spaceColNames , spaceColInds ,subColInd ):
 
     R = collection.find(query,timeout=False)
     colnames = []
@@ -196,16 +208,12 @@ def smallAdd(d,query,collection,contentColNums, phraseColNums, phraseCols , time
         if not commonLocation:
             break     
 
+    Translators = dict([(x,collection.translators.get(collection.totalVariables[int(x)],None) if '.' not in x else None) for x in contentColNums])
     
     for (i,r) in enumerate(R):
     
-        d['sliceContents'].append( ' '.join(ListUnion([([makestr(r,x)] if rhasattr(r,x.split('.')) else []) if is_string_like(x) else [makestr(r,xx) for xx in x if rhasattr(r,xx.split('.'))] for x in contentColNums])))
-        
-        sP = ListUnion([([s + ':' + makestr(r,x)] if rhasattr(r,x.split('.')) else []) if is_string_like(x) else [s + ':' + makestr(r,xx) for xx in x if rhasattr(r,xx.split('.'))] for (s,x) in zip(phraseCols,phraseColNums)])
-        for ssP in sP:
-            if ssP not in d['slicePhrases']:
-                d['slicePhrases'].append(ssP)
-        
+        d['sliceContents'].append( ' '.join([makestr(r,x,Translators[x]) if rhasattr(r,x.split('.')) else '' for x in contentColNums]))
+                      
         colnames  = uniqify(colnames + r.keys())
         
         if subColInd:
@@ -257,7 +265,7 @@ def smallAdd(d,query,collection,contentColNums, phraseColNums, phraseCols , time
         
     return d
     
-def largeAdd(d,query,collection,contentColNums, phraseColNums, phraseCols , timeColInds ,timeColNames , timeColNameInds ,timeColNameDivisions ,timeColNamePhrases ,OverallDate , OverallDateFormat, timeFormatter ,reverseTimeFormatter ,dateDivisions ,datePhrases ,mindate ,maxdate ,OverallLocation , spaceColNames , spaceColInds ,subColInd ):
+def largeAdd(d,query,collection,contentColNums, timeColInds ,timeColNames , timeColNameInds ,timeColNameDivisions ,timeColNamePhrases ,OverallDate , OverallDateFormat, timeFormatter ,reverseTimeFormatter ,dateDivisions ,datePhrases ,mindate ,maxdate ,OverallLocation , spaceColNames , spaceColInds ,subColInd ):
 
     print '0'
     exists = []
@@ -326,22 +334,24 @@ def largeAdd(d,query,collection,contentColNums, phraseColNums, phraseCols , time
             break 
     if commonLocation:
         d['commonLocation'] = loc.phrase(commonLocation)
- 
+        
+    
+    Translators = dict([(x,collection.translators.get(collection.totalVariables[int(x)],None) if '.' not in x else None) for x in contentColNums])
+    
     print '3'    
-    contents = dict([(x,collection.find(query).distinct(x)) for x in uniqify(contentColNums + phraseColNums)])
 
-    print '4'
-    d['sliceContents'] = ' '.join(uniqify(ListUnion([contents[x] for x in contentColNums])))
-    print '5'
-    d['slicePhrases'] = ', '.join(ListUnion([[y + '=' + xx for xx in contents[x]] for (x,y) in zip(phraseColNums,phraseCols)]))
+    d['sliceContents'] = ' '.join(uniqify(ListUnion([ Translate(collection.find(query).distinct(x), Translators[x]) for x in contentColNums])))
 
     return d
+
+def Translate(L,translator):
+    return map(translator,L) if translator else L
     
 def initialize_argdict(collection):
 
     d = {} ; ArgDict = {}
     
-    sliceCols = uniqify(ListUnion(collection.sliceCols))
+    sliceCols = uniqify(Flatten(collection.sliceCols))
     sliceColList = ListUnion([[x] if x.split('.')[0] in collection.totalVariables else collection.ColumnGroups.get(x,[]) for x in sliceCols])
     
     if hasattr(collection,'contentCols'):
@@ -351,14 +361,6 @@ def initialize_argdict(collection):
         contentCols = sliceColList
     contentColNums = getStrs(collection,contentCols)
     ArgDict['contentColNums'] = contentColNums
-    if hasattr(collection,'phraseCols'):
-        phraseColList = ListUnion([[x] if x.split('.')[0] in collection.totalVariables else collection.ColumnGroups.get(x,[]) for x in collection.phraseCols])
-        phraseCols = list(set(phraseColList).difference(sliceColList))
-    else:
-        phraseCols = []
-    phraseColNums = getStrs(collection,phraseCols)
-    ArgDict['phraseCols'] = phraseCols
-    ArgDict['phraseColNums'] = phraseColNums
     
     if hasattr(collection,'DateFormat'):
         DateFormat = collection.DateFormat
@@ -475,8 +477,11 @@ def getStrs(collection,namelist):
     return numlist
         
 
-def makestr(r,x):
+def makestr(r,x,translator = None):
+    
     v = rgetattr(r,x.split('.'))
+    if translator:
+        v = translator(v)
     try:
         v = v.encode('utf-8')
     except UnicodeEncodeError:

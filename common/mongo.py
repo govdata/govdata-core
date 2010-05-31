@@ -17,18 +17,18 @@ class Collection(pm.collection.Collection):
            
           1a) The complete currentVersion metadata is read out into a dictionary, whose keys are names of subcollections.  That is:
           
-          		self.metadata[subcol] = metadata for that subcol -- from the current version of metadata
-          		
-          		so that e.g. "top level" metdata is self.metadata[''].  
-          		
+                self.metadata[subcol] = metadata for that subcol -- from the current version of metadata
+                
+                so that e.g. "top level" metdata is self.metadata[''].  
+                
           1b) The versionNumber parameter to __init__ serves to modify 1a) so that metadata from the specified version is attached as self.metadata
           
           2) This class also makes various attributes available from top-level metadata, by passing on through via intercepting __getattr__, i.e.
-          		IF attribute not otherwise found:
-          			try:
-		          		X.attribute = X.metadata[''][attribute]
-		          		
-		        so e.g. X.ColumnGroups is defined.
+                IF attribute not otherwise found:
+                    try:
+                        X.attribute = X.metadata[''][attribute]
+                        
+                so e.g. X.ColumnGroups is defined.
           
     """
     
@@ -42,18 +42,37 @@ class Collection(pm.collection.Collection):
         metaname = '__' + name + '__'
         assert metaname in db.collection_names(), 'No metadata collection associated with ' + name + ' found.'
         self.metaCollection = db[metaname]      
-            
+                    
         versionsname = '__' + name + '__VERSIONS__'
         if versionsname in db.collection_names() and versionNumber != 'ALL':
             self.versions = db[versionsname]
             currentVersion = max(self.versions.distinct('__versionNumber__'))
             self.currentVersion = currentVersion
             if versionNumber == None:
-            	versionNumber = currentVersion
+                versionNumber = currentVersion
             self.versionNumber = versionNumber
             self.metadata = dict([(l['__name__'],l) for l in self.metaCollection.find({'__versionNumber__':versionNumber})])
         else:
             self.metadata = dict([(l['__name__'],l) for l in self.metaCollection.find()])
+            
+        translator_names = self.metadata[''].get('translators',{})
+        translators = {}
+        if translator_names:
+            for (k,v) in translator_names.items():
+                module = v['module']
+                fname = v['name']         
+                M = __import__(module,fromlist='.'.join(module.split('.')[:-1]))
+                Func = getattr(M,fname)
+                assert hasattr(Func,'__call__')
+                translators[k] = Func
+                
+
+        self.translators = translators
+
+
+        slicesname =  '__' + name + '__SLICES__'
+        if slicesname in db.collection_names():
+            self.slices = db[slicesname]
         
     def subcollection_names(self):
         return self.metadata.keys()
