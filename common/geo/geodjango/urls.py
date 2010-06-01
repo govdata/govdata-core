@@ -15,8 +15,8 @@ urlpatterns = patterns('',
     # Uncomment the next line to enable the admin:
     # (r'^admin/', include(admin.site.urls)),
     
-    (r'^$','location.views.main'),
-    (r'^geodb/(?P<level_code>\w+)/$','location.views.geodb'),
-    (r'^fips/$','location.views.fips'),
-    (r'^regions/(?P<level_code>\w+)/$','location.views.regions')
+    (r'^geo/$','location.views.main'),
+    (r'^geo/geodb/(?P<level_code>\w+)/$','location.views.geodb'),
+    (r'^geo/fips/$','location.views.fips'),
+    (r'^geo/regions/(?P<level_code>\w+)/$','location.views.regions')
 )

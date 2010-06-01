@@ -19,7 +19,8 @@ def geodb(request,level_code):
 		g = request.GET
 	elif request.method == 'POST':
 		g = request.POST
-	
+
+
 	return HttpResponse(json.dumps(geodbGuts(g,level_code)))
 	
 	
@@ -62,7 +63,7 @@ def geodbGuts(g,level_code):
 		else:
 			args = d['query']
 		
-		argdict[key] = args
+		argdict[str(key)] = args
  	
  	results = method(**argdict)
  	
