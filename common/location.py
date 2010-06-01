@@ -220,7 +220,7 @@ def SpaceComplete(x):
         Cset = [c + '=' + x['f'][c] for c in x['f'].keys() if uniqify(x['f'][c]) != ['0']]
         if iFIPS and Cset:
       
-            X = eval(urllib2.urlopen('http://localhost:8000/fips/?' + '&'.join(Cset)).read())
+            X = eval(urllib2.urlopen('http://localhost:8000/geo/fips/?' + '&'.join(Cset)).read())
             if len(X) == 1:
                 X = convertToCodes(X[0])
                 x['f'] = X['f']
@@ -241,11 +241,11 @@ def queryToSolr(spaceQuery):
     elif hasattr(spaceQuery,'keys'):
         if 'bounds' in spaceQuery.keys():
             level = spaceQuery['level']
-            phrases = [modPhrase(convertToCodes(x)) for x in eval(urllib2.urlopen('http://localhost:8000/regions/' + level + '/?bounds=' + spaceQuery['bounds']).read())]
+            phrases = [modPhrase(convertToCodes(x)) for x in eval(urllib2.urlopen('http://localhost:8000/geo/regions/' + level + '/?bounds=' + spaceQuery['bounds']).read())]
         
         elif 'radius' in spaceQuery.keys():
             level = spaceQuery['level']
-            phrases = [modPhrase(convertToCodes(x)) for x in eval(urllib2.urlopen('http://localhost:8000/regions/' + level + '/?radius=' + spaceQuery['radius'] + '&center=' + spaceQuery['center'] + ('&units=' + spaceQuery['units'] if 'units' in spaceQuery.keys() else '')).read())]
+            phrases = [modPhrase(convertToCodes(x)) for x in eval(urllib2.urlopen('http://localhost:8000/geo/regions/' + level + '/?radius=' + spaceQuery['radius'] + '&center=' + spaceQuery['center'] + ('&units=' + spaceQuery['units'] if 'units' in spaceQuery.keys() else '')).read())]
         else:
             spaceQuery = spaceQuery.copy()
             SpaceComplete(spaceQuery)
