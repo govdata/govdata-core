@@ -562,6 +562,8 @@ def getArgs(args):
     else:
         raise ValueError, 'querySequence'   
     
+    kwargs = dict([(str(key),val) for (key,val) in kwargs.items()])
+
     return (posargs,kwargs)
     
     
@@ -981,7 +983,6 @@ class SourceHandler(asyncCursorHandler):
            
         querySequence = [[str(action),list(getArgs(args))] for (action,args) in querySequence]
     
-        
         if querySequence[0][1][0] == () or not (querySequence[0][1][0][0].has_key('version_offset') or querySequence[0][1][0][0].has_key('version')):
             querySequence[0][1][0] = setArgTuple(querySequence[0][1][0],'version_offset',0)        
         
@@ -992,7 +993,6 @@ class SourceHandler(asyncCursorHandler):
         connection = pm.Connection(document_class=pm.son.SON)
         db = connection['govdata']
         collection = db['____SOURCES____']
-
 
         self.add_async_cursor(collection,querySequence)
         

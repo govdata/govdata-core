@@ -628,7 +628,7 @@ def updateSourceDBFromCollections(collectionNames = None):
         old_version_number = old_version['version'] if old_version else -1
         new_version_number = collection.currentVersion
 
-        subcollections = collection.metadata.items()
+        subcollections = collection.metadata.values()
         if old_version_number != new_version_number:
             rec = {'name':collectionName,'version':new_version_number,'version_offset':-1,'subcollections':subcollections,'metadata':collection.metadata[''],'source':collection.Source,'iscollection':True}
             sCollection.insert(rec,safe=True)
