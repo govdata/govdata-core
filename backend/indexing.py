@@ -186,7 +186,7 @@ def addToIndex(q,d,collection,solr_interface,contentColNums = None, timeColInds=
         else:
             if is_string_like(metadata[k]):
                 d[str(k) + '_t'] = metadata[k]        
-    
+
     if Return:
         return d
     else:
@@ -260,6 +260,7 @@ def smallAdd(d,query,collection,contentColNums, timeColInds ,timeColNames , time
 
     if spaceVals:
         d['spatialDivisions'] = ', '.join(uniqify(ListUnion(map(loc.divisions,spaceVals))))
+        d['spatialDivisionsTight'] = ', '.join(uniqify(ListUnion(map(loc.divisions2,spaceVals))))
         d['spatialPhrases'] = uniqify(map(loc.phrase,spaceVals))
         d['spatialPhrasesTight'] = uniqify(map(loc.phrase2,spaceVals))
         
@@ -325,6 +326,7 @@ def largeAdd(d,query,collection,contentColNums, timeColInds ,timeColNames , time
     spaceVals = spaceColNames + spaceColVals 
     if spaceVals:
         d['spatialDivisions'] = ', '.join(uniqify(ListUnion(map(loc.divisions,spaceVals))))
+        d['spatialDivisionsTight'] = ', '.join(uniqify(ListUnion(map(loc.divisions2,spaceVals))))
         d['spatialPhrases'] = uniqify(map(loc.phrase,spaceVals))
         d['spatialPhrasesTight'] = uniqify(map(loc.phrase2,spaceVals))
     commonLocation = OverallLocation

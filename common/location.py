@@ -114,6 +114,12 @@ def divisions(l):
     assert set(l.keys()) <= set(SPACE_DIVISIONS.keys()), 'Unrecognized spatial key codes.'
     return [SPACE_DIVISIONS[x] for x in l.keys() if x != 'f'] + ([SPACE_DIVISIONS[x] +  ' FIPS' for x in l['f']] if 'f' in l.keys() else [])
     
+    
+def divisions2(l):
+    """Converts space object (dict) into the levels auto expands FIPS codes"""
+    assert set(l.keys()) <= set(SPACE_DIVISIONS.keys()), 'Unrecognized spatial key codes.'
+    return [SPACE_DIVISIONS[x] for x in l.keys() if x != 'f'] + ([SPACE_DIVISIONS[x]  for x in l['f'] if x not in l.keys()] if 'f' in l.keys() else [])
+    
 def phrase(l):
     """Human readable phrase"""
     return ', '.join([SPACE_DIVISIONS[x] + '=' + y  for (x,y) in l.items() if x != 'f'] + ([SPACE_DIVISIONS[x] + ' FIPS=' + y for (x,y) in l['f'].items()] if 'f' in l.keys() else []))

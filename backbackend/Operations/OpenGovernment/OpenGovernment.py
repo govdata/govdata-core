@@ -273,7 +273,7 @@ class csv_parser(dataIterator):
     def next(self):
         if self.IND < len(self.Data):
             r = self.Data[self.IND]
-            r = dict([(self.Data.dtype.names[i],float(xx) if isinstance(xx,float) else int(xx) if isinstance(xx,int) else xx) for (i,xx) in enumerate(r) if xx != ''])
+            r = pm.son.SON([(self.Data.dtype.names[i],float(xx) if isinstance(xx,float) else int(xx) if isinstance(xx,int) else xx) for (i,xx) in enumerate(r) if xx != ''])
             
             if 'Subcollections' in r.keys():
                 r['Subcollections'] = r['Subcollections'].split(',')
@@ -486,8 +486,7 @@ def updateMetacollection(iterator, metacollection,incremental,versionNumber,tota
     for t in tcs:
         translators[t] = {'module':'common.timedate','name':'phrase'}
     for s in spcs:
-        translators[s] = {'module':'common.location','name':'phrase2'}
-    
+        translators[s] = {'module':'common.location','name':'phrase2'}    
     metadata['']['translators'] = translators    
 
     metacollection.ensure_index([('__name__',pm.DESCENDING),('__versionNumber__',pm.DESCENDING)], unique=True)   
@@ -514,6 +513,7 @@ def updateMetacollection(iterator, metacollection,incremental,versionNumber,tota
                                 
 
     for k in metadata.keys():
+
         x = metadata[k]
         x['__name__'] = k
         x['__versionNumber__'] = versionNumber
