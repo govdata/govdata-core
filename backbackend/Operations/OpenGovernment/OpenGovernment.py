@@ -294,7 +294,7 @@ class csv_parser(dataIterator):
 @activate(lambda x :  (x[0] + '/',x[3]),lambda x : x[4])
 def updateCollection(download_dir,collectionName,parserClass,checkpath,certpath,parserArgs=None,parserKwargs=None,incremental=False):
     
-    connection =  pm.Connection()
+    connection =  pm.Connection(document_class=pm.son.SON)
     db = connection['govdata']
     assert not '__' in collectionName, 'collectionName must not contain consecutive underscores'
     metaCollectionName = '__' + collectionName + '__'
@@ -609,7 +609,7 @@ def sliceInsert(c,collection,sliceColTuples,VarMap,sliceDB,DIFF,version):
 
 def updateSourceDBFromCollections(collectionNames = None):
 
-    connection = pm.Connection()
+    connection = pm.Connection(document_class=pm.son.SON)
     db = connection['govdata']
     if collectionNames == None:
         collectionNames = [n for n in db.collection_names() if not '__' in n and '.' not in n]
@@ -640,7 +640,7 @@ def updateSourceDBFromCollections(collectionNames = None):
 
 def updateSourceDBByHand(data):
 
-    connection = pm.Connection()
+    connection = pm.Connection(document_class=pm.son.SON)
     db = connection['govdata']
     
     sName = '____SOURCES____'

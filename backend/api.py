@@ -68,7 +68,8 @@ class GetHandler(asyncCursorHandler):
                
  
         A,collection,needsVersioning,versionNumber,uniqueIndexes,vars = get_args(collectionName,querySequence,**passed_args)
-        
+
+               
         self.needsVersioning = needsVersioning
         self.versionNumber = versionNumber
         self.uniqueIndexes = uniqueIndexes
@@ -988,7 +989,7 @@ class SourceHandler(asyncCursorHandler):
         self.stream = False
         self.returnObj = True
         
-        connection = pm.Connection()
+        connection = pm.Connection(document_class=pm.son.SON)
         db = connection['govdata']
         collection = db['____SOURCES____']
 
