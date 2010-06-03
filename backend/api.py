@@ -62,6 +62,8 @@ class GetHandler(asyncCursorHandler):
         
         self.returnMetadata = args.pop('returnMetadata',False)   
         
+        self.jsonPcallback = args.pop('callback',None)
+        
         self.processor = functools.partial(gov_processor,args.pop('processor',None))
        
         passed_args = dict([(key,args.get(key,None)) for key in ['timeQuery','spaceQuery','versionNumber']])
@@ -83,7 +85,8 @@ class GetHandler(asyncCursorHandler):
         
 
     def begin(self):
-        
+        if self.jsonPcallback:
+            self.write(self.jsonPcallback + '(')
         if self.stream:
             self.write('{"data":')
         if self.returnObj:
@@ -114,6 +117,9 @@ class GetHandler(asyncCursorHandler):
                    
         if self.returnObj and not self.stream:
             self.write(json.dumps(returnedObj,default=pm.json_util.default))
+            
+        if self.jsonPcallback:
+            self.write(')')
             
        
         self.finish()
@@ -660,8 +666,7 @@ class TableHandler(GetHandler):
         ids = ['_id'] + [field.encode('utf-8') for field in fields]
         labels = ['_id'] + [str(vars[int(field)]) for field in fields]
         
-
-        
+      
         self.field_types = {}
         
         if hasattr(self.collection,'DateFormat'):
