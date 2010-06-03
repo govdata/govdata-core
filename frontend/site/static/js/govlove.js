@@ -1,7 +1,7 @@
 var GovLove = {};
 (function($) {
     var result_template = "";
-    var base_url = "http://ec2-204-236-243-15.compute-1.amazonaws.com"
+    var base_url = "http://ec2-184-73-134-197.compute-1.amazonaws.com"
     var cache = {};
     var state = {};
     
@@ -31,17 +31,15 @@ var GovLove = {};
     GovLove.find = function(q,callback,options) {
         var params = {
             "q" : q,
-            "hl" : "on",
-            "qt" : "standard",
+            "qt" : "dismax",
             "fields" : ["mongoText","collectionName"],
-            "hl.fl" :"keywords,title,description",
             "facet" : true,
-            "facet.field" :["Agency","Subagency","Source","Geography","TimePeriod"]
+            "facet.field" : ["agency","subagency","source","spatialDivisions","spatialPhrases","dateDivisions","datePhrases","datasetTight"]
         };
-        $.extend(params,options)
+        $.extend(params,options);
         $.getJSON(
-            base_url+"/find?callback=?",
-            params,
+            base_url+"/find?callback=?&"+$.param(params,true),
+            {},
             callback);
     }
     GovLove.get = function(q,callback) {

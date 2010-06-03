@@ -46,7 +46,7 @@ var Frontend = {};
     }
     
     Frontend.run = function() {
-        registerSearchBar();
+        // registerSearchBar();
         registerAutoComplete();
     }
 

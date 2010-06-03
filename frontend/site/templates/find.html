@@ -1,0 +1,120 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+   "http://www.w3.org/TR/html4/loose.dtd">
+
+<html lang="en">
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+	<title>Gov&#9825;Love</title>
+	<meta name="author" content="Doug Fritz">
+	<!-- Date: 2010-03-04 -->
+    <link href='{{ static_url("css/fonts.css") }}' rel='stylesheet' type='text/css'>
+    <link href='{{ static_url("css/screen.css") }}' media="screen, projection" rel="stylesheet" type="text/css">
+    <link href='{{ static_url("css/print.css") }}' media="print" rel="stylesheet" type="text/css">
+    <!--[if lt IE 8]>
+      <link href='{{ static_url("css/ie.css") }}' media="screen, projection" rel="stylesheet" type="text/css">
+    <![endif]-->
+    <link href='http://ajax.googleapis.com/ajax/libs/jqueryui/1.8.1/themes/base/jquery-ui.css' rel="stylesheet" type="text/css">
+</head>
+<body>
+    <div id="container">
+        <div id="header">
+            <ul>
+                <li class="button c_one">about</li>
+                <li class="button c_two">sources</li>
+                <li class="button c_three">trending</li>
+                <li class="button c_four">data</li>
+                <li class="button c_five">contact</li>
+            </ul>
+        <img id="corner" src='{{ static_url("images/corner.png") }}'>
+        </div>
+        <div id="content">
+            <div class="sitename">Gov<span style="color:#FB609C;">&#9825;</span>Love</div>
+            <div id="terms"></div>
+            <form id="search_form" action="/find" method="GET">
+            <div id="search_container">
+                    <input type="text" name="q" id="q" value="{{q}}"/>
+            </div>
+            <div id="filters">
+                <div id="filterbutton" class="clickable">filters</div>
+                <table id="filterlist">
+                <tr>
+                {% for facet in facet_fields %}
+                <td>
+                    <div>{{facet}}</div>
+                    <select multiple>
+                        <option value="478">AVX Corporation</option>
+                        <option value="478">AVX Corporation</option>
+                        <option value="478">AVX Corporation</option>
+                        <option value="478">AVX Corporation</option>
+                    </select>
+                </td>
+                {% end %}
+                </tr>
+                </table>
+            </div>
+            </form>
+            <div id="numFound">Results: {{ data["response"]["numFound"] }}</div>
+            <div id="minimap">
+                {% for k in clustereddocs.keys() %}
+                    <a href="#{{k}}">{{k}}</a>
+                {% end %}
+            </div>
+            <div id="results">
+            <ul>
+                {% for agency,s in clustereddocs.iteritems() %}
+                <li>
+                    <ul>
+                        <h1 id="{{agency}}">{{agency}}<span class="small">top</span></h1>
+                    {% for subagency,docs in s.iteritems() %}
+                        <ul>
+                           <h3>{{subagency}}</h3>
+                            {% for doc in docs %}
+                                <li>
+                                <div class='result'>
+                                    <div class="title">
+                                        {% if doc.has_key("source") %}
+                                            {{ " ".join(doc["source"]) }}
+                                        {% end %}
+                                    </div>
+                                </div>          
+                                </li>                  
+                            {% end %}
+                            <div class="more clickable">more</div>
+                        </ul>
+                    {% end %}
+                    </ul>
+                </li>
+                {% end %}
+            </ul>
+            </div>
+        </div>
+        <div id="footer"></div>
+    </div>
+    <!-- <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js" type="text/javascript"></script> -->
+    <!-- <script src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.8.0/jquery-ui.min.js" type="text/javascript"></script> -->
+    <script type="text/javascript" src="http://www.google.com/jsapi"></script>
+    <script type="text/javascript">
+      google.load('visualization', '1', {packages: ['annotatedtimeline','table']});
+      google.load("jquery", "1.4.2");
+      // google.load("jqueryui", "1.8.2");
+    </script>
+	<script src='{{ static_url("js/jquery-1.4.2.js") }}' type="text/javascript"></script>
+    <script src='{{ static_url("js/jquery-ui-1.8.1.custom.min.js") }}' type="text/javascript"></script>
+    <script src='{{ static_url("js/jquery.hotkeys-0.7.9.js") }}' type="text/javascript"></script>
+	<script src='{{ static_url("js/underscore.js") }}' type="text/javascript"></script>
+	<script src='{{ static_url("js/govlove.js") }}' type="text/javascript"></script>
+	<script src='{{ static_url("js/frontend.js") }}' type="text/javascript"></script>
+	<script type="text/javascript">
+        (function($) {
+            $(function() {
+                Frontend.run();
+                $(".accordion").accordion();
+                $(".selectable").selectable();
+                $("#filterbutton").click(function() {
+                    $("#filterlist").slideToggle("fast");
+                });
+            });
+        })(jQuery);        
+    </script>
+</body>
+</html>

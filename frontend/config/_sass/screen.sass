@@ -18,16 +18,47 @@ body
   color: $fontColor
   line-height: 1.2
 
-h1, .sitename
+h1, h2, h3, .sitename
   font:
     family: 'Josefin Sans Std Light', arial, serif
+
+.button, .clickable
+  +clickable
+
+.small
+  font:
+    size: 12px
+    family: 'Droid Sans', arial, serif
+
+///////////////////////////////////////////////////
+// JQuery UI
+///////////////////////////////////////////////////
+
+#feedback
+  font-size: 1.4em
+  .ui-selecting
+    background: #FECA40
+  .ui-selected
+    background: #F39814
+    color: white
+
+.selectable
+  list-style-type: none
+  margin: 0
+  padding: 0
+  width: 60%
+  li
+    margin: 3px
+    padding: 0.4em
+    font-size: 1.4em
+    height: 18px
 
 ///////////////////////////////////////////////////
 // Container
 ///////////////////////////////////////////////////
 
 #content
-  width: 80%
+  width: 960px
   margin: auto
 
 ///////////////////////////////////////////////////
@@ -43,11 +74,16 @@ h1, .sitename
     +inline-list
     li
       padding: 5px
+      +round(5,5,0,0)
+
 
 #corner
   position: absolute
   top: 48px
   left: 0
+
+em
+  font-style: italic
 
 ///////////////////////////////////////////////////
 // Footer
@@ -56,6 +92,21 @@ h1, .sitename
 ///////////////////////////////////////////////////
 // Find
 ///////////////////////////////////////////////////
+
+#filterlist
+  text-align: center
+  width: 940px
+  tr
+    width: 940px
+    td
+      width: 240px
+
+select
+  background-color: transparent
+  font-size: 1em
+  border: none
+  width: 100%
+
 
 .sitename
   text-align: center
@@ -82,17 +133,45 @@ h1, .sitename
   border-bottom: 2px solid #a0a990
   border-left: 1px solid #a0a990
   +round(10,10,10,10)
+  .title
+    font-weight: bold
 
 #group_container
   text-align: right
   width: 100%
 
+#filters
+  border: 1px solid $darkBrown
+  +round(5,5,5,5)
+  padding: 10px
+  overflow: hidden
+  ul
+    list-style-type: none
+    padding: 0
+    margin: 0
+    +inline-list
+
+#filterbutton
+  width: 100%
+  text-align: center
+
+#results
+  ul
+    list-style-type: none
+    padding: 0
+    margin: 0
+    ul
+      ul
+        padding-left: 16px
+
+///////////////////////////////////////////////////
+// Get
+///////////////////////////////////////////////////
+
+
 ///////////////////////////////////////////////////
 // Theme Colors
 ///////////////////////////////////////////////////
-
-.button
-  +clickable
 
 .c_one
   background-color: $c_one
