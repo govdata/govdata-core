@@ -50,17 +50,10 @@ class Application(tornado.web.Application):
 
 
 class GetHandler(tornado.web.RequestHandler):
-    @tornado.web.asynchronous
     def get(self):
-        http = tornado.httpclient.AsyncHTTPClient()
-        http.fetch("http://friendfeed-api.com/v2/feed/bret",
-                   callback=self.async_callback(self.on_response))
-    def on_response(self, response):
-        if response.error: raise tornado.web.HTTPError(500)
-        json = tornado.escape.json_decode(response.body)
-        self.write("Fetched " + str(len(json["entries"])) + " entries "
-                   "from the FriendFeed API")
-        self.finish()
+        q = self.get_argument("q",None)
+        title = self.get_argument("title",None)
+        self.render("get.html",title=title,q=q)
 
 class ClusteredFindHandler(tornado.web.RequestHandler):
     pass
@@ -96,6 +89,11 @@ class FindHandler(tornado.web.RequestHandler):
         docs = data["response"]["docs"]
         clustereddocs = {}
         for doc in docs:
+            mongoQuery = "("+doc["query"][0]+")"
+            collectionName = doc["collectionName"][0]
+            getquery = {"collectionName":collectionName,
+                        "querySequence":[["find",mongoQuery]]}
+            doc["getquery"] = tornado.escape.url_escape(json.dumps(getquery))
             source_spec = json.loads(doc["SourceSpec"][0])
             print source_spec
             agency = source_spec.get("Agency")
@@ -106,7 +104,7 @@ class FindHandler(tornado.web.RequestHandler):
             if not(agencydict.has_key(subagency)):
                 clustereddocs[agency][subagency] = []
             clustereddocs[agency][subagency].append(doc)            
-        self.render("find.html",q=q,data=data,clustereddocs=clustereddocs,facet_fields=self.facet_fields)
+        self.render("find.html",raw=response.body,q=q,data=data,clustereddocs=clustereddocs,facet_fields=self.facet_fields)
 
 class MetadataHandler(tornado.web.RequestHandler):
     """ name = name

@@ -19,11 +19,11 @@
     <div id="container">
         <div id="header">
             <ul>
-                <li class="button c_one">about</li>
-                <li class="button c_two">sources</li>
-                <li class="button c_three">trending</li>
-                <li class="button c_four">data</li>
-                <li class="button c_five">contact</li>
+                <li class="clickable c_one">about</li>
+                <li class="clickable c_two">sources</li>
+                <li class="clickable c_three">trending</li>
+                <li class="clickable c_four">data</li>
+                <li class="clickable c_five">contact</li>
             </ul>
         <img id="corner" src='{{ static_url("images/corner.png") }}'>
         </div>
@@ -36,41 +36,46 @@
             </div>
             <div id="filters">
                 <div id="filterbutton" class="clickable">filters</div>
+                <div id="filtercontent">
                 <table id="filterlist">
                 <tr>
                 {% for facet in facet_fields %}
                 <td>
-                    <div>{{facet}}</div>
                     <select multiple>
-                        <option value="478">AVX Corporation</option>
-                        <option value="478">AVX Corporation</option>
-                        <option value="478">AVX Corporation</option>
-                        <option value="478">AVX Corporation</option>
+                        {% for i in range(0,len(data["facet_counts"]["facet_fields"][facet]),2) %}
+                        <option value="478">{{data["facet_counts"]["facet_fields"][facet][i]}} : {{data["facet_counts"]["facet_fields"][facet][i+1]}}</option>
+                        {% end %}
                     </select>
                 </td>
                 {% end %}
                 </tr>
                 </table>
+                <!-- <div id="timeslider"></div>
+                <div class="button">filter</div> -->
+                </div>
             </div>
             </form>
             <div id="numFound">Results: {{ data["response"]["numFound"] }}</div>
             <div id="minimap">
+                <ul>
                 {% for k in clustereddocs.keys() %}
-                    <a href="#{{k}}">{{k}}</a>
+                    <li><a href="#{{k}}">{{k}}</a></li>
                 {% end %}
+                </ul>
             </div>
             <div id="results">
             <ul>
                 {% for agency,s in clustereddocs.iteritems() %}
                 <li>
                     <ul>
-                        <h1 id="{{agency}}">{{agency}}<span class="small">top</span></h1>
+                        <h1 id="{{agency}}">{{agency}} <a href="#" class="small">top</a></h1>
                     {% for subagency,docs in s.iteritems() %}
                         <ul>
                            <h3>{{subagency}}</h3>
                             {% for doc in docs %}
                                 <li>
                                 <div class='result'>
+                                    <a href="/get?q={{doc['getquery']}}&title={{doc.get('source','')}}">link</a>
                                     <div class="title">
                                         {% if doc.has_key("source") %}
                                             {{ " ".join(doc["source"]) }}
@@ -107,11 +112,14 @@
 	<script type="text/javascript">
         (function($) {
             $(function() {
+                window.raw = {{raw}};
                 Frontend.run();
                 $(".accordion").accordion();
                 $(".selectable").selectable();
+                $(".button").button();
+                $("#timeslider").slider();
                 $("#filterbutton").click(function() {
-                    $("#filterlist").slideToggle("fast");
+                    $("#filtercontent").slideToggle("fast");
                 });
             });
         })(jQuery);        

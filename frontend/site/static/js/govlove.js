@@ -1,7 +1,7 @@
 var GovLove = {};
 (function($) {
     var result_template = "";
-    var base_url = "http://ec2-184-73-134-197.compute-1.amazonaws.com"
+    var base_url = "http://ec2-184-73-89-111.compute-1.amazonaws.com"
     var cache = {};
     var state = {};
     
@@ -31,17 +31,29 @@ var GovLove = {};
     GovLove.find = function(q,callback,options) {
         var params = {
             "q" : q,
-            "qt" : "dismax",
-            "fields" : ["mongoText","collectionName"],
             "facet" : true,
             "facet.field" : ["agency","subagency","source","spatialDivisions","spatialPhrases","dateDivisions","datePhrases","datasetTight"]
         };
         $.extend(params,options);
         $.getJSON(
-            base_url+"/find?callback=?&"+$.param(params,true),
+            base_url+"/find?"+$.param(params,true),
             {},
             callback);
     }
+    GovLove.table = function(q,callback) {
+        $.ajax({
+            url: base_url+"/table",
+            type: "GET",
+            data: q,
+            dataType: "json",
+            success: callback,
+            complete: function(d) {
+                console.log("is complete");
+                console.log(d);
+            }
+        });
+    }
+    
     GovLove.get = function(q,callback) {
         $.ajax({
             url: base_url+"/get",
