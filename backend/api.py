@@ -904,6 +904,9 @@ class FindHandler(tornado.web.RequestHandler):
         def responder(response):
             if response.error: raise tornado.web.HTTPError(500)
             wt = params.get('wt',None)
+            callback = params.get('callback',None)
+            if callback:
+                self.write(callback + '(')
             if wt == 'json':
                 self.write(response.body)
             elif wt == 'python':
@@ -911,6 +914,8 @@ class FindHandler(tornado.web.RequestHandler):
                 #do stuff to X
                 jsonstr = json.dumps(X,default=pm.json_util.default)
                 self.write(jsonstr)
+            if callback:
+                self.write(')')
             self.finish()
         return responder
     
