@@ -273,7 +273,7 @@ class csv_parser(dataIterator):
     def next(self):
         if self.IND < len(self.Data):
             r = self.Data[self.IND]
-            r = dict([(self.Data.dtype.names[i],float(xx) if isinstance(xx,float) else int(xx) if isinstance(xx,int) else xx) for (i,xx) in enumerate(r) if xx != ''])
+            r = pm.son.SON([(self.Data.dtype.names[i],float(xx) if isinstance(xx,float) else int(xx) if isinstance(xx,int) else xx) for (i,xx) in enumerate(r) if xx != ''])
             
             if 'Subcollections' in r.keys():
                 r['Subcollections'] = r['Subcollections'].split(',')
@@ -294,7 +294,7 @@ class csv_parser(dataIterator):
 @activate(lambda x :  (x[0] + '/',x[3]),lambda x : x[4])
 def updateCollection(download_dir,collectionName,parserClass,checkpath,certpath,parserArgs=None,parserKwargs=None,incremental=False):
     
-    connection =  pm.Connection()
+    connection =  pm.Connection(document_class=pm.son.SON)
     db = connection['govdata']
     assert not '__' in collectionName, 'collectionName must not contain consecutive underscores'
     metaCollectionName = '__' + collectionName + '__'
@@ -486,8 +486,7 @@ def updateMetacollection(iterator, metacollection,incremental,versionNumber,tota
     for t in tcs:
         translators[t] = {'module':'common.timedate','name':'phrase'}
     for s in spcs:
-        translators[s] = {'module':'common.location','name':'phrase2'}
-    
+        translators[s] = {'module':'common.location','name':'phrase2'}    
     metadata['']['translators'] = translators    
 
     metacollection.ensure_index([('__name__',pm.DESCENDING),('__versionNumber__',pm.DESCENDING)], unique=True)   
@@ -514,6 +513,7 @@ def updateMetacollection(iterator, metacollection,incremental,versionNumber,tota
                                 
 
     for k in metadata.keys():
+
         x = metadata[k]
         x['__name__'] = k
         x['__versionNumber__'] = versionNumber
@@ -609,7 +609,7 @@ def sliceInsert(c,collection,sliceColTuples,VarMap,sliceDB,DIFF,version):
 
 def updateSourceDBFromCollections(collectionNames = None):
 
-    connection = pm.Connection()
+    connection = pm.Connection(document_class=pm.son.SON)
     db = connection['govdata']
     if collectionNames == None:
         collectionNames = [n for n in db.collection_names() if not '__' in n and '.' not in n]
@@ -628,7 +628,7 @@ def updateSourceDBFromCollections(collectionNames = None):
         old_version_number = old_version['version'] if old_version else -1
         new_version_number = collection.currentVersion
 
-        subcollections = collection.metadata.items()
+        subcollections = collection.metadata.values()
         if old_version_number != new_version_number:
             rec = {'name':collectionName,'version':new_version_number,'version_offset':-1,'subcollections':subcollections,'metadata':collection.metadata[''],'source':collection.Source,'iscollection':True}
             sCollection.insert(rec,safe=True)
@@ -640,7 +640,7 @@ def updateSourceDBFromCollections(collectionNames = None):
 
 def updateSourceDBByHand(data):
 
-    connection = pm.Connection()
+    connection = pm.Connection(document_class=pm.son.SON)
     db = connection['govdata']
     
     sName = '____SOURCES____'

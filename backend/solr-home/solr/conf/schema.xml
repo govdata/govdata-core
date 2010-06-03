@@ -93,7 +93,6 @@
     <fieldType name="multiPhraseTight" class="solr.TextField" positionIncrementGap="100">
       <analyzer>
         <tokenizer class="solr.PatternTokenizerFactory" pattern=", " />
-        <filter class="solr.LowerCaseFilterFactory"/>
         <filter class="solr.TrimFilterFactory" />
       </analyzer>
     </fieldType>
@@ -203,15 +202,15 @@
    <!-- TIME/DATE -->
    <field name="dateFormat" type="string" indexed="true" stored="true"  />
    <field name="dateDivisions" type="text" indexed="true" stored="true"  />
+   <field name="dateDivisionsTight" type="multiPhraseTight" indexed="true" stored="true"  />
    <field name="begin_date" type="tdate" indexed="true" stored="true"  />
    <field name="end_date" type="tdate" indexed="true" stored="true"  />
-   <field name="dateList" type="multiPhraseTight" indexed="true" stored="true"  />
    <field name="datePhrases" type="datePhrases" indexed="true" stored="false"  />
    <field name="datePhrasesTight" type="multiPhraseTight" indexed="true" stored="false"  />
    
    <!-- SPACE -->
    <field name="spatialDivisions" type="multiPhraseLoose" indexed="true" stored="true"  />
-   <field name="spatialDivisionsTight" type="multiPhraseTight" indexed="true" stored="false"  />
+   <field name="spatialDivisionsTight" type="multiPhraseTight" indexed="true" stored="true"  />
    <field name="commonLocation" type="spacePhrases" indexed="true" stored="true"  />
    <field name="spatialPhrases" type="spacePhrases" indexed="true" stored="false"  />
    <field name="spatialPhrasesTight" type="multiPhraseTight" indexed="true" stored="false"  /> 
@@ -248,8 +247,8 @@
 
  <!-- copyField commands-->
  <copyField source="dataset" dest="datasetTight"/>
- <copyField source="spatialDivisions" dest="spatialDivisionsTight"/>
  <copyField source="datePhrases" dest="datePhrasesTight"/>
+ <copyField source="dateDivisions" dest="dateDivisionsTight"/>
  <copyField source="dataset" dest="datasetTight"/>
  <copyField source="*_acronym" dest="acronyms"/>
  <copyField source="slicePhrases" dest="text"/>

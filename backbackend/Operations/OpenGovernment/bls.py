@@ -9,7 +9,8 @@ from System.Protocols import activate,ApplyOperations2
 import time,re
 import cPickle as pickle
 import hashlib
-import Operations.OpenGovernment.OpenGovernment as OG       
+import Operations.OpenGovernment.OpenGovernment as OG     
+import pymongo as pm
 
 root = '../Data/OpenGovernment/BLS/'
 protocol_root = '../Protocol_Instances/OpenGovernment/BLS/'
@@ -486,7 +487,7 @@ class bls_parser(OG.dataIterator):
                         
             Vals = [[self.ColNo],ser] + [slinesplit[j].strip() for j in self.getcols] + ([dict(([(y,slinesplit[j])  for (j,y) in self.nonfipscols] if self.nonfipscols else []) + ([('f',dict([(y.split('.')[1],slinesplit[j])  for (j,y) in self.fipscols]))]  if self.fipscols else []))] if self.spacecols else [])
             
-            servals = dict(zip(self.NAMES,Vals))
+            servals = pm.son.SON(zip(self.NAMES,Vals))
             
             while dlinesplit[0] == ser and self.dline:
 

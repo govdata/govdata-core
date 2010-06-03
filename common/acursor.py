@@ -606,7 +606,7 @@ class asyncCursorHandler(tornado.web.RequestHandler):
         if fields is not None:
             if not fields:
                 fields = ["_id"]
-            fields = collection._fields_list_to_dict(fields)
+            fields = helpers._fields_list_to_dict(fields)
     
         slave_okay = collection.database.connection.slave_okay
         timeout = True

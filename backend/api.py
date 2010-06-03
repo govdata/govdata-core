@@ -15,6 +15,8 @@ import common.solr as solr
 import functools
 from common.acursor import asyncCursorHandler
 
+SPECIAL_KEYS = CM.SPECIAL_KEYS
+
 
 #=-=-=-=-=-=-=-=-=-=-=-=-=-
 #GET
@@ -66,7 +68,8 @@ class GetHandler(asyncCursorHandler):
                
  
         A,collection,needsVersioning,versionNumber,uniqueIndexes,vars = get_args(collectionName,querySequence,**passed_args)
-        
+
+               
         self.needsVersioning = needsVersioning
         self.versionNumber = versionNumber
         self.uniqueIndexes = uniqueIndexes
@@ -559,6 +562,8 @@ def getArgs(args):
     else:
         raise ValueError, 'querySequence'   
     
+    kwargs = dict([(str(key),val) for (key,val) in kwargs.items()])
+
     return (posargs,kwargs)
     
     
@@ -628,12 +633,25 @@ class TableHandler(GetHandler):
 
     def organize_fields(self,fields):
         vars = self.collection.totalVariables
+
+        TimeColumns = self.collection.ColumnGroups.get('TimeColumns',[])
+        SpaceColums = self.collection.ColumnGroups.get('SpaceColumns',[])
+        TimeColNames = self.collection.ColumnGroups.get('TimeColNames',[])
+        TimeColNames.sort()
         
         if fields == None:
-            fields = map(str,range(len(SPECIAL_KEYS),len(vars)))
+            
+            V = [i for (i,x) in enumerate(vars) if x not in SPECIAL_KEYS and x not in TimeColNames] + [vars.index(x) for x in TimeColNames]
+            fields = map(str,V)
+          
         else:
             fields = fields.keys()
             fields.sort()
+            
+            TimeColFields = [str(vars.index(x))  for x in TimeColNames if str(vars.index(x)) in fields]
+            SpecialFields = [str(vars.index(x))  for x in SPECIAL_KEYS +  ['Subcollections'] if str(vars.index(x)) in fields]
+            
+            fields = SpecialFields + [i for i in fields if i not in TimeColFields + SpecialFields] + TimeColFields
             
         if self.field_order:
             fields = uniqify(ListUnion([[self.VarMap[kk] for kk in self.collection.ColumnGroups.get(k,[k])] for k in self.field_order]) + [k for k in fields if k != '_id' and vars[int(k)] not in self.field_order])
@@ -642,8 +660,7 @@ class TableHandler(GetHandler):
         ids = ['_id'] + [field.encode('utf-8') for field in fields]
         labels = ['_id'] + [str(vars[int(field)]) for field in fields]
         
-        TimeColumns = self.collection.ColumnGroups.get('TimeColumns',[])
-        SpaceColums = self.collection.ColumnGroups.get('SpaceColumns',[])
+
         
         self.field_types = {}
         
@@ -966,7 +983,6 @@ class SourceHandler(asyncCursorHandler):
            
         querySequence = [[str(action),list(getArgs(args))] for (action,args) in querySequence]
     
-        
         if querySequence[0][1][0] == () or not (querySequence[0][1][0][0].has_key('version_offset') or querySequence[0][1][0][0].has_key('version')):
             querySequence[0][1][0] = setArgTuple(querySequence[0][1][0],'version_offset',0)        
         
@@ -974,10 +990,9 @@ class SourceHandler(asyncCursorHandler):
         self.stream = False
         self.returnObj = True
         
-        connection = pm.Connection()
+        connection = pm.Connection(document_class=pm.son.SON)
         db = connection['govdata']
         collection = db['____SOURCES____']
-
 
         self.add_async_cursor(collection,querySequence)
         
