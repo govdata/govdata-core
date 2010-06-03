@@ -785,7 +785,7 @@ def RegionalGDP_Preparse2(maindir):
         X = X.addcols([['NAICS']*len(X),['M']*len(X)],names=['IndClass','Subcollections'])
         X.saveSV(outpath + str(i+LenR) + '.tsv',metadata=['dialect','names','formats'])
 
-	    
+        
     IH = tuple(X.coloring['IndustryHierarchy'])
     
     AllKeys = uniqify(ListUnion([k.keys() for k in Metadict.values()]))
@@ -1353,29 +1353,51 @@ def get_intl_investment(maindir):
     wget('http://www.bea.gov/international/xls/intinv08_t2.xls',maindir + 'investment_2.xls')
     wget('http://www.bea.gov/international/xls/intinv08_t3.xls',maindir + 'investment_3.xls')
  
- 
-#write a crawler that gets the relevant things for all the investment DBs 
+
  
 from mechanize import Browser
+from ClientForm import ControlNotFoundError
 
-def get_intl():
 
+def make_intl_manifest(maindir):
+    sourcedir = maindir + 'urls/'
+    L = [x for x in listdir(sourcedir) if x.endswith('.txt')]
+    Recs =  [l.split('.')[0].split('_') + [open(sourcedir + l).read().strip()] for l in L]
+    R = tb.tabarray(records = Recs,names = ['Entity','Series','RowType','IndType','URL'])
+    X = tb.tabarray(SVfile= maindir + 'SeriesEncodings.tsv')
+    X1 = tb.tabarray(SVfile= maindir + 'RowTypeEncodings.tsv')
+    Z = R.join(X1,keycols=['Series','RowType','Entity']).join(X,keycols=['Series','Entity'])
+    Z.saveSV(maindir + 'Manifest.tsv',metadata=True)
+
+URLLIST = ['http://www.bea.gov/international/ii_web/timeseries2.cfm?econtypeid=1&dirlevel1id=1&Entitytypeid=1&stepnum=1','http://www.bea.gov/international/ii_web/timeseries1.cfm?econtypeid=1&dirlevel1id=2']
+
+def get_intl(maindir,url):
     br = Browser()
-    br.open('http://www.bea.gov/international/ii_web/timeseries2.cfm?econtypeid=1&dirlevel1id=1&Entitytypeid=1&stepnum=1')
-    br.select_form(nr=1)
+    br.open(url)
+    handle_br(br,maindir)
 
-
-def getfinaldata(seriesid,rowtypeid,indtypeid,url,maindir):
-    F = open(maindir + '/urls/' + seriesid + '_' + rowtypeid + '_' + indtypeid + '.txt','w')
+def getfinaldata(br,url,maindir):
+    try:
+        entitytypeid = br['entitytypeid']
+    except AttributeError:
+        entitytypeid = ''
+    seriesid = br['seriesid']
+    rowtypeid = br['rowtypeid']
+    indtypeid = br['indtypeid']
+    
+    F = open(maindir + '/urls/' + entitytypeid + '_' + seriesid + '_' + rowtypeid + '_' + indtypeid + '.txt','w')
     F.write(url)
     F.close()
-    
+     
 def handle_br(br,maindir):
+    print br
     L = br.links()
     URL = [l.url for l in L]
     if any(['timeseries_to_csv.cfm?' in url for url in URL]):
-        getfinaldata(br['seriesid'],br['rowtypeid'],br['indtypeid'],[u for u in url if 'timeseries_to_csv.cfm?' in url][0]) 
-    
+        br.select_form(nr=1)
+        getfinaldata(br,[url for url in URL if 'timeseries_to_csv.cfm?' in url][0],maindir)    
+        return 
+        
     br.select_form(nr=1)
     try:
         control = br.find_control(predicate=lambda x : x.name == 'seriesid' and not x.readonly)
@@ -1387,8 +1409,7 @@ def handle_br(br,maindir):
                 control = br.find_control(predicate=lambda x : x.name == 'indtypeid' and not x.readonly)
             except ControlNotFoundError:
                 try:
-                    control = br.find_control(predicate=lambda x : x.name == 'yearidall' and not x.readonly)
-                
+                    control = br.find_control(predicate=lambda x : x.name == 'yearidall' and not x.readonly)              
                 except ControlNotFoundError:
                     control = br.find_control(predicate=lambda x : x.name == 'rowid' and not x.readonly)
                     rowid_handler(br,maindir)
@@ -1402,52 +1423,91 @@ def handle_br(br,maindir):
         series_handler(br,control,maindir)
 
 def series_handler(br,c,maindir):
-    values = [i.attrs['value'] for i in c.items]
-    topurl = br.geturl()
-    for v in values:
-        br = Browser()
-        br.open(topurl)
-        br.select_form(nr=1)
-        br['seriesid'] = [v]
-        br.submit()
-        handle_br(br,maindir)
+    Soup = BeautifulSoup(br.response().read())
+    
+    try:
+        e = br.find_control(predicate=lambda x : x.name == 'entitytypeid' and not x.readonly)
+    except ControlNotFoundError:
+        ev = br['entitytypeid']
+        Recs = [(ev,'',str(dict(l.findAll('input')[0].attrs)['value']),Contents(l).strip()) for l in Soup.findAll('label')]
+        tb.tabarray(records = Recs,names = ['Entity','EntityName','Series','SeriesName']).saveSV(maindir + 'SeriesEncodings.tsv',metadata=True)
+        values = [i.attrs['value'] for i in c.items]
+        for v in values:
+            br.select_form(nr=1)
+            br['seriesid'] = [v]
+            br.submit()
+            handle_br(br,maindir)
+            br.back()
+    else:
+        Erecs = [(str(dict(l.findAll('input')[0].attrs)['value']),Contents(l).strip()) for l in Soup.findAll('div',id='menuitem1')[0].findAll('label')]
+        evalues = [i.attrs['value'] for i in e.items]
+        for (ev,evn) in Erecs:
+            Recs = [(ev,evn,str(dict(a.attrs)['value']),Contents(a.findNext()).strip()) for a in Soup.findAll('div',id='menusubitem' + ev)[0].findAll('input')]
+            X = tb.tabarray(records = Recs,names = ['Entity','EntityName','Series','SeriesName'])
+            tb.io.appendSV(maindir + 'SeriesEncodings.tsv',X,metadata=True)
+            for v in X['Series']:
+                br.select_form(nr=1)
+                br['seriesid'] = [v]
+                br['entitytypeid'] = [ev]
+                br.submit()
+                handle_br(br,maindir)
+                br.back()            
+
         
 def rowtype_handler(br,c,maindir):
     values = [i.attrs['value'] for i in c.items]
     topurl = br.geturl()
+    Soup = BeautifulSoup(br.response().read())
+    series = br['seriesid']
+    try:
+        entitytypeid = br['entitytypeid']
+    except AttributeError:
+        entitytypeid = ''
+    Recs = [(str(dict(l.findAll('input')[0].attrs)['value']),Contents(l).strip(),series,entitytypeid) for l in Soup.findAll('label')]
+    X = tb.tabarray(records = Recs,names = ['RowType','RowTypeName','Series','Entity'])
+    tb.io.appendSV(maindir + 'RowTypeEncodings.tsv',X,metadata=True)
     for v in values:
-        br = Browser()
-        br.open(topurl)
         br.select_form(nr=1)
         br['rowtypeid'] = [v]
         br.submit()
         handle_br(br,maindir)
+        br.back()
         
-def year_handler(br,c):
+def year_handler(br,c,maindir):
     c.items[0].selected = True
     br.submit()
     handle_br(br,maindir)
+    br.back()
 
-def indtype_handler(br,c):
+def indtype_handler(br,c,maindir):
     topurl = br.geturl()
-    for val in ['0','1']:
-        br = Browser()
-        br.open(topurl)
+    for v in ['1','2']:
         br.select_form(nr = 1)
         br['indtypeid'] = [v]
-        br.find_control('newyearid' + ('' if val == '0' else '2') + 'all').items[0] = True
+        br.find_control('newyearid' + ('' if v == '1' else '2') + 'all').items[0].selected = True
         br.submit()
         handle_br(br,maindir)
+        br.back()
 
-def rowid_handler(br):
-    c = br.find_control(predicate=lambda x : x.name == 'rowid' and not x.readonly)
-    rvalues = [i.attrs['value'] for i in c.items]
-    c = br.find_control(predicate=lambda x : x.name == 'columnid' and not x.readonly)
-    cvalues = [i.attrs['value'] for i in c.items]
-    br['rowid'] = min(rvalues)
-    br['columnid'] = min(cvalues)
+def rowid_handler(br,maindir):
+    try:
+        c = br.find_control(predicate=lambda x : x.name == 'rowid' and not x.readonly)
+    except ControlNotFoundError:
+        print 'rowid control not found at ', br
+    else:
+        rvalues = [int(i.attrs['value']) for i in c.items]
+        br['rowid'] = [str(min(rvalues))]
+    try:
+        c = br.find_control(predicate=lambda x : x.name == 'columnid' and not x.readonly)
+    except ControlNotFoundError:
+        print 'columnid control not found at ', br
+    else:
+        cvalues = [int(i.attrs['value']) for i in c.items]
+        br['columnid'] = [str(min(cvalues))]
+        
     br.submit()
     handle_br(br,maindir)
+    br.back()
  
  
 def get_us_investment_abroad(maindir):
