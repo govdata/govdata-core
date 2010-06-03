@@ -904,7 +904,7 @@ class FindHandler(tornado.web.RequestHandler):
         def responder(response):
             if response.error: raise tornado.web.HTTPError(500)
             wt = params.get('wt',None)
-            callback = params.get('callback',None)
+            callback = params.get('callback',[None])[0]
             if callback:
                 self.write(callback + '(')
             if wt == 'json':
