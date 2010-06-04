@@ -596,6 +596,7 @@ class TableHandler(GetHandler):
         self.sig = str(args['tq'].__hash__())
 
         query = json.loads(args['tq'])
+        print query
         self.queryVal = query
                 
         if 'sig' in tqx.keys() and self.sig == tqx['sig']:
@@ -616,9 +617,9 @@ class TableHandler(GetHandler):
                 
                 self.reqId = tqx.get('reqId',self.sig)
                 
-                query['timeQuery'] = json.loads(query.get('timeQuery','null'))
-                query['spaceQuery'] = json.loads(query.get('spaceQuery','null'))
-                query['query'] = querySequence = json.loads(query['query']) 
+                query['timeQuery'] = query.get('timeQuery','null')
+                query['spaceQuery'] = query.get('spaceQuery','null')
+                query['query'] = querySequence = query['query']
                 
                 if isinstance(querySequence, dict):
                     querySequence = [querySequence]
