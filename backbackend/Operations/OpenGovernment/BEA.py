@@ -513,6 +513,13 @@ def fat_trigger():
     else:
         return 'overall'
         
+        
+  
+def backend_BEA_FAT(creates = OG.CERT_PROTOCOL_ROOT + FAT_NAME + '/',Fast = True):
+    OG.backendProtocol(FAT_NAME,OG.csv_parser,downloader = [(FAT_downloader,'raw'),(FAT_preparser1,'preparse1'),(FAT_preparser2,'preparse2')],trigger = fat_trigger,incremental=True)
+    
+    
+            
 #=-=-=-=-=-=-=-=-=-=-=-=-=-=NIPA
 @activate(lambda x : 'http://www.bea.gov/national/nipaweb/csv/NIPATable.csv',lambda x : x[0])
 def NIPA_downloader(maindir):
@@ -657,6 +664,11 @@ def trigger():
         return 'increment'
     else:
         return 'overall'
+        
+
+def backend_BEA_NIPA(creates = OG.CERT_PROTOCOL_ROOT + NIPA_NAME + '/',Fast = True):
+    OG.backendProtocol(NIPA_NAME,OG.csv_parser,downloader = [(NIPA_downloader,'raw'),(NIPA_preparser1,'preparse1'),(NIPA_preparser2,'preparse2'),(get_additional_info,'additional_info')],trigger = trigger,incremental=True)
+        
         
 #=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
@@ -962,6 +974,12 @@ def reg_trigger():
         return 'increment'
     else:
         return 'overall'
+        
+def backend_BEA_RegionalGDP(creates = OG.CERT_PROTOCOL_ROOT + REG_NAME + '/',Fast = True):
+    OG.backendProtocol(REG_NAME,OG.csv_parser,downloader = [(RegionalGDP_initialize,'initialize'),(GetStateManifest,'state_manifest'),(DownloadStateFiles,'get_state_files'),(DownloadMetroFiles,'get_metro_files'),(State_PreParse1,'state_preparse1'),(Metro_PreParse1,'metro_preparse1'),(RegionalGDP_Preparse2,'preparse2')],trigger = reg_trigger,incremental=True)
+
+
+
 #=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 
@@ -1315,23 +1333,54 @@ class pi_parser(OG.csv_parser):
             id = self.Data.metadata['Table'] + '_' + self.Data.metadata['LineCode']
             self.metadata[id] = {'Title':self.Data.metadata['Line'], 'Footnote': self.Data.metadata['LineFootnote']}
          
-         
+  
+def backend_BEA_PersonalIncome(creates = OG.CERT_PROTOCOL_ROOT + PI_NAME + '/',Fast = True):
+  
+    D = [((get_footnotes,'footnotes'),()),((get_line_codes,'lapi_line_codes'),()),((process_line_codes,'process_line_codes'),()),((SAPI_downloader,'sapi_raw'),()),((SQPI_downloader,'sqpi_raw'),())] 
+    D += [((SAPI_preparse,'sapi_preparse'),()),((SQPI_preparse,'sqpi_preparse'),())] 
+    
+    tables = ['CA1-3', 'CA04', 'CA05N', 'CA25N', 'CA05', 'CA06', 'CA06N', 'CA25', 'CA30', 'CA34', 'CA35','CA45']
+    areatypes = ['ALLCOUNTY', 'STATE','METRO','MDIV','CSA']
+    D += [((LAPI_downloader,'lapi_' + t.replace('-','_') + '_' + a + '_raw'),(t,a)) for t in tables for a in areatypes]
+    D += [((LAPI_preparse,'lapi_' + t.replace('-','_') + '_' + a + '_preparse'),(t,a)) for t in tables for a in areatypes]
+    
+    D += [((PI_metadata,'make_metadata'),())]
+    
+    (downloader, downloadArgs) = zip(*D)
+    downloader = list(downloader)
+    downloadArgs = list(downloadArgs)
+    
+    OG.backendProtocol(PI_NAME,pi_parser,downloader = downloader, downloadArgs = downloadArgs,trigger = pi_trigger,incremental=True)
+
+
+
+       
 #=-=-=-=-=-=-=-=-=-=-=-=-International transactions
 
+@activate(lambda x : 'http://www.bea.gov/international/xls/table1.xls',lambda x : x[0] + 'transactions.xls')
 def get_intl_transactions(maindir):
     wget('http://www.bea.gov/international/xls/table1.xls',maindir + 'transactions.xls')
-    
+ 
+@activate(lambda x : 'http://www.bea.gov/international/bp_web/startDownload.asp?dlSelect=tables%2FCSV%2FITA-CSV.zip',lambda x : (x[0] + 'detailed_transactions.zip',x[0] + 'detailed_transactions/'))
 def get_intl_transactions_detailed(maindir):
-    #footnotes are with each individual file
     wget('http://www.bea.gov/international/bp_web/startDownload.asp?dlSelect=tables%2FCSV%2FITA-CSV.zip',maindir + 'detailed_transactions.zip')
     os.system('unzip -d ' + maindir + 'detailed_transactions/ ' + maindir + 'detailed_transactions.zip')
 
+@activate(lambda x : ('http://www.bea.gov/methodologies/_pdf/summary_of_major_revisions_to_the_us_international_accounts_1976_2009.pdf','http://www.bea.gov/scb/pdf/2010/02%20February/0210_guide.pdf'),lambda x : x[0] + '__FILES__/')
 def get_intl_transactions_files(maindir):
+    MakeDir(maindir + '__FILES__/')
     wget('http://www.bea.gov/methodologies/_pdf/summary_of_major_revisions_to_the_us_international_accounts_1976_2009.pdf',maindir + '__FILES__/international_transactions_revisions.pdf')
     wget('http://www.bea.gov/scb/pdf/2010/02%20February/0210_guide.pdf',maindir + '__FILES__/international_transactions_guide.pdf')
 
+ITrans_NAME = 'BEA_InternationalTransactions'
+
+def backend_BEA_ITrans(creates = OG.CERT_PROTOCOL_ROOT + ITrans_NAME + '/'):
+    OG.backendProtocol(ITrans_NAME,None,downloader = [(get_intl_transactions,'get_transactions'),(get_intl_transactions_detailed,'get_transactions_detailed'),(get_intl_transactions_files,'get_files')],uptostep='download_check')
+
+
 #=-=-=-=-=-=-=-=-=-=-=-=-International trade
 
+@activate(lambda x : 'http://www.bea.gov/newsreleases/international/trade/trad_time_series.xls',lambda x : x[0] + 'trade.xls')
 def get_intl_trade(maindir):
     wget('http://www.bea.gov/newsreleases/international/trade/trad_time_series.xls',maindir + 'trade.xls')
 
@@ -1339,42 +1388,64 @@ def get_intl_trade_services_detailed(maindir):
     pass
     #annoyingly dispersed:    http://www.bea.gov/international/international_services.htm#summaryandother
     
-        
+    
+@activate(lambda x : 'http://www.bea.gov/international/zip',lambda x : x[0] + 'trade_detailed/')
 def get_intl_trade_goods_detailed(maindir):
-    getzip('http://www.bea.gov/international/zip/IDS0008Hist.zip',maindir + 'detailed_trade_goods_historical_quarterly.zip')
-    getzip('http://www.bea.gov/international/zip/IDS0008.zip',maindir + 'detailed_trade_goods_current_quarterly.zip')
-    getzip('http://www.bea.gov/international/zip/IDS0182.zip',maindir + 'detailed_trade_goods_current_monthly.zip')
-    getzip('http://www.bea.gov/international/zip/IDS0182Hist.zip',maindir + 'detailed_trade_goods_historical_monthly.zip')
+    getzip('http://www.bea.gov/international/zip/IDS0008Hist.zip',maindir + 'trade_detailed/detailed_trade_goods_historical_quarterly.zip')
+    getzip('http://www.bea.gov/international/zip/IDS0008.zip',maindir + 'trade_detailed/detailed_trade_goods_current_quarterly.zip')
+    getzip('http://www.bea.gov/international/zip/IDS0182.zip',maindir + 'trade_detailed/detailed_trade_goods_current_monthly.zip')
+    getzip('http://www.bea.gov/international/zip/IDS0182Hist.zip',maindir + 'trade_detailed/detailed_trade_goods_historical_monthly.zip')
+
+ITrade_NAME = 'BEA_InternationalTrade'
+
+
+def backend_BEA_ITrade(creates = OG.CERT_PROTOCOL_ROOT + ITrade_NAME + '/'):
+    OG.backendProtocol(ITrade_NAME,None,downloader = [(get_intl_trade,'get_trade'),(get_intl_trade_goods_detailed,'get_trade_goods_detailed')],uptostep='download_check')
 
 
 #=-=-=-=-=-=-=-=-=-=-=-=-International investment
-    
-def get_intl_investment(maindir):
-    wget('http://www.bea.gov/international/xls/intinv08_t2.xls',maindir + 'investment_2.xls')
-    wget('http://www.bea.gov/international/xls/intinv08_t3.xls',maindir + 'investment_3.xls')
- 
 
- 
+    
+@activate(lambda x : 'http://www.bea.gov/international/xls',lambda x : x[0] + 'aggregate_data/')
+def get_intl_investment(maindir):
+    MakeDirs(maindir + 'aggregate_data/')
+    wget('http://www.bea.gov/international/xls/intinv08_t2.xls',maindir + 'aggregate_data/investment_2.xls')
+    wget('http://www.bea.gov/international/xls/intinv08_t3.xls',maindir + 'aggregate_data/investment_3.xls')
+
+
 from mechanize import Browser
 from ClientForm import ControlNotFoundError
 
 
-def make_intl_manifest(maindir):
-    sourcedir = maindir + 'urls/'
+@activate(lambda x : x[0] + x[1] + '/Manifest.tsv',lambda x : x[0] + x[1] + '/RawData/')
+def get_ii_data(maindir,tag):
+    X = tb.tabarray(SVfile = maindir + tag + '/Manifest.tsv')
+    MakeDir(maindir + tag + '/RawData/')
+    for x in X:
+        wget('http://www.bea.gov/international/ii_web/' + x['URL'], maindir + tag + '/RawData/' +  x['Entity'] + '_' + x['Series'] + '_' + x['RowType'] + '_' + x['IndType'] + '.csv')
+    
+    
+@activate(lambda x : (x[0] + x[1] + '/urls/',x[0] + x[1] + '/RowTypeEncodings.tsv',x[0] + x[1] +'/SeriesEncodings.tsv'),lambda x : x[0] + x[1] + '/Manifest.tsv')
+def make_ii_manifest(maindir,tag):
+    sourcedir = maindir + tag + '/urls/'
     L = [x for x in listdir(sourcedir) if x.endswith('.txt')]
     Recs =  [l.split('.')[0].split('_') + [open(sourcedir + l).read().strip()] for l in L]
     R = tb.tabarray(records = Recs,names = ['Entity','Series','RowType','IndType','URL'])
-    X = tb.tabarray(SVfile= maindir + 'SeriesEncodings.tsv')
-    X1 = tb.tabarray(SVfile= maindir + 'RowTypeEncodings.tsv')
+    X = tb.tabarray(SVfile = maindir + tag + '/SeriesEncodings.tsv')
+    X1 = tb.tabarray(SVfile = maindir + tag + '/RowTypeEncodings.tsv')
     Z = R.join(X1,keycols=['Series','RowType','Entity']).join(X,keycols=['Series','Entity'])
-    Z.saveSV(maindir + 'Manifest.tsv',metadata=True)
+    Z.saveSV(maindir + tag + '/Manifest.tsv',metadata=True)
 
-URLLIST = ['http://www.bea.gov/international/ii_web/timeseries2.cfm?econtypeid=1&dirlevel1id=1&Entitytypeid=1&stepnum=1','http://www.bea.gov/international/ii_web/timeseries1.cfm?econtypeid=1&dirlevel1id=2']
 
-def get_intl(maindir,url):
+@activate(lambda x : x[1],lambda x : x[0] + x[2] + '/')
+def get_ii_urls(maindir,url,tag):
     br = Browser()
     br.open(url)
-    handle_br(br,maindir)
+    target = maindir + tag + '/'
+    MakeDirs(target)
+    MakeDirs(target + 'urls/')
+    handle_ii_br(br,target)
+    
 
 def getfinaldata(br,url,maindir):
     try:
@@ -1389,7 +1460,7 @@ def getfinaldata(br,url,maindir):
     F.write(url)
     F.close()
      
-def handle_br(br,maindir):
+def handle_ii_br(br,maindir):
     print br
     L = br.links()
     URL = [l.url for l in L]
@@ -1436,7 +1507,7 @@ def series_handler(br,c,maindir):
             br.select_form(nr=1)
             br['seriesid'] = [v]
             br.submit()
-            handle_br(br,maindir)
+            handle_ii_br(br,maindir)
             br.back()
     else:
         Erecs = [(str(dict(l.findAll('input')[0].attrs)['value']),Contents(l).strip()) for l in Soup.findAll('div',id='menuitem1')[0].findAll('label')]
@@ -1450,7 +1521,7 @@ def series_handler(br,c,maindir):
                 br['seriesid'] = [v]
                 br['entitytypeid'] = [ev]
                 br.submit()
-                handle_br(br,maindir)
+                handle_ii_br(br,maindir)
                 br.back()            
 
         
@@ -1470,13 +1541,13 @@ def rowtype_handler(br,c,maindir):
         br.select_form(nr=1)
         br['rowtypeid'] = [v]
         br.submit()
-        handle_br(br,maindir)
+        handle_ii_br(br,maindir)
         br.back()
         
 def year_handler(br,c,maindir):
     c.items[0].selected = True
     br.submit()
-    handle_br(br,maindir)
+    handle_ii_br(br,maindir)
     br.back()
 
 def indtype_handler(br,c,maindir):
@@ -1486,7 +1557,7 @@ def indtype_handler(br,c,maindir):
         br['indtypeid'] = [v]
         br.find_control('newyearid' + ('' if v == '1' else '2') + 'all').items[0].selected = True
         br.submit()
-        handle_br(br,maindir)
+        handle_ii_br(br,maindir)
         br.back()
 
 def rowid_handler(br,maindir):
@@ -1506,53 +1577,68 @@ def rowid_handler(br,maindir):
         br['columnid'] = [str(min(cvalues))]
         
     br.submit()
-    handle_br(br,maindir)
+    handle_ii_br(br,maindir)
     br.back()
- 
- 
-def get_us_investment_abroad(maindir):
-    pass
-    
-def get_us_finance_abroad(maindir):
-    pass
-    
-def get_foreign_investment(maindir):
-    pass
-    
-def get_foreign_finance(maindir):
-    pass
-#=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
-def backend_BEA_PersonalIncome(creates = OG.CERT_PROTOCOL_ROOT + PI_NAME + '/',Fast = True):
   
-    D = [((get_footnotes,'footnotes'),()),((get_line_codes,'lapi_line_codes'),()),((process_line_codes,'process_line_codes'),()),((SAPI_downloader,'sapi_raw'),()),((SQPI_downloader,'sqpi_raw'),())] 
-    D += [((SAPI_preparse,'sapi_preparse'),()),((SQPI_preparse,'sqpi_preparse'),())] 
+import csv
+def parse_ii(infile):
+    F = open(infile,'rU').read().strip().split('\n')
+    headerlines = []
+    while True:
+        line = F.pop(0)
+        if line:
+            headerlines.append(line)
+        else:
+            break
+    unit =  headerlines[-1].split('(')[-1].strip(') ')
     
-    tables = ['CA1-3', 'CA04', 'CA05N', 'CA25N', 'CA05', 'CA06', 'CA06N', 'CA25', 'CA30', 'CA34', 'CA35','CA45']
-    areatypes = ['ALLCOUNTY', 'STATE','METRO','MDIV','CSA']
-    D += [((LAPI_downloader,'lapi_' + t.replace('-','_') + '_' + a + '_raw'),(t,a)) for t in tables for a in areatypes]
-    D += [((LAPI_preparse,'lapi_' + t.replace('-','_') + '_' + a + '_preparse'),(t,a)) for t in tables for a in areatypes]
+    while True:
+        line = F.pop(0)
+        if line:
+            break
+            
+    names = line.split(',')
+    for i in range(1,len(names)):
+        unit_type = names[i].split(' - ')[0].strip()
+        names[i] = names[i].split(' - ')[-1].strip()
     
-    D += [((PI_metadata,'make_metadata'),())]
+    data = []
+    while True:
+        line = F.pop(0)
+        if line:
+            data.append(list(csv.reader([line],delimiter = ','))[0])
+        else:
+            break
+    catcol = np.array([x[0] for x in data])
+    [catcols,hl] = OG.gethierarchy(catcol,hr,postprocessor = lambda x : x.strip())
+    X = tb.tabarray(records = data,names = names).addcols(catcols + [hl],names = ['Level_' + str(i) for i in range(len(catcols))] + ['HierarchyLevel'])
     
-    (downloader, downloadArgs) = zip(*D)
-    downloader = list(downloader)
-    downloadArgs = list(downloadArgs)
-    
-    OG.backendProtocol(PI_NAME,pi_parser,downloader = downloader, downloadArgs = downloadArgs,trigger = pi_trigger,incremental=True)
+    footerlines = F
+
+    return [X,headerlines,footerlines,unit,unit_type]
 
 
-def backend_BEA_RegionalGDP(creates = OG.CERT_PROTOCOL_ROOT + REG_NAME + '/',Fast = True):
-    OG.backendProtocol(REG_NAME,OG.csv_parser,downloader = [(RegionalGDP_initialize,'initialize'),(GetStateManifest,'state_manifest'),(DownloadStateFiles,'get_state_files'),(DownloadMetroFiles,'get_metro_files'),(State_PreParse1,'state_preparse1'),(Metro_PreParse1,'metro_preparse1'),(RegionalGDP_Preparse2,'preparse2')],trigger = reg_trigger,incremental=True)
-
-
-def backend_BEA_NIPA(creates = OG.CERT_PROTOCOL_ROOT + NIPA_NAME + '/',Fast = True):
-    OG.backendProtocol(NIPA_NAME,OG.csv_parser,downloader = [(NIPA_downloader,'raw'),(NIPA_preparser1,'preparse1'),(NIPA_preparser2,'preparse2'),(get_additional_info,'additional_info')],trigger = trigger,incremental=True)
     
+       
   
-def backend_BEA_FAT(creates = OG.CERT_PROTOCOL_ROOT + FAT_NAME + '/',Fast = True):
-    OG.backendProtocol(FAT_NAME,OG.csv_parser,downloader = [(FAT_downloader,'raw'),(FAT_preparser1,'preparse1'),(FAT_preparser2,'preparse2')],trigger = fat_trigger,incremental=True)
+II_NAME = 'BEA_InternationalInvestment'
+
+def backend_BEA_II(creates = OG.CERT_PROTOCOL_ROOT + II_NAME + '/'):
+
+    base = 'http://www.bea.gov/international/ii_web/timeseries'
     
+    URLS = [base + x for x in ['2.cfm?econtypeid=1&dirlevel1id=1&Entitytypeid=1&stepnum=1','1.cfm?econtypeid=1&dirlevel1id=2','2.cfm?econtypeid=2&dirlevel1id=1&Entitytypeid=1&stepnum=1','1.cfm?econtypeid=2&dirlevel1id=2']]
     
+    T = ['us_investment','us_finance','foreign_investment','foreign_finance']
     
+    D =  [(get_intl_investment,'get_investment',())] + ListUnion([[(get_ii_urls,'urls_' +t,(u,t)),(make_ii_manifest,'manifest_' + t,(t,)),(get_ii_data,'data_' + t,(t,))] for (u,t) in zip(URLS,T)] )
+    
+    [fs, ts, args] = zip(*D)
+    downloader = zip(fs,ts)
+    
+    OG.backendProtocol(II_NAME,None,downloader = downloader,downloadArgs = args,uptostep='download_check')
+
+    
+
     

@@ -33,7 +33,7 @@ class GetHandler(asyncCursorHandler):
         for k in args.keys():
             args[k] = args[k][0]
 
-        args['querySequence'] = json.loads(args['querySequence']) 
+        args['query'] = json.loads(args['query']) 
         
         if 'timeQuery' in args.keys():
             args['timeQuery'] = json.loads(args['timeQuery'])
@@ -54,9 +54,14 @@ class GetHandler(asyncCursorHandler):
         
         args = dict([(str(x),y) for (x,y) in args.items()])
 
-        collectionName = args.pop('collectionName')
-        querySequence = args.pop('querySequence')        
+        collectionName = args.pop('collection')
+        querySequence = args.pop('query')        
         
+        if isinstance(querySequence,dict):
+            querySequence = [querySequence]
+        for (i,x) in enumerate(querySequence):
+            querySequence[i] = (x.get('action'),[x.get('args',()),x.get('kargs',{})])
+            
         self.returnObj = args.pop('returnObj',False)   
         self.stream = args.pop('stream',True)
         
@@ -66,8 +71,7 @@ class GetHandler(asyncCursorHandler):
         
         self.processor = functools.partial(gov_processor,args.pop('processor',None))
        
-        passed_args = dict([(key,args.get(key,None)) for key in ['timeQuery','spaceQuery','versionNumber']])
-               
+        passed_args = dict([(key,args.get(key,None)) for key in ['timeQuery','spaceQuery','versionNumber']]) 
  
         A,collection,needsVersioning,versionNumber,uniqueIndexes,vars = get_args(collectionName,querySequence,**passed_args)
 
@@ -614,10 +618,13 @@ class TableHandler(GetHandler):
                 
                 query['timeQuery'] = json.loads(query.get('timeQuery','null'))
                 query['spaceQuery'] = json.loads(query.get('spaceQuery','null'))
-                query['querySequence'] = querySequence = json.loads(query['querySequence']) 
-                         
+                query['query'] = querySequence = json.loads(query['query']) 
                 
-                actions = zip(*querySequence)[0]
+                if isinstance(querySequence, dict):
+                    querySequence = [querySequence]
+                    
+                         
+                actions = [q['action'] for q in querySequence]
                 
                 if set(actions) <= set(EXPOSED_ACTIONS) and 'find' == actions[0]:
             
@@ -625,7 +632,7 @@ class TableHandler(GetHandler):
                     query['stream'] = False                 
                     query['processor'] = functools.partial(wire_processor,self)
                            
-                    self.field_order = querySequence[0][1][1].get('fields',None)
+                    self.field_order = querySequence[0].get('kargs',{}).get('fields',None)
                     
                     self.get_response(query)
                     
