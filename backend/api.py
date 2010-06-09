@@ -33,7 +33,7 @@ class GetHandler(asyncCursorHandler):
         for k in args.keys():
             args[k] = args[k][0]
 
-        args['querySequence'] = json.loads(args['querySequence']) 
+        args['query'] = json.loads(args['query']) 
         
         if 'timeQuery' in args.keys():
             args['timeQuery'] = json.loads(args['timeQuery'])
@@ -54,18 +54,24 @@ class GetHandler(asyncCursorHandler):
         
         args = dict([(str(x),y) for (x,y) in args.items()])
 
-        collectionName = args.pop('collectionName')
-        querySequence = args.pop('querySequence')        
+        collectionName = args.pop('collection')
+        querySequence = args.pop('query')        
         
+        if isinstance(querySequence,dict):
+            querySequence = [querySequence]
+        for (i,x) in enumerate(querySequence):
+            querySequence[i] = (x.get('action'),[x.get('args',()),x.get('kargs',{})])
+            
         self.returnObj = args.pop('returnObj',False)   
         self.stream = args.pop('stream',True)
         
         self.returnMetadata = args.pop('returnMetadata',False)   
         
+        self.jsonPcallback = args.pop('callback',None)
+        
         self.processor = functools.partial(gov_processor,args.pop('processor',None))
        
-        passed_args = dict([(key,args.get(key,None)) for key in ['timeQuery','spaceQuery','versionNumber']])
-               
+        passed_args = dict([(key,args.get(key,None)) for key in ['timeQuery','spaceQuery','versionNumber']]) 
  
         A,collection,needsVersioning,versionNumber,uniqueIndexes,vars = get_args(collectionName,querySequence,**passed_args)
 
@@ -83,7 +89,8 @@ class GetHandler(asyncCursorHandler):
         
 
     def begin(self):
-        
+        if self.jsonPcallback:
+            self.write(self.jsonPcallback + '(')
         if self.stream:
             self.write('{"data":')
         if self.returnObj:
@@ -114,6 +121,9 @@ class GetHandler(asyncCursorHandler):
                    
         if self.returnObj and not self.stream:
             self.write(json.dumps(returnedObj,default=pm.json_util.default))
+            
+        if self.jsonPcallback:
+            self.write(')')
             
        
         self.finish()
@@ -586,6 +596,7 @@ class TableHandler(GetHandler):
         self.sig = str(args['tq'].__hash__())
 
         query = json.loads(args['tq'])
+        print query
         self.queryVal = query
                 
         if 'sig' in tqx.keys() and self.sig == tqx['sig']:
@@ -606,12 +617,15 @@ class TableHandler(GetHandler):
                 
                 self.reqId = tqx.get('reqId',self.sig)
                 
-                query['timeQuery'] = json.loads(query.get('timeQuery','null'))
-                query['spaceQuery'] = json.loads(query.get('spaceQuery','null'))
-                query['querySequence'] = querySequence = json.loads(query['querySequence']) 
-                         
+                query['timeQuery'] = query.get('timeQuery','null')
+                query['spaceQuery'] = query.get('spaceQuery','null')
+                query['query'] = querySequence = query['query']
                 
-                actions = zip(*querySequence)[0]
+                if isinstance(querySequence, dict):
+                    querySequence = [querySequence]
+                    
+                         
+                actions = [q['action'] for q in querySequence]
                 
                 if set(actions) <= set(EXPOSED_ACTIONS) and 'find' == actions[0]:
             
@@ -619,7 +633,7 @@ class TableHandler(GetHandler):
                     query['stream'] = False                 
                     query['processor'] = functools.partial(wire_processor,self)
                            
-                    self.field_order = querySequence[0][1][1].get('fields',None)
+                    self.field_order = querySequence[0].get('kargs',{}).get('fields',None)
                     
                     self.get_response(query)
                     
@@ -660,8 +674,7 @@ class TableHandler(GetHandler):
         ids = ['_id'] + [field.encode('utf-8') for field in fields]
         labels = ['_id'] + [str(vars[int(field)]) for field in fields]
         
-
-        
+      
         self.field_types = {}
         
         if hasattr(self.collection,'DateFormat'):
@@ -904,6 +917,9 @@ class FindHandler(tornado.web.RequestHandler):
         def responder(response):
             if response.error: raise tornado.web.HTTPError(500)
             wt = params.get('wt',None)
+            callback = params.get('callback',[None])[0]
+            if callback:
+                self.write(callback + '(')
             if wt == 'json':
                 self.write(response.body)
             elif wt == 'python':
@@ -911,6 +927,8 @@ class FindHandler(tornado.web.RequestHandler):
                 #do stuff to X
                 jsonstr = json.dumps(X,default=pm.json_util.default)
                 self.write(jsonstr)
+            if callback:
+                self.write(')')
             self.finish()
         return responder
     
