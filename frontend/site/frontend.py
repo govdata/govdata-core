@@ -15,7 +15,7 @@ import tornado.autoreload
 from tornado.options import define, options
 
 define("port", default=8000, help="run on the given port", type=int)
-define("api_url", default="http://ec2-184-73-89-111.compute-1.amazonaws.com", help="use this api url", type=str)
+define("api_url", default="http://ec2-184-73-61-176.compute-1.amazonaws.com", help="use this api url", type=str)
 
 
 def group_by(data,grouping=None):

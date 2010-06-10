@@ -18,36 +18,30 @@ var Frontend = {};
     
     var registerSearchBar = function() {
         $("#search_form").submit(function() {
-            var q = $("#q").val()
-            // boxify();
+            var q = $("#q").val();
             GovLove.find(q, function(data) {
-                console.log(data);
                 window.d = data;
-                var doc = data.response.docs[0];
-                var getQuery = GovLove.convertFindDocToGetQuery(doc);
-                window.getQuery = getQuery;
-                console.log(getQuery);
-                GovLove.get(getQuery,function(getResult) {
-                    console.log("result");
-                    console.log(getResult);
-                });
+                GovLove.docs = data["response"]["docs"];
                 GovLove.templates.find_result(data, function(html) {
                     $("#results").html(html);
                 });
             });
             return false;
         });
-        $("#q").bind('keydown','tab',$("#search_form").submit);
-        $("#q").bind('keydown','ctrl+space',autocomplete);
     }
     
-    var registerAutoComplete = function() {
-        
+    var registerAutoComplete = function() {        
+    }
+    
+    Frontend.openDoc = function(doc) {
+        var query = GovLove.getQueryForDoc(doc);
+        GovLove.timeline(query, function() {
+            
+        });
     }
     
     Frontend.run = function() {
-        // registerSearchBar();
-        registerAutoComplete();
+        registerSearchBar();
     }
 
 })(jQuery);

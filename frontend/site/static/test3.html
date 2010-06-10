@@ -1,0 +1,60 @@
+<html>
+  <head>
+    <title>Focus + Context</title>
+    <link type="text/css" rel="stylesheet" href="ex.css?3.2"/>
+    <script type="text/javascript" src="js/protovis-d3.2.js"></script>
+    <style type="text/css">
+
+#fig {
+  width: 860px;
+  height: 390px;
+}
+
+    </style>
+  </head>
+  <body><div id="center"><div id="fig">
+    <div style="text-align:right;padding-right:20;">
+      <input checked id="scale" type="checkbox" onchange="vis.render()"
+      ><label for="scale">Scale to fit</label>
+    </div>
+    <script type="text/javascript+protovis">
+    
+    /* data */
+    var start = new Date(1990, 0, 1);
+    var year = 1000 * 60 * 60 * 24 * 365;
+    var data = pv.range(0, 20, .02).map(function(x) {
+        return {x: new Date(start.getTime() + year * x),
+                y: (1 + .1 * (Math.sin(x * 2 * Math.PI))
+                    + Math.random() * .1) * Math.pow(1.18, x)
+                    + Math.random() * .1};
+      });
+    var end = data[data.length - 1].x;
+
+/* Scales and sizing. */
+var w = 810,
+    h1 = 300,
+    h2 = 30,
+    x = pv.Scale.linear(start, end).range(0, w),
+    y = pv.Scale.linear(0, pv.max(data, function(d) d.y)).range(0, h2);
+
+/* Interaction state. Focus scales will have domain set on-render. */
+var i = {x:200, dx:100},
+    fx = pv.Scale.linear().range(0, w),
+    fy = pv.Scale.linear().range(0, h1);
+
+/* Root panel. */
+var vis = new pv.Panel()
+    .width(w)
+    .height(h1 + 20 + h2)
+    .bottom(20)
+    .left(30)
+    .right(20)
+    .top(5);
+
+
+
+vis.render();
+
+    </script>
+  </div></div></body>
+</html>

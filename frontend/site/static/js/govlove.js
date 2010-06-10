@@ -1,7 +1,7 @@
 var GovLove = {};
 (function($) {
+    GovLove.api_url = "http://ec2-174-129-96-19.compute-1.amazonaws.com"
     var result_template = "";
-    var base_url = "http://ec2-184-73-89-111.compute-1.amazonaws.com"
     var cache = {};
     var state = {};
     
@@ -25,9 +25,11 @@ var GovLove = {};
         //TODO
         return s;
     }
+    
     GovLove.getState = function() {
         return state;
     }
+    
     GovLove.find = function(q,callback,options) {
         var params = {
             "q" : q,
@@ -35,30 +37,9 @@ var GovLove = {};
             "facet.field" : ["agency","subagency","source","spatialDivisions","spatialPhrases","dateDivisions","datePhrases","datasetTight"]
         };
         $.extend(params,options);
-        $.getJSON(
-            base_url+"/find?"+$.param(params,true),
-            {},
-            callback);
-    }
-    GovLove.table = function(q,callback) {
         $.ajax({
-            url: base_url+"/table",
-            type: "GET",
-            data: q,
-            dataType: "json",
-            success: callback,
-            complete: function(d) {
-                console.log("is complete");
-                console.log(d);
-            }
-        });
-    }
-    
-    GovLove.get = function(q,callback) {
-        $.ajax({
-            url: base_url+"/get",
-            type: "POST",
-            data: (q),
+            url: GovLove.api_url+"/find",
+            data: params,
             dataType: "jsonp",
             success: callback,
             complete: function(d) {
@@ -66,19 +47,116 @@ var GovLove = {};
                 console.log(d);
             }
         });
-        // $.getJSON(
-        //     base_url+"/get?callback=?",
-        //     q,
-        //     callback);
     }
     
-    GovLove.convertFindDocToGetQuery = function(findDoc) {
+    var getData = function(url,q,callback) {            
+      // Send the query with a callback function
+      var query = new google.visualization.Query(url);
+      query.setQuery(q);
+      query.send(callback);
+    }
+
+    GovLove.displayViz = function(query) {
+        var tableurl = GovLove.api_url+'/table?';
+        var timelineurl = GovLove.api_url+'/timeline?'
+        getData(timelineurl,query,function(response) {
+            var data = response.getDataTable();
+            var timelineviz = new google.visualization.AnnotatedTimeLine(document.getElementById('timeline'));
+            timelineviz.draw(data, {displayAnnotations: true});
+        });
+        getData(tableurl, query, function(response) {
+            var data = response.getDataTable();
+            var tableviz = new google.visualization.Table($('#table'));
+            tableviz.draw(data, {displayAnnotations: true});
+        });
+    }
+    
+    GovLove.timeline = function(query, callback) {
+        var timelineurl = GovLove.api_url+'/timeline?'
+        getData(timelineurl,query,function(response) {
+            var data = response.getDataTable();
+            var t = $('<div class="timeline" style="height: 200px; width: 200px; margin-top: 50px;"></div>');
+            t.appendTo($("body"));
+            var timelineviz = new google.visualization.AnnotatedTimeLine(t[0]);
+            timelineviz.draw(data, {displayAnnotations: true});
+            t.show().dialog({ 
+                            autoOpen: true,
+                            modal: false,
+                            option: "stack",
+                            width: 800,
+                            height: 500 });
+        });
+    }
+
+    GovLove.getQueryForDoc = function(findDoc, limit) {
+        if (limit === undefined) {
+            limit = 10;
+        }        
         var mongoID = findDoc.mongoID;
         var mongoQuery = eval('('+findDoc.query[0]+')');
         var collectionName = findDoc.collectionName[0];
-        var query = {"collectionName": collectionName,
-                    "querySequence" : [["find", mongoQuery]]};
+        var query = GovLove.Query(collectionName).find(mongoQuery).limit(limit).toString()
+        // var query = JSON.stringify({"collectionName": collectionName,
+        //             "querySequence" : JSON.stringify([["find", [[mongoQuery],{}]],["limit", [[limit],{}]]]).replace(/"/g,'\"')});
         return query;
+    }
+    
+    GovLove.formatDate = function(dateStr) {
+        return dateStr;
+    }
+    
+    GovLove.Query = function(collectionName) {
+        /*
+        collectionName : String => collection name e.g. BEA_NIPA
+        query : List[Pair[action,args]] => mongo db action read pymongo docs e.g. 
+            case args switch {
+                tuple => (pymongoargs,) args is a positional args to be sent to action e.g. single element tuple
+                dict => args is the dictionary of keyword arguments
+                two element list => [tuple,dict] first position element Tuple and second is keyword dictionary 
+            }
+            e.g.
+                tuple -> [("find",({"Topic":"Employment"},))]
+        */
+        function createSimpleAction(name,arg) {
+            return {
+                action : name,
+                args : [arg]
+            }
+        }
+        return {
+            val: {
+                    collection : collectionName,
+                    query : [],
+                    timeQuery : {"format":"Y"},
+                    spaceQuery: {}
+                 },
+            find: function(q) {
+                this.val.query.push(createSimpleAction("find",q))
+                return this;
+            },
+            limit: function(size) {
+                this.val.query.push(createSimpleAction("limit",size))
+                return this;
+            },
+            action: function(act) {
+                this.val.query.push(act);
+                return this;
+            },
+            time: function(options) {
+                // timeQuery : Dict => {"format": ?, "begin": ?, "end": ?, "on": ?} begin, end, on are dates in "fomat" format
+                $.extend(this.val.timeQuery,options);
+                return this;
+            },
+            space: function(options) {
+                // spaceQuery : Dict => {"s": ?, "c": ?, "f": {"s", "c"}}
+                //            : List => ["s", "c", "f.s"]
+                $.extend(this.val.spaceQuery,options);
+                return this;   
+            },
+            toString: function() {
+                return JSON.stringify(this.val);
+            }
+        };
     }
     
     GovLove.templates = {
