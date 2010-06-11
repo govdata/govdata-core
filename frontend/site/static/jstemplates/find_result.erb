@@ -1,20 +1,45 @@
-<div id="numFound">Results: <%= response.numFound %></div>
 <div class='results'>
     <% var i=0; %>
     <% _.each(response.docs, function(doc) { %>
-        <div class='result' id='result_<%= i %>'>
-            <a href="#" onclick='Frontend.openDoc(GovLove.docs[<%= i %>]);'><%= GovLove.getQueryForDoc(doc) %></a>
-            <div class='dataset'>dataset:<strong><%= doc.dataset %></strong></div>
-            <div class='title'>title:<%= doc.Title_t %></div>
-            <div class='description'>description:<%= doc.description %></div>
-            <div class='query'>query:<%= doc.query %></div>
-            <div class='keywords'>keywords:<%= doc.keywords %></div>
-            <div class='dimension'>dimensions:<%= doc.dimension %></div>
-            <div class='agency'>agency:<%= doc.agency %></div>
-            <div class='begin_date'>begindate:<%= GovLove.formatDate(doc.begin_date) %></div>
-            <div class='end_date'>enddate:<%= GovLove.formatDate(doc.begin_date) %></div>
-            <div class='dateDivisions'>datedivisions:<%= doc.dateDivisions %></div>
-            <div class='spatialDivisions'>spatialdivisions:<%= doc.spatialDivisions %></div>
+        <div class='volume'><%= doc.volume %></div>
+        <div class='module result' id='result_<%= i %>'>
+            <!-- <a href="#" onclick='Frontend.openDoc(GovLove.docs[<%= i %>]);'><%= GovLove.getQueryForDoc(doc) %></a> -->
+            <div class="result_l">
+                <div class='title'><%= doc.Title_t %></div>
+                <div class='dataset'><%= doc.dataset %></div>
+                <!-- <div class='agency'><%= doc.agency %></div> -->
+                <% if (doc.keywords !== undefined) { %>
+                    <div class='keywords'><strong>keywords:</strong> <%= doc.keywords %></div>
+                <% } %>
+                <div class='description'><%= doc.description %></div>
+                <% if (doc.query !== undefined) { 
+                    var query = JSON.parse(doc.query[0]);
+                    _.each(query, function(v,k) { %>
+                        <div class='querykey'><%= k %></div>
+                        <div class='queryvalue'><%= v %></div>
+                <%  });
+                } %>
+                <!-- <div class='begin_date'>begindate:<%= GovLove.formatDate(doc.begin_date) %></div>
+                <div class='end_date'>enddate:<%= GovLove.formatDate(doc.begin_date) %></div> -->
+                <!-- <div class='dateDivisions'><%= doc.dateDivisions %></div>
+                <div class='spatialDivisions'><%= doc.spatialDivisions %></div>
+                <div class='contactInfo'><%= doc.ContactInfo_t %></div> -->
+            </div>
+            <div class="result_r">
+                <!-- <div class='agency'><%= doc.agency %></div>
+                <div class='subagency'><%= doc.subagency %></div> -->
+                <div class="sourceTree">
+                <% if (doc.SourceSpec !== undefined) { 
+                    var ss = JSON.parse(doc.SourceSpec[0]);
+                    var offset = 0, size = 100;
+                    _.each(ss, function(v,k) { %>
+                        <div class='sourceSpec' style='padding-left: <%= offset %>px; font-size: <%= size %>%;'><%= v %></div>
+                <%      offset += 10;
+                        size -= 5;
+                    });
+                } %>
+                </div>
+            </div>
         </div>
     <% i += 1; %>
     <% }); %>

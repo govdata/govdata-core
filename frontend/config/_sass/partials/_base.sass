@@ -1,9 +1,12 @@
 // Colors
-$bgColor: #ece8d8
+$bgColor: #E7E6CE
+$bgColor: #E2E5E7
+$bgColorTop: #F0F0F0
 $fontColor: #557
 $fontColor: #333
 $linkColor: #557
-$darkBrown: #433
+$linkColor: #3496F2
+$shadowColor: #ABAB99
 
 $c_one: #3496F2
 $c_two: #69C134
@@ -39,6 +42,10 @@ $margin: 3
     top-right-radius: #{$tr}px
     bottom-right-radius: #{$br}px
     bottom-left-radius: #{$bl}px
+
+=vertical-gradiant($start, $end)
+  background-image: -webkit-gradient(linear, 0% 10%, 0% 90%, from($start), to($end))
+  background-image: -moz-linear-gradient(0% 100% 90deg, $start, $end)
 
 =opacity($op)
   opacity: $op

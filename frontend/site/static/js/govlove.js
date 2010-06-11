@@ -1,6 +1,6 @@
 var GovLove = {};
 (function($) {
-    GovLove.api_url = "http://ec2-174-129-96-19.compute-1.amazonaws.com"
+    GovLove.api_url = "http://ec2-72-44-53-142.compute-1.amazonaws.com"
     var result_template = "";
     var cache = {};
     var state = {};
@@ -31,61 +31,24 @@ var GovLove = {};
     }
     
     GovLove.find = function(q,callback,options) {
-        var params = {
-            "q" : q,
-            "facet" : true,
-            "facet.field" : ["agency","subagency","source","spatialDivisions","spatialPhrases","dateDivisions","datePhrases","datasetTight"]
-        };
-        $.extend(params,options);
-        $.ajax({
-            url: GovLove.api_url+"/find",
-            data: params,
-            dataType: "jsonp",
-            success: callback,
-            complete: function(d) {
-                console.log("is complete");
-                console.log(d);
-            }
-        });
-    }
-    
-    var getData = function(url,q,callback) {            
-      // Send the query with a callback function
-      var query = new google.visualization.Query(url);
-      query.setQuery(q);
-      query.send(callback);
-    }
-
-    GovLove.displayViz = function(query) {
-        var tableurl = GovLove.api_url+'/table?';
-        var timelineurl = GovLove.api_url+'/timeline?'
-        getData(timelineurl,query,function(response) {
-            var data = response.getDataTable();
-            var timelineviz = new google.visualization.AnnotatedTimeLine(document.getElementById('timeline'));
-            timelineviz.draw(data, {displayAnnotations: true});
-        });
-        getData(tableurl, query, function(response) {
-            var data = response.getDataTable();
-            var tableviz = new google.visualization.Table($('#table'));
-            tableviz.draw(data, {displayAnnotations: true});
-        });
-    }
-    
-    GovLove.timeline = function(query, callback) {
-        var timelineurl = GovLove.api_url+'/timeline?'
-        getData(timelineurl,query,function(response) {
-            var data = response.getDataTable();
-            var t = $('<div class="timeline" style="height: 200px; width: 200px; margin-top: 50px;"></div>');
-            t.appendTo($("body"));
-            var timelineviz = new google.visualization.AnnotatedTimeLine(t[0]);
-            timelineviz.draw(data, {displayAnnotations: true});
-            t.show().dialog({ 
-                            autoOpen: true,
-                            modal: false,
-                            option: "stack",
-                            width: 800,
-                            height: 500 });
-        });
+        // var params = {
+        //     "q" : q,
+        //     "facet" : true,
+        //     "facet.field" : ["agency","subagency","source","spatialDivisions","spatialPhrases","dateDivisions","datePhrases","datasetTight"]
+        // };
+        // console.log("finding");
+        // $.extend(params,options);
+        // $.ajax({
+        //     url: GovLove.api_url+"/find",
+        //     data: params,
+        //     dataType: "jsonp",
+        //     success: callback,
+        //     complete: function(d) {
+        //         console.log("is complete");
+        //         console.log(d);
+        //     }
+        // });
+        $.getJSON("/static/exampledata.json",callback);
     }
 
     GovLove.getQueryForDoc = function(findDoc, limit) {
@@ -163,7 +126,9 @@ var GovLove = {};
         find_result: function(view, callback) {
             fetchWithCache("/static/jstemplates/find_result.erb", function(template) {
                 // callback(Mustache.to_html(template,view));
-                callback(template(view))
+                console.log(template);
+                callback(template(view));
+                $("html").css("height","100%");
             }, _.template );
         },
     }

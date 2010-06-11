@@ -35,9 +35,6 @@ var Frontend = {};
     
     Frontend.openDoc = function(doc) {
         var query = GovLove.getQueryForDoc(doc);
-        GovLove.timeline(query, function() {
-            
-        });
     }
     
     Frontend.run = function() {

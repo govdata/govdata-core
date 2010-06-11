@@ -86,6 +86,11 @@
     ["Nate Robinson",74,29.9,17.2,6.1,13.9,0.437,3.4,4,0.841,1.7,5.2,0.325,1.3,2.6,3.9,4.1,1.3,0.1,1.9,2.8],
     ["Allen Iverson",57,36.7,17.5,6.1,14.6,0.417,4.8,6.1,0.781,0.5,1.7,0.283,0.5,2.5,3,5,1.5,0.1,2.6,1.5]
     ];
+
+var data = pv.range(0, 10, .1).map(function(x) {
+    return {x: x, y: Math.sin(x) + Math.random() * .5 + 2};
+  });
+
 /* Convert from tabular format to array of objects. */
 var cols = nba.shift();
 nba = nba.map(function(d) pv.dict(cols, function() d[this.index]));
@@ -102,7 +107,9 @@ var x = pv.dict(cols, function(f) pv.mean(nba, function(d) d[f])),
 var kx = w / h,
     ky = 1,
     x = pv.Scale.linear(-kx, kx).range(0, w),
-    y = pv.Scale.linear(-ky, ky).range(0, h);
+    y = pv.Scale.linear(-ky, ky).range(0, h),
+    xscale = pv.Scale.linear(data, function(d) d.x).range(0, w),
+    yscale = pv.Scale.linear(0, 4).range(0, h);
 
 var w = 36, h = 13;
 
@@ -124,6 +131,15 @@ vis.add(pv.Panel)
     .text(function(d, f) d[f])
     .title(function(d, f) d.Name + "'s " + f + ": " + d[f]);
 
+vis.add(pv.Area)
+    .data(data)
+    .bottom(1)
+    .left(function(d) xscale(d.x))
+    .height(function(d) yscale(d.y))
+    .fillStyle("rgb(121,173,210)")
+  .anchor("top").add(pv.Line)
+    .lineWidth(3);
+        
 vis.add(pv.Label)
     .data(cols)
     .left(function() this.index * w + w / 2)

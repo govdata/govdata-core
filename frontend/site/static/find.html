@@ -14,37 +14,52 @@
       <link href='css/ie.css' media="screen, projection" rel="stylesheet" type="text/css">
     <![endif]-->
     <link href='css/jquery-ui.css' rel="stylesheet" type="text/css">
+    <link href=' http://fonts.googleapis.com/css?family=Cantarell' rel='stylesheet' type='text/css'>
+    <link href='http://fonts.googleapis.com/css?family=Crimson+Text' rel='stylesheet' type='text/css'>
+    
 </head>
 <body>
     <div id="container">
         <div id="header">
+            <!-- <div id="filters">
+                <div id="filterbutton" class="clickable">filters</div>
+                <div id="filtercontent">
+                </div>
+            </div> -->
             <ul>
+                <li><span class="big">Gov<span style="color:#FB609C;">&#9825;</span>Love</span></li>
                 <li class="clickable c_one">about</li>
                 <li class="clickable c_two">sources</li>
                 <li class="clickable c_three">trending</li>
                 <li class="clickable c_four">data</li>
                 <li class="clickable c_five">contact</li>
             </ul>
-        <img id="corner" src='images/corner.png'>
         </div>
         <div id="content">
-            <div class="sitename">Gov<span style="color:#FB609C;">&#9825;</span>Love</div>
-            <div id="terms"></div>
-            <form id="search_form" action="/find" method="GET">
-            <div id="search_container">
-                    <input type="text" name="q" id="q" value=""/>
+            <div id="main">
+                <div class="module search">
+                    <form id="search_form" action="/find" method="GET">
+                    <div id="search_container">
+                            <input type="text" name="q" id="q" value=""/>
+                            <input type="submit" class="button" value="GovLove Search"/>
+                    </div>
+                    </form>
+                </div>
+                <div id="results"></div>
             </div>
-            <div id="filters">
-                <div id="filterbutton" class="clickable">filters</div>
-                <div id="filtercontent">
+            <div id="sidebar">
+                <div class="module label">Recent Searches</div>
+                <div class="module">
+                    <ul>
+                        <li><a href="#">gdp in alabama</a></li>
+                        <li><a href="#">number of prisons</a></li>
+                    </ul>
+                </div>
+                <div class="module label">Recently Viewed Items</div>
+                <div class="module">
+                    <em>empty</em>
                 </div>
             </div>
-            </form>
-            <div id="numFound"></div>
-            <div id="minimap"></div>
-            <div id="results"></div>
-            <div id="timeline" style="height: 400px; width: 100%; margin-top: 50px;"></div>
-            <div id="table" style="height: 400px; width: 100%; margin-top: 50px;"></div>
         </div>
         <div id="footer"></div>
     </div>
@@ -66,6 +81,14 @@
         (function($) {
             $(function() {
                 Frontend.run();
+                GovLove.find("art", function(data) {
+                    window.d = data;
+                    GovLove.docs = data["response"]["docs"];
+                    GovLove.templates.find_result(data, function(html) {
+                        $("#results").html(html);
+                    });
+                });
+                
                 // var query = '{"collectionName":"BEA_NIPA","querySequence":"[[\\"find\\",[[{\\"Line\\":\\"55\\"}],{}]],[\\"limit\\",[[15],{}]]]","timeQuery":"{\\"format\\":\\"Y\\"}"}';
                 // var query = '{"collectionName":"BEA_NIPA","querySequence":"[[\\"find\\",[[{\\"Level_1\\":\\"Plus: Gold, NIPAs\\"}],{}]]]"}';
                 // GovLove.displayViz(query);

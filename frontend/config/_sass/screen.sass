@@ -5,20 +5,28 @@
 // General Formatting
 ///////////////////////////////////////////////////
 
+html
+  min-height: 100%
+  overflow: auto
+
+
 body
   margin: 0
   padding: 0
   background:
     color: $bgColor
-    image: url('../images/bg.jpg')
-    repeat: no-repeat
   font:
     size: 100.01%
-    family: 'Droid Sans', arial, serif
+    family: 'Cantarell', arial, serif
   color: $fontColor
   line-height: 1.2
+  +vertical-gradiant($bgColorTop, $bgColor)
+  background-repeat: no-repeat
+  min-height: 100%
+  overflow: auto
+  
 
-h1, h2, h3, .sitename
+h1, h2, h3, .sitename, .big
   font:
     family: 'Josefin Sans Std Light', arial, serif
 
@@ -28,7 +36,17 @@ h1, h2, h3, .sitename
 .small
   font:
     size: 12px
-    family: 'Droid Sans', arial, serif
+    family: 'Cantarell', arial, serif
+
+.label
+  text-align: center
+  font-weight: bold
+
+ul
+  list-style-type: none
+  padding: 0
+  margin: 0
+
 
 ///////////////////////////////////////////////////
 // JQuery UI
@@ -60,34 +78,59 @@ h1, h2, h3, .sitename
 #content
   width: 960px
   margin: auto
+  min-height: 100%
+
+#main, #sidebar
+  float: left
+
+#main
+  width: 760px
+  height: 500px
+
+#sidebar
+  width: 200px
+  height: 500px
+
+.module
+  width: 92%
+  padding: 2%
+  margin: 30px auto
+  text-align: center
+  background:
+    color: #FFF
+  border-right: 1px solid $shadowColor
+  border-bottom: 1px solid $shadowColor
+
+.label
+  margin: 30px auto -20px auto
+
+.search
+  text-align: center
+
 
 ///////////////////////////////////////////////////
 // Header
 ///////////////////////////////////////////////////
 
 #header
-  background-color: $darkBrown
-  color: white
   font-size: 20px
-  padding: 20px 10px 5px 120px
+  text-align: right
+  margin-bottom: 20px
   ul
     +inline-list
     li
+      margin: 0px
       padding: 5px
-      +round(5,5,0,0)
-
-
-#corner
-  position: absolute
-  top: 48px
-  left: 0
-
-em
-  font-style: italic
+      margin-right: 5px
+      +round(0,0,5,5)
+      
 
 ///////////////////////////////////////////////////
 // Footer
 ///////////////////////////////////////////////////
+
+#footer
+  clear: both
 
 ///////////////////////////////////////////////////
 // Find
@@ -110,11 +153,8 @@ em
     +inline-list
 
 select
-  border: 1px solid $darkBrown
+  border: 1px solid $shadowColor
   font-size: 12px
-//  background-color: transparent
-  width: 100%
-
 
 .sitename
   text-align: center
@@ -122,9 +162,12 @@ select
   padding: 10px
 
 #q
-  width: 99.2%
-  font-size: 200%
+  width: 99%
+  font-size: 150%
   margin: 0.5em 0
+
+//#search_container
+  text-align: right
 
 #numFound
   position: absolute
@@ -133,44 +176,65 @@ select
   color: $bgColor
 
 .result
-  padding: 10px
-  margin: 10px 0px
-  background-color: white
-  border-top: 1px solid #a0a990
-  border-right: 2px solid #a0a990
-  border-bottom: 2px solid #a0a990
-  border-left: 1px solid #a0a990
-  +round(10,10,10,10)
-  .title
-    font-weight: bold
+  text-align: left
+  overflow: auto
+  .result_l, .result_r
+    float: left
+    padding: 1%
+  .result_l
+    width: 68%
+    .title, .dataset, .agency
+      font-weight: bold
+    .title, .dataset
+      font-size: 120%
+    .description, .subagency
+      font-size: 80%
+    .title, .dataset
+      padding: 0
+    .keywords
+      padding: 5px 0
+      font-size: 90%
+    .querykey
+      font-size: 80%
+      font-weight: bold
+    .queryvalue
+      padding: 5px 0 5px 10px
+    .description
+      padding: 15px 0
+  .result_r
+    width: 28%
+    .sourceTree
+      font:
+        style: italic
+      div
+        padding: 3px 0
+
+.volume
+  height: 1px
+  position: relative
+  font-weight: bold
+  top: 20px
+  left: 5px
+  font:
+    family: 'Josefin Sans Std Light', arial, serif
+    size: 150%
 
 #group_container
   text-align: right
   width: 100%
 
 #filters
-  border: 1px solid $darkBrown
+  border: 1px solid $shadowColor
   +round(5,5,5,5)
   padding: 10px
   overflow: hidden
   ul
-    list-style-type: none
-    padding: 0
-    margin: 0
     +inline-list
 
 #filterbutton
   width: 100%
   text-align: center
 
-#results
-  ul
-    list-style-type: none
-    padding: 0
-    margin: 0
-    ul
-      ul
-        padding-left: 16px
 
 ///////////////////////////////////////////////////
 // Get
@@ -183,28 +247,33 @@ select
 
 .c_one
   background-color: $c_one
+  color: white
   &:hover
-    background-color: $bgColor
+    background-color: transparent
     color: $c_one
 .c_two
   background-color: $c_two
+  color: white
   &:hover
-    background-color: $bgColor
+    background-color: transparent
     color: $c_two
 .c_three
   background-color: $c_three
+  color: white
   &:hover
-    background-color: $bgColor
+    background-color: transparent
     color: $c_three
 .c_four
   background-color: $c_four
+  color: white
   &:hover
-    background-color: $bgColor
+    background-color: transparent
     color: $c_four
 .c_five
   background-color: $c_five
+  color: white
   &:hover
-    background-color: $bgColor
+    background-color: transparent
     color: $c_five
 
 
