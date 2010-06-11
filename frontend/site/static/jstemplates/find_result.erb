@@ -2,7 +2,14 @@
     <% var i=0; %>
     <% _.each(response.docs, function(doc) { %>
         <div class='volume'><%= doc.volume %></div>
-        <div class='module result' id='result_<%= i %>'>
+        <div class="vistypes">
+            <ul>
+                <li><div class="tableicon" onclick="Frontend.table(<%= i %>);"></div></li>
+                <li><div class="timelineicon" onclick="Frontend.table(<%= i %>);"></div></li>
+                <li><div class="mapicon" onclick="Frontend.table(<%= i %>);"></div></li>
+            </ul>
+        </div>
+        <div class='module result clickable' id='result_<%= i %>'>
             <!-- <a href="#" onclick='Frontend.openDoc(GovLove.docs[<%= i %>]);'><%= GovLove.getQueryForDoc(doc) %></a> -->
             <div class="result_l">
                 <div class='title'><%= doc.Title_t %></div>
@@ -31,11 +38,11 @@
                 <div class="sourceTree">
                 <% if (doc.SourceSpec !== undefined) { 
                     var ss = JSON.parse(doc.SourceSpec[0]);
-                    var offset = 0, size = 100;
+                    var offset = 0, size = 110;
                     _.each(ss, function(v,k) { %>
                         <div class='sourceSpec' style='padding-left: <%= offset %>px; font-size: <%= size %>%;'><%= v %></div>
                 <%      offset += 10;
-                        size -= 5;
+                        size -= 10;
                     });
                 } %>
                 </div>

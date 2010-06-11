@@ -47,6 +47,10 @@ ul
   padding: 0
   margin: 0
 
+.ui-dialog
+  +round(0,0,0,0)
+  border: 1px solid $shadowColor
+  border-left: 3px solid $c_three
 
 ///////////////////////////////////////////////////
 // JQuery UI
@@ -98,6 +102,7 @@ ul
   text-align: center
   background:
     color: #FFF
+  border-left: 3px solid $c_five
   border-right: 1px solid $shadowColor
   border-bottom: 1px solid $shadowColor
 
@@ -176,6 +181,7 @@ select
   color: $bgColor
 
 .result
+  border-left: 3px solid $c_two
   text-align: left
   overflow: auto
   .result_l, .result_r
@@ -213,15 +219,47 @@ select
   height: 1px
   position: relative
   font-weight: bold
-  top: 20px
-  left: 5px
+  top: 40px
+  left: 20px
   font:
     family: 'Josefin Sans Std Light', arial, serif
     size: 150%
 
+.vistypes
+  height: 1px
+  position: relative
+  font-weight: bold
+  top: 25px
+  text-align: right
+  ul
+    +inline-list
+    li
+      float: right
+  .tableicon, .mapicon, .timelineicon
+    width: 40px
+    background-color: #000
+    height: 40px
+    margin: 5px
+    +clickable
+  .tableicon
+    background-image: url('../images/table.gif')
+    &:hover
+      background-image: url('../images/table_i.gif')
+  .mapicon
+    background-image: url('../images/map.gif')
+    &:hover
+      background-image: url('../images/map_i.gif')
+  .timelineicon
+    background-image: url('../images/timeline.gif')
+    &:hover
+      background-image: url('../images/timeline_i.gif')
+
 #group_container
   text-align: right
   width: 100%
+
+.filter
+  margin-top: -20px
 
 #filters
   border: 1px solid $shadowColor
@@ -287,6 +325,6 @@ a
   &:visited
     color: $linkColor
   &:active
-    color: $linkColor
+    color: $linkColorH
   &:hover
-    color: $linkColor
+    color: $linkColorH

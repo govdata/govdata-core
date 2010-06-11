@@ -30,6 +30,33 @@ var GovLove = {};
         return state;
     }
     
+    var getData = function(url,q,callback) {            
+      // Send the query with a callback function
+      var query = new google.visualization.Query(url);
+      query.setQuery(q);
+      query.send(callback);
+      console.log(query);
+    }
+    
+    GovLove.timeline = function(query, callback) {
+        var timelineurl = GovLove.api_url+'/timeline?'
+        getData(timelineurl,query,function(response) {
+            var data = response.getDataTable();
+            window.dd = data;
+            console.log(data);
+            // var t = $('<div class="timeline" style="height: 200px; width: 200px; margin-top: 50px;"></div>');
+            // t.appendTo($("body"));
+            // var timelineviz = new google.visualization.AnnotatedTimeLine(t[0]);
+            // timelineviz.draw(data, {displayAnnotations: true});
+            // t.show().dialog({ 
+            //                 autoOpen: true,
+            //                 modal: false,
+            //                 option: "stack",
+            //                 width: 800,
+            //                 height: 500 });
+        });
+    }
+    
     GovLove.find = function(q,callback,options) {
         // var params = {
         //     "q" : q,
