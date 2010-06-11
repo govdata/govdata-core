@@ -31,6 +31,8 @@
   <body><div id="center"><div id="fig">
     <div class="subtitle">2008-2009 season</div>
     <div class="title">NBA per-game performance of top 50 scorers</div>
+    <button onclick="showColor = true; vis.render();">color on</button>
+    <button onclick="showColor = false; vis.render();">color off</button>
     <script type="text/javascript+protovis">
     var nba = [
     ["Name","G","MIN","PTS","FGM","FGA","FGP","FTM","FTA","FTP","3PM","3PA","3PP","ORB","DRB","TRB","AST","STL","BLK","TO","PF"],
@@ -113,22 +115,36 @@ var kx = w / h,
 
 var w = 36, h = 13;
 
+var showColor = false;
+
 var vis = new pv.Panel()
     .width(cols.length * w)
     .height(nba.length * h)
     .top(30)
     .left(100);
 
-vis.add(pv.Panel)
+var colsvis = vis.add(pv.Panel)
     .data(cols)
     .left(function() this.index * w)
     .width(w)
-  .add(pv.Label)
+
+colsvis.add(pv.Label)
     .data(nba)
     .top(function() this.index * h + h)
     .height(h)
-    .fillStyle(function(d, f) fill[f](d[f]))
     .text(function(d, f) d[f])
+
+colsvis.add(pv.Panel)
+    .data(nba)
+    .top(function() this.index * h)
+    .height(h)
+    .fillStyle(function(d, f) {
+        if(showColor) {
+          return fill[f](d[f]);
+        } else {
+          return null;
+        }
+      })
     .title(function(d, f) d.Name + "'s " + f + ": " + d[f]);
 
 vis.add(pv.Area)
