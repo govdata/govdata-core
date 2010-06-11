@@ -582,6 +582,107 @@ def getArgs(args):
 #Wire Protocol
 #=-=-=-=-=-=-=-=-=-=-=-=-=-
 
+class SimpleTableHandler(GetHandler):
+    @tornado.web.asynchronous
+    def get(self):
+        args = self.request.arguments
+        for k in args.keys():
+            args[k] = args[k][0]
+        self.args = args
+        query = json.loads(args['q'])
+        print query
+        self.queryVal = query
+        query['timeQuery'] = query.get('timeQuery','null')
+        query['spaceQuery'] = query.get('spaceQuery','null')
+        query['query'] = querySequence = query['query']
+        if isinstance(querySequence, dict):
+            querySequence = [querySequence]
+        actions = [q['action'] for q in querySequence]
+        if set(actions) <= set(EXPOSED_ACTIONS) and 'find' == actions[0]:
+            query['returnObj'] = True
+            query['stream'] = False                 
+            query['processor'] = functools.partial(wire_processor,self)
+            self.field_order = querySequence[0].get('kargs',{}).get('fields',None)
+            self.get_response(query)            
+        else:
+            self.status = 'error'
+            self.errors = [{'reason':'invalid_query'}]
+            self.end()
+
+    def end(self):
+        if not hasattr(self,'status'):
+            self.status = 'ok'
+
+        D = {}    
+
+        if self.status == 'ok':
+            D['table'] = getTable(self)
+
+        D['status'] = self.status    
+        if self.status == 'error':       
+            D['errors'] = self.errors
+        elif self.status == 'warning':
+            D['warnings'] = self.warnings
+
+        self.write(self.responseHandler + '(' + json.dumps(D,default=pm.json_util.default) + ');')
+        self.finish()
+
+    def organize_fields(self,fields):
+        vars = self.collection.totalVariables
+
+        TimeColumns = self.collection.ColumnGroups.get('TimeColumns',[])
+        SpaceColums = self.collection.ColumnGroups.get('SpaceColumns',[])
+        TimeColNames = self.collection.ColumnGroups.get('TimeColNames',[])
+        TimeColNames.sort()
+
+        if fields == None:
+
+            V = [i for (i,x) in enumerate(vars) if x not in SPECIAL_KEYS and x not in TimeColNames] + [vars.index(x) for x in TimeColNames]
+            fields = map(str,V)
+
+        else:
+            fields = fields.keys()
+            fields.sort()
+
+            TimeColFields = [str(vars.index(x))  for x in TimeColNames if str(vars.index(x)) in fields]
+            SpecialFields = [str(vars.index(x))  for x in SPECIAL_KEYS +  ['Subcollections'] if str(vars.index(x)) in fields]
+
+            fields = SpecialFields + [i for i in fields if i not in TimeColFields + SpecialFields] + TimeColFields
+
+        if self.field_order:
+            fields = uniqify(ListUnion([[self.VarMap[kk] for kk in self.collection.ColumnGroups.get(k,[k])] for k in self.field_order]) + [k for k in fields if k != '_id' and vars[int(k)] not in self.field_order])
+
+
+        ids = ['_id'] + [field.encode('utf-8') for field in fields]
+        labels = ['_id'] + [str(vars[int(field)]) for field in fields]
+
+
+        self.field_types = {}
+
+        if hasattr(self.collection,'DateFormat'):
+            DateFormat = self.collection.DateFormat
+            timeformatter = td.MongoToJSDateFormatter(DateFormat)
+            if not timeformatter:
+                timeformatter = td.reverse(DateFormat)
+            else:
+                for t in TimeColumns:
+                    self.field_types[t] = 'date'
+            spaceformatter = lambda  x : loc.phrase2(x).encode('utf-8')
+
+        processors = []
+        for label in labels:
+            if label in TimeColumns:
+                processors.append(timeformatter)
+            elif label in SpaceColums:
+                processors.append(spaceformatter)
+            elif label == '_id':
+                processors.append(str)
+            else:
+                processors.append(lambda x : x if is_num_like(x) else str(x))
+
+        self.fields = zip(ids,labels,processors)
+    
+
 class TableHandler(GetHandler):
 
     @tornado.web.asynchronous
@@ -765,6 +866,8 @@ def getType(handler,i,id):
 def wire_processor(handler,x,collection):
     return {'c':[{'v': processor(x.get(id,None))} for (id,label,processor) in handler.fields]}
 
+def simple_processor(handler,x,collection):
+    return [processor(x.get(id,None)) for (id,label,processor) in handler.fields]
         
 class TimelineHandler(TableHandler):    
 
