@@ -43,6 +43,10 @@ def hr(x):
     
 def hr2(x):
     return  len(x.split('\xc2\xa0')) - 1
+    
+    
+def hr3(x):
+    return  len(x) - len(x.lstrip('\t'))
 
     
 def GetFootnotes(line, FootnoteSplitter='/'):
@@ -1403,7 +1407,7 @@ def backend_BEA_ITrade(creates = OG.CERT_PROTOCOL_ROOT + ITrade_NAME + '/'):
     OG.backendProtocol(ITrade_NAME,None,downloader = [(get_intl_trade,'get_trade'),(get_intl_trade_goods_detailed,'get_trade_goods_detailed')],uptostep='download_check')
 
 
-#=-=-=-=-=-=-=-=-=-=-=-=-International investment
+#=-=-=-=-=-=-=-=-=-=-=-=-International investment aggregates
 
     
 @activate(lambda x : 'http://www.bea.gov/international/xls',lambda x : x[0] + 'aggregate_data/')
@@ -1413,16 +1417,18 @@ def get_intl_investment(maindir):
     wget('http://www.bea.gov/international/xls/intinv08_t3.xls',maindir + 'aggregate_data/investment_3.xls')
 
 
+#=-=-=-=-=-=-=-=-=-=-=-=-International investment
 from mechanize import Browser
 from ClientForm import ControlNotFoundError
 
 
-@activate(lambda x : x[0] + x[1] + '/Manifest.tsv',lambda x : x[0] + x[1] + '/RawData/')
+@activate(lambda x : x[0] + x[1] + '/Manifest.tsv',lambda x : x[0] + '__PARSE__/' + x[1] + '/')
 def get_ii_data(maindir,tag):
     X = tb.tabarray(SVfile = maindir + tag + '/Manifest.tsv')
-    MakeDir(maindir + tag + '/RawData/')
+    target = maindir + '__PARSE__/' + tag + '/'
+    MakeDirs(target)
     for x in X:
-        wget('http://www.bea.gov/international/ii_web/' + x['URL'], maindir + tag + '/RawData/' +  x['Entity'] + '_' + x['Series'] + '_' + x['RowType'] + '_' + x['IndType'] + '.csv')
+        wget('http://www.bea.gov/international/ii_web/' + x['URL'],target +  x['Entity'] + '_' + x['Series'] + '_' + x['RowType'] + '_' + x['IndType'] + '.csv')
     
     
 @activate(lambda x : (x[0] + x[1] + '/urls/',x[0] + x[1] + '/RowTypeEncodings.tsv',x[0] + x[1] +'/SeriesEncodings.tsv'),lambda x : x[0] + x[1] + '/Manifest.tsv')
@@ -1496,6 +1502,7 @@ def handle_ii_br(br,maindir):
 def series_handler(br,c,maindir):
     Soup = BeautifulSoup(br.response().read())
     
+    #add parsing of entity and series definitions
     try:
         e = br.find_control(predicate=lambda x : x.name == 'entitytypeid' and not x.readonly)
     except ControlNotFoundError:
@@ -1512,9 +1519,11 @@ def series_handler(br,c,maindir):
     else:
         Erecs = [(str(dict(l.findAll('input')[0].attrs)['value']),Contents(l).strip()) for l in Soup.findAll('div',id='menuitem1')[0].findAll('label')]
         evalues = [i.attrs['value'] for i in e.items]
+
+
         for (ev,evn) in Erecs:
-            Recs = [(ev,evn,str(dict(a.attrs)['value']),Contents(a.findNext()).strip()) for a in Soup.findAll('div',id='menusubitem' + ev)[0].findAll('input')]
-            X = tb.tabarray(records = Recs,names = ['Entity','EntityName','Series','SeriesName'])
+            Recs = [(ev,evn,str(dict(a.attrs)['value']),Contents(a.findNext()).strip(),get_ser_descr(str(dict(a.attrs)['value']),br,ev)) for a in Soup.findAll('div',id='menusubitem' + ev)[0].findAll('input')]
+            X = tb.tabarray(records = Recs,names = ['Entity','EntityName','Series','SeriesName','SeriesDescr'])
             tb.io.appendSV(maindir + 'SeriesEncodings.tsv',X,metadata=True)
             for v in X['Series']:
                 br.select_form(nr=1)
@@ -1524,6 +1533,18 @@ def series_handler(br,c,maindir):
                 handle_ii_br(br,maindir)
                 br.back()            
 
+def get_ser_descr(v,br,ev):
+    urlbase = br.geturl().split('?')[-1]
+    def_br = Browser()
+    def_br.open('http://www.bea.gov/international/ii_web/beadynamicseriesdefn.cfm?seriesid=' + v + '&EntityTypeID=' + ev + '&' + urlbase)
+    Soup = BeautifulSoup(def_br.response().read())
+    return Contents(Soup.findAll('body')[0]).strip()
+
+
+@activate(lambda x  : 'http://www.bea.gov/international/ii_web/beaseriesclassifications.cfm?econtypeid=2&dirlevel1id=1',lambda x : x[0] + 'series_defs.html')
+def get_series_defs(maindir):
+    wget('http://www.bea.gov/international/ii_web/beaseriesclassifications.cfm?econtypeid=2&dirlevel1id=1',maindir + 'series_defs.html')
+    
         
 def rowtype_handler(br,c,maindir):
     values = [i.attrs['value'] for i in c.items]
@@ -1580,9 +1601,40 @@ def rowid_handler(br,maindir):
     handle_ii_br(br,maindir)
     br.back()
 
+
+def entity_descr(entity):
+
+    if entity == 'U.S. Parent Companies':
+        return 'A "US Parent Company" is the investor, resident in the United States, that owns or controls 10 percent or more of the voting securities of an incorporated foreign business enterprise or an equivalent interest in an unincorporated foreign business enterprise.'
+    elif entity == 'All Foreign Affiliates':
+        return 'A "Foreign Affiliate" is a foreign business enterprise in which there is U.S. direct investment, that is, in which a U.S. person owns or controls 10 percent of the voting securities or the equivalent.'
+    elif entity == 'Majority-Owned Foreign Affiliates':
+        return 'A "Majority-Owned Foreign Affiliate" is a foreign affiliate in which the combined direct and indirect ownership interest of all U.S. parents exceeds 50 percent. '
+    elif entity == 'All U.S. Affiliates':
+        return 'A U.S. affiliate is a U.S. business enterprise in which a single foreign investor owns at least 10 percent of the voting securities or the equivalent.'
+    elif entity == 'Majority-Owned U.S. Affiliates':
+        return 'A majority-owned U.S. affiliate is a U.S. affiliate that is owned more than 50 percent by a foreign direct investor.'
   
 import csv
-def parse_ii(infile):
+def parse_ii(infile,rowtypename):
+
+    rtn = rowtypename.lower()
+    
+    if 'industry' in rtn and 'country' in rtn:
+        aggtype = 'none'
+    elif 'industry' in rtn:
+        aggtype = 'industry'
+    elif 'country' in rtn and 'state' not in rtn:
+        aggtype = 'country'
+    elif 'country' in rtn and 'state' in rtn:
+        aggtype = 'state&country'
+    else:
+        aggtype = 'both'
+    
+    print 'Aggtype = ', aggtype
+        
+    #parse space and industry data properly into dictionaries as a function of rowtype 
+    
     F = open(infile,'rU').read().strip().split('\n')
     headerlines = []
     while True:
@@ -1599,28 +1651,262 @@ def parse_ii(infile):
             break
             
     names = line.split(',')
+    cross_vals = []
     for i in range(1,len(names)):
-        unit_type = names[i].split(' - ')[0].strip()
+        cross_vals.append(names[i].split(' - ')[0].strip())
         names[i] = names[i].split(' - ')[-1].strip()
-    
+    if aggtype in ['both','industry','none']:
+        names[0] = 'Industry'
+    elif aggtype == 'country':
+        names[0] = 'Location'
+    elif aggtype == 'state&country':
+        names[0] = 'USState'
+
     data = []
     while True:
         line = F.pop(0)
         if line:
-            data.append(list(csv.reader([line],delimiter = ','))[0])
+            rec = list(csv.reader([line],delimiter = ','))[0]
+            recs = process_ii_rec(rec,aggtype,names,cross_vals)
+            data += recs
         else:
             break
-    catcol = np.array([x[0] for x in data])
-    [catcols,hl] = OG.gethierarchy(catcol,hr,postprocessor = lambda x : x.strip())
-    X = tb.tabarray(records = data,names = names).addcols(catcols + [hl],names = ['Level_' + str(i) for i in range(len(catcols))] + ['HierarchyLevel'])
+
+    if aggtype == 'industry':
+        process_ii_industry(data)
+
+    elif aggtype == 'country':
+        process_ii_location(data)
     
+    elif aggtype == 'both':
+        for r in data:
+            r['Location'] = {'c':  r['Location']}
+            r['Industry'] = {'Level 0': r['Industry']}
+    
+    elif aggtype == 'none':
+        process_ii_industry(data)
+        process_ii_location(data)   
+
+    elif aggtype == 'state&country':
+        catcol = np.array([d['USState'] for d in data])
+        [catcols,hl] = OG.gethierarchy(catcol,hr,postprocessor = lambda x : x.strip(' \t:'))
+        catnames = ['D','s']
+        for (i,r) in enumerate(data):
+            H = zip(catnames,[c[i] for c in catcols])
+            H = [(k,v) for (k,v) in H if v]
+            r['USState'] = pm.son.SON(H)
+        process_ii_location(data)
+        
     footerlines = F
-
-    return [X,headerlines,footerlines,unit,unit_type]
-
-
+   
+    timecolnames = [x for x in uniqify(ListUnion([r.keys() for r in data])) if x not in ['Industry','Location','USState']]
     
-       
+  
+    return [data,headerlines,footerlines,unit,timecolnames]
+
+def process_ii_location(data):
+    catcol = np.array([d['Location'] for d in data])
+    [catcols,hl] = OG.gethierarchy(catcol,hr,postprocessor = lambda x : x.strip())
+    for (i,r) in enumerate(data):
+        rec = [c[i] for c in catcols]
+
+        if 'other' in rec[0].lower() and len(rec) > 2:
+            if rec[2] == 'Other' and len(rec) > 3:
+                H = [('C',rec[1]),('c',rec[3]),('other',True),('R',rec[0])]
+            else:
+                H = [('C',rec[1]),('c',rec[2]),('R',rec[0])]    
+        else:
+            if len(rec) > 1:
+                if rec[1] == 'Other' and len(rec) > 2 and rec[2]:
+                    H = [('C',rec[0]),('c',rec[2]),('other',True)]
+                else:
+                    H = [('C',rec[0]),('c',rec[1])]
+            else:
+                H = [('c',rec[0])]
+    
+        H = [(k,v) for (k,v) in H if v]
+        r['Location'] = pm.son.SON(H)
+        if r['Location'].get('C',None) in ['Canada','United States']:
+            r['Location']['c'] = r['Location']['C']
+            r['Location']['C'] = 'North America'
+
+def process_ii_industry(data):
+    catcol = np.array([d['Industry'] for d in data])
+    [catcols,hl] = OG.gethierarchy(catcol,hr,postprocessor = lambda x : x.strip())
+    catnames = ['Level ' + str(i) for i in range(len(catcols))]
+    for (i,r) in enumerate(data):
+        H = zip(catnames,[c[i] for c in catcols])
+        H = [(k,v) for (k,v) in H if v]
+        r['Industry'] = pm.son.SON(H)
+
+def process_ii_rec(rec,rtn,names,cross_vals):
+    if rtn == 'both':
+        rec = pm.son.SON(zip(names,rec))
+        rec['Location'] = 'All countries total'
+        return [rec]
+    if rtn == 'industry':
+        rec = pm.son.SON(zip(names,rec))
+        rec['Location'] = 'All countries total'
+        return [rec]
+    elif rtn == 'country':
+        rec = pm.son.SON(zip(names,rec))
+        rec['Industry'] = 'All industries total'
+        return [rec]
+    elif rtn == 'none':
+        ival = rec[0]
+        recs = []
+        r = pm.son.SON([])
+        cv_old = cross_vals[0]
+        loc = ' '*2*len(cv_old.split('Of Which')) + cv_old.split(':')[-1].strip()
+        for (n,v,cv) in zip(names[1:],rec[1:],cross_vals):
+            if cv_old != cv:
+                r['Industry'] = ival
+                r['Location'] = loc
+                recs.append(r)
+                r = pm.son.SON([])
+                cv_old = cv
+                loc = ' '*2*len(cv.split('Of Which')) + cv.split(':')[-1].strip()
+            
+            r[n] = v
+            
+        r['Industry'] = ival
+        r['Location'] = loc
+        recs.append(r)
+
+        return recs
+    elif rtn == 'state&country':
+        ival = rec[0]
+        recs = []
+        r = pm.son.SON([])
+        cv_old = cross_vals[0]
+        loc = ' '*2*len(cv_old.split('Of Which')) + cv_old.split(':')[-1].strip()
+        for (n,v,cv) in zip(names[1:],rec[1:],cross_vals):
+            if cv_old == cv:
+                r[n] = v
+                r['Location'] = loc     
+            else:
+                r['USState'] = ival
+                recs.append(r)
+                r = pm.son.SON([])
+                
+                cv_old = cv
+                loc = ' '*2*len(cv.split('Of Which')) + cv.split(':')[-1].strip()
+        r['USState'] = ival 
+        recs.append(r)
+        return recs
+                    
+                    
+def division_descrs_ii(tag):
+    if tag == 'us_investment':
+        return {'title': 'U.S. Direct Investment Abroad: Balance of payments and direct investment position data', 'description':'The balance of payments (international transactions) data cover the foreign affiliates\' transactions with their U.S. parent, so these data focus on the U.S. parent\'s share, or interest, in its affiliates rather than on the affiliates\' overall size or level of operations. These data are essential to the compilation of the U.S. international transactions accounts, the international investment position, and the national income and product accounts. The major data items include capital flows, which measure the funds that U.S. parents provide to their foreign affiliates, and income, which measures the return on those funds. The data also cover royalties and license fees and other service charges that parents receive from or pay to their affiliates. All of these items are flow data and provide measurement for a particular time frame, such as for a quarter or a year. \n\n Direct investment position data are stock data and are cumulative; they measure the total outstanding level of U.S. direct investment abroad at yearend. Estimates are provided both at historical cost and in terms of current-period prices. Two alternative official measures of the position are presented in current-period prices -- one with direct investment recorded at current cost, and the other with direct investment recorded at market value. For the historical-cost estimates, tables are published by country and by industry.', 'URL':'http://www.bea.gov/international/ii_web/timeseries2.cfm?econtypeid=1&dirlevel1id=1&Entitytypeid=1&stepnum=1'}
+    elif tag == 'us_finance':
+        return {'title': 'U.S. Direct Investment Abroad: Financial and operating data', 'description':'The financial and operating data provide a picture of the overall activities of foreign affiliates and U.S. parent companies using a wide variety of indicators of their financial structure and operations. The data on foreign affiliates cover the entire operations of the affiliate, irrespective of the percentage of U.S. ownership. These data cover items that are needed in analyzing the characteristics, performance, and economic impact of multinational companies, such as sales, gross product (value added), employment and compensation of employees, capital expenditures, exports and imports, and research and development expenditures. Separate tabulations are available for affiliates that are majority owned by their U.S. parent because the concept of majority control is often important in the analysis of multinational companies.', 'URL':'http://www.bea.gov/international/ii_web/timeseries1.cfm?econtypeid=1&dirlevel1id=2'}
+    elif tag == 'foreign_investment':
+        return {'title':'Foreign Direct Investment in the United States: Balance of payments and direct investment position data', 'description':' The balance of payments (international transactions) data cover the U.S. affiliates\' transactions with their foreign parents, so these data focus on the foreign parents\' share, or interest, in their U.S. affiliates rather than on the affiliates\' overall size or level of operations. These data are essential to the compilation of the U.S. international transactions accounts, the international investment position, and the national income and product accounts. The major data items include capital flows, which measure the funds that foreign parents provide to their U.S. affiliates, and income, which measures the return on those funds. The data also cover royalties and license fees and other service charges that affiliates receive from or pay to their parents. All of these items are flow data and provide measurement for a particular time frame, such as for a quarter or a year. \n\n Direct investment position data are stock data and are cumulative; they measure the total outstanding level of foreign direct investment in the United States at yearend. Estimates are provided both at historical cost and in terms of current-period prices. Two alternative official measures of the position are presented in current-period prices -- one with direct investment recorded at current cost, and the other with direct investment recorded at market value. For the historical-cost estimates, tables are published by country and by industry.','URL':'http://www.bea.gov/international/ii_web/timeseries2.cfm?econtypeid=2&dirlevel1id=1&Entitytypeid=1&stepnum=1'}
+        
+    elif tag == 'foreign_finance':
+        return {'title':'Foreign Direct Investment in the United States: Financial and operating data', 'description':'The financial and operating data provide a picture of the overall activities of U.S. affiliates and contain a wide variety of indicators of their financial structure and operations. The data cover the entire operations of the U.S. affiliate, irrespective of the percentage of foreign ownership. These data cover items that are needed in analyzing the characteristics, performance, and economic impact of multinational companies, such as sales, gross product (value added), employment and compensation of employees, capital expenditures, exports and imports, and research and development expenditures. Tables are published by country, by industry, and (for selected items) by State. More detailed tables by industry and State on affiliate operations at the establishment level are available for selected years as a result of a special project that linked the Bureau\'s enterprise data for U.S. affiliates with the establishment data for all U.S. companies from the Bureau of the Census.','URL':'http://www.bea.gov/international/ii_web/timeseries1.cfm?econtypeid=2&dirlevel1id=2'}
+
+class ii_parser(OG.dataIterator):
+
+    def __init__(self,source):
+        self.metadata = M = {'':{}}
+        D = M['']
+        tags = ['us_investment','us_finance','foreign_investment','foreign_finance']
+        self.manifests = dict([(tag, tb.tabarray(SVfile = source + tag + '/Manifest.tsv')) for tag in tags])
+        self.tag_names = dict(zip(tags,['US Investment Abroad','US Financials Abroad','Foreign Direct Investment in US','Foreign Financials in US']))
+        
+        iCols = ['Division','Entity','Series','Aggregation','Location','USState','Industry']
+        
+        D['Source'] = [('Agency',{'Name':'Department of Commerce','ShortName':'DOC'}),('Subagency',{'Name':'Bureau of Economic Analysis','ShortName':'BEA'}),('Program','International Economic Accounts'), ('Dataset','Operations of Multinational Companies')]
+               
+        D['DateFormat'] = 'YYYY'
+        D['ColumnGroups'] = {'TimeColNames':[],'LabelColumns':iCols,'SpaceColumns':['USState','Location']}
+               
+        D['sliceCols'] = [iCols]
+        D['UniqueIndexes'] = ['Division','Entity','Series','Aggregation','Location','Line']
+        
+        D['description'] = 'Comprehensive data on inward and outward direct investment, including data on direct investment positions and transactions and on the financial and operating characteristics of the multinational companies involved.'
+        D['keywords'] = 'multinational,foreign,direct investment'
+        
+        D['Note'] = 'The financial and operating data available from these interactive tables cover only nonbank parents and affiliates. Nonbank parents (affiliates) exclude parents (affiliates) engaged in deposit banking and closely related functions, including commercial banks, savings institutions, credit unions, and bank and financial holding companies.'
+
+        D['URL'] = 'http://www.bea.gov/international/'
+
+        #add subgroups for division, entity, series, industryType from little saved metadata
+        
+        for t in tags:
+            M[tag] = division_descrs_ii(tag) 
+        
+        entities = [en for en in ListUnion([uniqify(t['EntityName']) for t in self.manifests.values()]) if en]
+        for entity in entities:
+            M[entity] = {'description':entity_descr(entity)}
+            
+        seriesdict = dict(ListUnion([t[['SeriesName','SeriesDescr']].aggregate(On=['SeriesName'],AggFunc=lambda x : x[0]).tolist() for t in self.manifests.values() if 'SeriesDescr' in t.dtype.names]))
+        Soup = BeautifulSoup(open(source + 'series_defs.html').read())
+        SD0 = [BeautifulSoup(x) for x in  str(Soup.findAll('body')[0]).split('<p></p>') if '<strong>' in x]
+        SD = [(' ; '.join(map(lambda x : Contents(x).strip(' .'),s.findAll('strong'))) , Contents(s).strip()) for s in SD0 if Contents(s)]
+        for k in seriesdict.keys():
+            if seriesdict[k]:
+                md = seriesdict[k]
+            else:
+                md = ''
+                k = set(k.lower().split(' '))
+                for (b,p) in SD:
+                    b = b.lower().split(' ')    
+                    if any(k.intersection(b)):
+                        md += '\n' + p
+            M[k] = {'description':md}
+            
+        M['NAICS'] = {'description':'NAICS is the industry classification system of the United States, Canada, and Mexico. For U.S. direct investment abroad, industry classifications based on NAICS are used for estimates for 1999 forward. Industry classifications for estimates for earlier years are based on the SIC (Standard Industrial Classification) system. The United States adopted NAICS because it better reflects new and emerging industries, industries involved in production of advanced technologies, and the diversification of services industries.'}
+        M['SIC'] = {'description':'For U.S. direct investment abroad, industry classifications based on the SIC are used for estimates for years prior to 1999. Industry classifications for estimates for 1999 forward are based on NAICS (North American Industry Classification System), which is the industry classification system currently used by the United States, Canada, and Mexico. The United States adopted NAICS because it better reflects new and emerging industries, industries involved in production of advanced technologies, and the diversification of services industries.'}
+    
+
+        
+    def refresh(self,path):
+        print '\n\nRefreshing', path
+        tag,file = path.split('/')[-2:]
+        pathtag = file.split('.')[0]
+        [entity,series,rowtype,indtype] = pathtag.split('_')
+        
+        Mani = self.manifests[tag]
+        row = Mani[(Mani['Series'] == series) & (Mani['Entity'] == entity) & (Mani['RowType'] == rowtype) & (Mani['IndType'] == indtype)][0]
+        rowtypename, entityname,seriesname = [row[k] for k in ['RowTypeName','EntityName', 'SeriesName']]
+        if indtype == '1':
+            indtypename = 'NAICS'
+        elif indtype == '2':
+            indtypename = 'SIC'
+        else:
+            indtypename = ''
+
+        [data,headerlines,footerlines,unit,timecolnames] = parse_ii(path,rowtypename)
+        
+        self.metadata[pathtag] = {'header':headerlines,'footer':footerlines,'unit':unit}
+        self.metadata['']['ColumnGroups']['TimeColNames'] = uniqify(self.metadata['']['ColumnGroups']['TimeColNames'] + timecolnames)
+            
+        for (i,r) in enumerate(data):
+            r['Subcollections'] = [tag, seriesname,entityname,indtypename,pathtag]
+            r['Division'] = tag
+            r['Entity'] = entityname
+            r['Series'] = seriesname
+            r['Aggregation'] = rowtypename
+            r['IndustryClassification'] = indtypename
+            r['Line'] = i
+            
+        self.data = data
+                        
+        self.IND = 0    
+
+
+    def next(self):
+        if self.IND < len(self.data):
+            
+            r = self.data[self.IND]    
+            self.IND += 1
+            return r
+        else:
+            raise StopIteration
+                             
   
 II_NAME = 'BEA_InternationalInvestment'
 
@@ -1632,12 +1918,12 @@ def backend_BEA_II(creates = OG.CERT_PROTOCOL_ROOT + II_NAME + '/'):
     
     T = ['us_investment','us_finance','foreign_investment','foreign_finance']
     
-    D =  [(get_intl_investment,'get_investment',())] + ListUnion([[(get_ii_urls,'urls_' +t,(u,t)),(make_ii_manifest,'manifest_' + t,(t,)),(get_ii_data,'data_' + t,(t,))] for (u,t) in zip(URLS,T)] )
+    D = [(get_series_defs,'get_series_defs',())] + ListUnion([[(get_ii_urls,'urls_' +t,(u,t)),(make_ii_manifest,'manifest_' + t,(t,)),(get_ii_data,'data_' + t,(t,))] for (u,t) in zip(URLS,T)] )
     
     [fs, ts, args] = zip(*D)
     downloader = zip(fs,ts)
     
-    OG.backendProtocol(II_NAME,None,downloader = downloader,downloadArgs = args,uptostep='download_check')
+    OG.backendProtocol(II_NAME,ii_parser,downloader = downloader,downloadArgs = args,uptostep='updateCollection')
 
     
 

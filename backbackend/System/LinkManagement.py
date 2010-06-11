@@ -697,6 +697,7 @@ def PropagateThroughLinkGraphWithTimes(Seed,LinkList, Simple = False,Pruning = T
 			UpdateList = uniqify(L1 + L2 + L3)
 		else:
 			UpdateList = L1
+		UpdateList = [i for i in UpdateList if not (LinkList[i[0]]['LinkType'] == 'Uses' and any([i in u for u in UpdateLists]))]
 		if any([set(l) <= set(UpdateList) for l in UpdateLists]):
 			print 'There was a circularity involving at some of the links in' , uniqify(LinkList[[i[0] for i in UpdateList]]['LinkSource'].tolist()) , '. Further updates will be canceled.'
 			return LinkList[0:0]
