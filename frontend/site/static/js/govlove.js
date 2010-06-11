@@ -1,6 +1,6 @@
 var GovLove = {};
 (function($) {
-    GovLove.api_url = "http://ec2-72-44-53-142.compute-1.amazonaws.com"
+    GovLove.api_url = "http://ec2-184-73-37-151.compute-1.amazonaws.com"
     var result_template = "";
     var cache = {};
     var state = {};
@@ -58,41 +58,64 @@ var GovLove = {};
     }
     
     GovLove.find = function(q,callback,options) {
-        // var params = {
-        //     "q" : q,
-        //     "facet" : true,
-        //     "facet.field" : ["agency","subagency","source","spatialDivisions","spatialPhrases","dateDivisions","datePhrases","datasetTight"]
-        // };
-        // console.log("finding");
-        // $.extend(params,options);
-        // $.ajax({
-        //     url: GovLove.api_url+"/find",
-        //     data: params,
-        //     dataType: "jsonp",
-        //     success: callback,
-        //     complete: function(d) {
-        //         console.log("is complete");
-        //         console.log(d);
-        //     }
-        // });
-        $.getJSON("/static/exampledata.json",callback);
+        var params = {
+            "q" : q,
+            "facet" : true,
+            "facet.field" : ["agency","subagency","source","spatialDivisions","spatialPhrases","dateDivisions","datePhrases","datasetTight"]
+        };
+        $.extend(params,options);
+        $.ajax({
+            url: GovLove.api_url+"/find",
+            data: params,
+            dataType: "jsonp",
+            success: callback,
+            complete: function(d) {
+                // do error checking
+                console.log("is complete");
+                console.log(d);
+            }
+        });
+        // Example
+        // $.getJSON("/static/exampledata.json",callback);
+    }
+    
+    GovLove.get = function(q,callback,options) {
+        var params = {
+            "q" : q
+        };
+        $.extend(params,options);
+        $.ajax({
+            url: GovLove.api_url+"/get",
+            data: params,
+            dataType: "jsonp",
+            success: callback,
+            complete: function(d) {
+                // do error checking
+                console.log("is complete");
+                console.log(d);
+            }
+        });
     }
 
-    GovLove.getQueryForDoc = function(findDoc, limit) {
-        if (limit === undefined) {
-            limit = 10;
-        }        
-        var mongoID = findDoc.mongoID;
-        var mongoQuery = eval('('+findDoc.query[0]+')');
-        var collectionName = findDoc.collectionName[0];
-        var query = GovLove.Query(collectionName).find(mongoQuery).limit(limit).toString()
-        // var query = JSON.stringify({"collectionName": collectionName,
-        //             "querySequence" : JSON.stringify([["find", [[mongoQuery],{}]],["limit", [[limit],{}]]]).replace(/"/g,'\"')});
+    GovLove.getQueryForDoc = function(doc, options) {
+        var params = {
+            limit : 10
+        }
+        $.extend(params,options)
+        var mongoID = doc.mongoID;
+        var mongoQuery = eval('('+doc.query[0]+')');
+        var collectionName = doc.collectionName[0];
+        var query = GovLove.Query(collectionName).find(mongoQuery).limit(params.limit).toString()
         return query;
     }
     
     GovLove.formatDate = function(dateStr) {
+        // TODO: converts date value into english readable text
         return dateStr;
+    }
+    
+    GovLove.locationToText = function() {
+        // TODO: converts location value from a query object into english readable text
     }
     
     GovLove.Query = function(collectionName) {

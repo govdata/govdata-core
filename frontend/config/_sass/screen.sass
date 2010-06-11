@@ -24,7 +24,6 @@ body
   background-repeat: no-repeat
   min-height: 100%
   overflow: auto
-  
 
 h1, h2, h3, .sitename, .big
   font:
@@ -141,30 +140,25 @@ ul
 // Find
 ///////////////////////////////////////////////////
 
-#filterlist
-  text-align: center
-  width: 940px
-  tr
-    width: 940px
-    td
-      width: 240px
-
-#filtercontent
-  display: none
-
-#minimap
-  padding: 10px
-  ul
-    +inline-list
-
-select
-  border: 1px solid $shadowColor
-  font-size: 12px
-
-.sitename
-  text-align: center
-  font-size: 60px
-  padding: 10px
+#filter
+  margin-top: -20px
+  .title
+    font-size: 120%
+  .filters
+    display: none
+    text-align: left
+    padding-top: 20px
+    margin: 0 auto
+    width: 300px
+    position: relative
+    label
+      display: block
+      width: 100%
+      span
+        float: left
+        padding: 0 10px
+        width: 120px
+        text-align: right
 
 #q
   width: 99%
@@ -258,20 +252,6 @@ select
   text-align: right
   width: 100%
 
-.filter
-  margin-top: -20px
-
-#filters
-  border: 1px solid $shadowColor
-  +round(5,5,5,5)
-  padding: 10px
-  overflow: hidden
-  ul
-    +inline-list
-
-#filterbutton
-  width: 100%
-  text-align: center
 
 
 ///////////////////////////////////////////////////
