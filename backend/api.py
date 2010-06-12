@@ -855,7 +855,10 @@ def getType(handler,i,id):
     if id in handler.field_types.keys():
         return handler.field_types[id]
     else:
-        dp = handler.data[0]['c'][i]['v']
+        try:
+            dp = handler.data[0]['c'][i]['v']
+        except:
+            dp = handler.data[0][i]
         if isinstance(dp,bool):
             return 'boolean'
         elif isinstance(dp,int) or isinstance(dp,float):
