@@ -602,7 +602,7 @@ class SimpleDataHandler(GetHandler):
         if set(actions) <= set(EXPOSED_ACTIONS) and 'find' == actions[0]:
             query['returnObj'] = True
             query['stream'] = False                 
-            query['processor'] = functools.partial(wire_processor,self)
+            query['processor'] = functools.partial(simple_processor,self)
             self.field_order = querySequence[0].get('kargs',{}).get('fields',None)
             self.get_response(query)            
         else:
