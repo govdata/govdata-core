@@ -155,11 +155,11 @@ def gov_processor(processor,r,handler,collection):
          
             r[vNInd] = versionNumber
      
-    if processor:
-        r = processor(r,collection)
-        
     if sci and sci in r.keys():
         subcols.append((r['_id'],r[sci]))
+
+    if processor:
+        r = processor(r,collection)
         
     return r
 
