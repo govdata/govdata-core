@@ -6,6 +6,7 @@ import tornado.options
 import tornado.web
 import api
 import os
+import tornado.autoreload
 
 from tornado.options import define, options
 
@@ -40,6 +41,7 @@ def main():
     ioloop = tornado.ioloop.IOLoop.instance()
     http_server = tornado.httpserver.HTTPServer(GovLove(ioloop))
     http_server.listen(options.port)
+    tornado.autoreload.start()
     ioloop.start()
 
 if __name__ == "__main__":
