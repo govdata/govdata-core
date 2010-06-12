@@ -34,7 +34,7 @@ class GetHandler(asyncCursorHandler):
             args[k] = args[k][0]
 
         args['query'] = json.loads(args['query']) 
-        
+
         if 'timeQuery' in args.keys():
             args['timeQuery'] = json.loads(args['timeQuery'])
         if 'spaceQuery' in args.keys():
@@ -582,7 +582,7 @@ def getArgs(args):
 #Wire Protocol
 #=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-class SimpleTableHandler(GetHandler):
+class SimpleDataHandler(GetHandler):
     @tornado.web.asynchronous
     def get(self):
         args = self.request.arguments

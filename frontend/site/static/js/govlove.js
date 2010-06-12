@@ -22,14 +22,13 @@ var GovLove = {};
     }
     
     GovLove.loadState = function(s) {
-        //TODO
         return s;
     }
     
     GovLove.getState = function() {
         return state;
     }
-    
+
     var getData = function(url,q,callback) {            
       // Send the query with a callback function
       var query = new google.visualization.Query(url);
@@ -116,6 +115,16 @@ var GovLove = {};
     
     GovLove.locationToText = function() {
         // TODO: converts location value from a query object into english readable text
+    }
+    
+    GovLove.cluster = function(docs) {
+        // cluster the docs by agency and subagency
+        return docs;
+    }
+    
+    GovLove.collapse = function(docs) {
+        // collapse the docs into items with the same SourceSpec
+        return docs;
     }
     
     GovLove.Query = function(collectionName) {
