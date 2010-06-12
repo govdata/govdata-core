@@ -589,6 +589,7 @@ class SimpleDataHandler(GetHandler):
         for k in args.keys():
             args[k] = args[k][0]
         self.args = args
+        self.responseHandler = args.pop('callback',None)
         query = json.loads(args['q'])
         print query
         self.queryVal = query
