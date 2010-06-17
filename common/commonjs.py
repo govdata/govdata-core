@@ -48,8 +48,8 @@ def js_call(context,key,value):
 
 import os
 class JSReadEnv(PyV8.JSClass):
-	def read(self,name):
-	        os.environ['PROTECTION'] = 'OFF'
+    def read(self,name):
+            os.environ['PROTECTION'] = 'OFF'
             with open(name,'r') as f:
                 s = f.read()
             os.environ['PROTECTION'] = 'ON'
