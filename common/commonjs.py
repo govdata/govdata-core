@@ -5,6 +5,7 @@ import json
 import pymongo.json_util as ju
 import PyV8
 
+COMMONJS_LOCATION='../../common/js/common.js'
 
 def js_call(context,key,value):
     name = context.instructions[key]['name']
@@ -12,7 +13,10 @@ def js_call(context,key,value):
 
 class JSReadEnv(PyV8.JSClass):
 	def read(self,name):
-		return open(name,'r').read()
+            with open(name,'r') as f:
+                s = f.read()
+            return s
+
 
 
 class pyV8CommonJS(PyV8.JSContext):
@@ -24,7 +28,9 @@ class pyV8CommonJS(PyV8.JSContext):
         self.commonJS_location = COMMONJS_LOCATION
   
         self.enter()
-        self.eval(open(self.commonJS_location).read())
+        
+        with open(self.commonJS_location) as f:
+            self.eval(f.read())
     
                         
     def load(self,code=None,module=None):
