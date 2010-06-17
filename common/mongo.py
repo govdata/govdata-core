@@ -55,19 +55,7 @@ class Collection(pm.collection.Collection):
         else:
             self.metadata = dict([(l['__name__'],l) for l in self.metaCollection.find()])
             
-        translator_names = self.metadata[''].get('translators',{})
-        translators = {}
-        if translator_names:
-            for (k,v) in translator_names.items():
-                module = v['module']
-                fname = v['name']         
-                M = __import__(module,fromlist='.'.join(module.split('.')[:-1]))
-                Func = getattr(M,fname)
-                assert hasattr(Func,'__call__')
-                translators[k] = Func
-                
-
-        self.translators = translators
+        self.translators = self.metadata[''].get('translators',{})
 
 
         slicesname =  '__' + name + '__SLICES__'
