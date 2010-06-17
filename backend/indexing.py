@@ -449,7 +449,7 @@ def initialize_argdict(collection):
 
 def stringifyDictElements(d):
     
-    return dict([(str(k),stringifyDictElements(v) if v.has_key('keys') else str(v)) for (k,v) in d.items()])
+    return dict([(str(k),stringifyDictElements(v) if hasattr(v,'keys') else str(v)) for (k,v) in d.items()])
 
 def getSliceColTuples(collection):
     sliceColList = collection.sliceCols
