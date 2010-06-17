@@ -440,12 +440,16 @@ def initialize_argdict(collection):
         
     if 'Subcollections' in collection.totalVariables:
         ArgDict['subColInd'] = collection.totalVariables.index('Subcollections')
-
-    ArgDict['translatorContext'] = commonjs.translatorContext(collection.translators)
+    
+    translators = stringifyDictElements(collection.translators)
+    ArgDict['translatorContext'] = commonjs.translatorContext(translators)
             
     return d, ArgDict
     
 
+def stringifyDictElements(d):
+    
+    return dict([(str(k),stringifyDictElements(v) if v.has_key('keys') else str(v)) for (k,v) in d.items()])
 
 def getSliceColTuples(collection):
     sliceColList = collection.sliceCols
