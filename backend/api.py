@@ -577,19 +577,50 @@ def getArgs(args):
     return (posargs,kwargs)
     
     
-    
 #=-=-=-=-=-=-=-=-=-=-=-=-=-
-#Wire Protocol
+#TABLE
 #=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-class SimpleDataHandler(GetHandler):
+
+def getTable(handler):
+
+    if handler.data:
+        cols = [{'id':id,'label':label,'type':getType(handler,i,id)} for (i,(id,label)) in enumerate(handler.fields)]
+    else:
+        cols = [{'id':id,'label':label,'type':'string'} for (i,(id,label)) in enumerate(handler.fields)]
+        handler.status = 'warning'
+        handler.warnings = [{'reason':'other','message':'No results.'}]
+        
+    return {'cols':cols,'rows':handler.data}
+
+def getType(handler,i,id):
+
+    dp = handler.data[0][i]
+    if isinstance(dp,bool):
+        return 'boolean'
+    elif isinstance(dp,int) or isinstance(dp,float):
+        return 'number'
+    elif is_string_like(dp):
+        return 'string'
+    else:
+        return 'object'
+
+def table_processor(handler,x,collection):
+    return [x.get(id,None) for (id,label) in handler.fields]
+
+
+class TableHandler(GetHandler):
+
+    tablemaker = getTable
+    
     @tornado.web.asynchronous
     def get(self):
         args = self.request.arguments
         for k in args.keys():
             args[k] = args[k][0]
         self.args = args
-        self.responseHandler = args.pop('callback',None)
+        self.jsonPcallback = args.pop('callback',None)
+        self.returnMetadata = args.pop('returnMetadata',False) 
         query = json.loads(args['q'])
         print query
         self.queryVal = query
@@ -602,7 +633,7 @@ class SimpleDataHandler(GetHandler):
         if set(actions) <= set(EXPOSED_ACTIONS) and 'find' == actions[0]:
             query['returnObj'] = True
             query['stream'] = False                 
-            query['processor'] = functools.partial(simple_processor,self)
+            query['processor'] = functools.partial(table_processor,self)
             self.field_order = querySequence[0].get('kargs',{}).get('fields',None)
             self.get_response(query)            
         else:
@@ -610,6 +641,7 @@ class SimpleDataHandler(GetHandler):
             self.errors = [{'reason':'invalid_query'}]
             self.end()
 
+
     def end(self):
         if not hasattr(self,'status'):
             self.status = 'ok'
@@ -617,22 +649,33 @@ class SimpleDataHandler(GetHandler):
         D = {}    
 
         if self.status == 'ok':
-            D['table'] = getTable(self)
+            tablemaker = self.tablemaker
+            table = tablemaker(self)
+            if table:
+                D['table'] = table
 
         D['status'] = self.status    
         if self.status == 'error':       
             D['errors'] = self.errors
         elif self.status == 'warning':
             D['warnings'] = self.warnings
-
-        self.write(self.responseHandler + '(' + json.dumps(D,default=pm.json_util.default) + ');')
+            
+        if self.returnMetadata:
+            collection = self.collection
+            sci = self.sci
+            subcols = self.subcols
+            
+            D["metadata"] = makemetadata(collection,sci,subcols)
+        
+        self.write(self.jsonPcallback + '(' + json.dumps(D,default=pm.json_util.default) + ');')
         self.finish()
+        
 
     def organize_fields(self,fields):
         vars = self.collection.totalVariables
 
         TimeColumns = self.collection.ColumnGroups.get('TimeColumns',[])
-        SpaceColums = self.collection.ColumnGroups.get('SpaceColumns',[])
+        SpaceColumns = self.collection.ColumnGroups.get('SpaceColumns',[])
         TimeColNames = self.collection.ColumnGroups.get('TimeColNames',[])
         TimeColNames.sort()
 
@@ -655,254 +698,18 @@ class SimpleDataHandler(GetHandler):
 
 
         ids = ['_id'] + [field.encode('utf-8') for field in fields]
-        labels = ['_id'] + [str(vars[int(field)]) for field in fields]
+        labels = ['_id'] + [str(vars[int(field)]) for field in fields]        
 
-
-        self.field_types = {}
-
-        if hasattr(self.collection,'DateFormat'):
-            DateFormat = self.collection.DateFormat
-            timeformatter = td.MongoToJSDateFormatter(DateFormat)
-            if not timeformatter:
-                timeformatter = td.reverse(DateFormat)
-            else:
-                for t in TimeColumns:
-                    self.field_types[t] = 'date'
-            spaceformatter = lambda  x : loc.phrase2(x).encode('utf-8')
-
-        processors = []
-        for label in labels:
-            if label in TimeColumns:
-                processors.append(timeformatter)
-            elif label in SpaceColums:
-                processors.append(spaceformatter)
-            elif label == '_id':
-                processors.append(str)
-            else:
-                processors.append(lambda x : x if is_num_like(x) else str(x))
-
-        self.fields = zip(ids,labels,processors)
+        self.fields = zip(ids,labels)
+    
     
 
-class TableHandler(GetHandler):
 
-    @tornado.web.asynchronous
-    def get(self):
-        args = self.request.arguments
-        for k in args.keys():
-            args[k] = args[k][0]
-        self.args = args
-            
-        tqx = wire_query_processor(args.get('tqx',''))       
-        self.responseHandler = tqx.get('responseHandler','google.visualization.Query.setResponse')
-        self.sig = str(args['tq'].__hash__())
-
-        query = json.loads(args['tq'])
-        print query
-        self.queryVal = query
-                
-        if 'sig' in tqx.keys() and self.sig == tqx['sig']:
-            self.status = 'warning'
-            self.warnings = [{'reason':'not_modified'}]
-            self.reqId = tqx['reqId'] 
-            self.end()
-                
-        else:
-
-            out = tqx.get('out','json')
-            if out != 'json':
-                self.status = 'error'
-                self.errors = [{'reason':'not_supported','message':'Only Json format is supported, not ' + out + '.'}]
-                self.end()
-                
-            else:
-                
-                self.reqId = tqx.get('reqId',self.sig)
-                
-                query['timeQuery'] = query.get('timeQuery','null')
-                query['spaceQuery'] = query.get('spaceQuery','null')
-                query['query'] = querySequence = query['query']
-                
-                if isinstance(querySequence, dict):
-                    querySequence = [querySequence]
-                    
-                         
-                actions = [q['action'] for q in querySequence]
-                
-                if set(actions) <= set(EXPOSED_ACTIONS) and 'find' == actions[0]:
-            
-                    query['returnObj'] = True
-                    query['stream'] = False                 
-                    query['processor'] = functools.partial(wire_processor,self)
-                           
-                    self.field_order = querySequence[0].get('kargs',{}).get('fields',None)
-                    
-                    self.get_response(query)
-                    
-                else:
-                
-                    self.status = 'error'
-                    self.errors = [{'reason':'invalid_query'}]
-                    
-                    self.end()
-
-
-    def organize_fields(self,fields):
-        vars = self.collection.totalVariables
-
-        TimeColumns = self.collection.ColumnGroups.get('TimeColumns',[])
-        SpaceColums = self.collection.ColumnGroups.get('SpaceColumns',[])
-        TimeColNames = self.collection.ColumnGroups.get('TimeColNames',[])
-        TimeColNames.sort()
-        
-        if fields == None:
-            
-            V = [i for (i,x) in enumerate(vars) if x not in SPECIAL_KEYS and x not in TimeColNames] + [vars.index(x) for x in TimeColNames]
-            fields = map(str,V)
-          
-        else:
-            fields = fields.keys()
-            fields.sort()
-            
-            TimeColFields = [str(vars.index(x))  for x in TimeColNames if str(vars.index(x)) in fields]
-            SpecialFields = [str(vars.index(x))  for x in SPECIAL_KEYS +  ['Subcollections'] if str(vars.index(x)) in fields]
-            
-            fields = SpecialFields + [i for i in fields if i not in TimeColFields + SpecialFields] + TimeColFields
-            
-        if self.field_order:
-            fields = uniqify(ListUnion([[self.VarMap[kk] for kk in self.collection.ColumnGroups.get(k,[k])] for k in self.field_order]) + [k for k in fields if k != '_id' and vars[int(k)] not in self.field_order])
-
-
-        ids = ['_id'] + [field.encode('utf-8') for field in fields]
-        labels = ['_id'] + [str(vars[int(field)]) for field in fields]
-        
-      
-        self.field_types = {}
-        
-        if hasattr(self.collection,'DateFormat'):
-            DateFormat = self.collection.DateFormat
-            timeformatter = td.MongoToJSDateFormatter(DateFormat)
-            if not timeformatter:
-                timeformatter = td.reverse(DateFormat)
-            else:
-                for t in TimeColumns:
-                    self.field_types[t] = 'date'
-            spaceformatter = lambda  x : loc.phrase2(x).encode('utf-8')
-        
-        processors = []
-        for label in labels:
-            if label in TimeColumns:
-                processors.append(timeformatter)
-            elif label in SpaceColums:
-                processors.append(spaceformatter)
-            elif label == '_id':
-                processors.append(str)
-            else:
-                processors.append(lambda x : x if is_num_like(x) else str(x))
-                
-        self.fields = zip(ids,labels,processors)
-
-    def post(self):
-        raise BaseException, 'post not handled by wire protocol'
-        
-                               
-    def end(self):
-        if not hasattr(self,'status'):
-            self.status = 'ok'
-                   
-        D = {}    
-        
-        if self.status == 'ok':
-            D['table'] = getTable(self)
-            
-        D['status'] = self.status    
-        if self.status == 'error':       
-            D['errors'] = self.errors
-        elif self.status == 'warning':
-            D['warnings'] = self.warnings
-         
-        if hasattr(self,'reqId'):
-            D['reqId'] = self.reqId
-        if hasattr(self,'sig'):
-            D['sig'] = self.sig
-            
-        D['version'] = '0.6'
-
-        self.write(self.responseHandler + '(' + GoogleJson(D) + ');')
-        self.finish()
-        
-        
-def wire_query_processor(tqx):
-
-    #return dict([(v.split(':')[0],':'.join(v.split(':')[1:])) for v in list(csv.reader([tqx],delimiter=';',escapechar='\\'))[0]])
-    return dict([(v.split(':')[0],v.split(':')[-1]) for v in tqx.split(';')])
     
-def getTable(handler):
+#=-=-=-=-=-=-=-=-=-=-=-=-=-
+#TIMELINE
+#=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-    if handler.data:
-        cols = [{'id':id,'label':label,'type':getType(handler,i,id)} for (i,(id,label,processor)) in enumerate(handler.fields)]
-    
-    else:
-        
-        cols = [{'id':id,'label':label,'type':'string'} for (i,(id,label,processor)) in enumerate(handler.fields)]
-        handler.status = 'warning'
-        handler.warnings = [{'reason':'other','message':'No results.'}]
-        
-    return {'cols':cols,'rows':handler.data}
-
-
-def getType(handler,i,id):
-    if id in handler.field_types.keys():
-        return handler.field_types[id]
-    else:
-        try:
-            dp = handler.data[0]['c'][i]['v']
-        except:
-            dp = handler.data[0][i]
-        if isinstance(dp,bool):
-            return 'boolean'
-        elif isinstance(dp,int) or isinstance(dp,float):
-            return 'number'
-        else:
-            return 'string'
-
-
-def wire_processor(handler,x,collection):
-    return {'c':[{'v': processor(x.get(id,None))} for (id,label,processor) in handler.fields]}
-
-def simple_processor(handler,x,collection):
-    return [processor(x.get(id,None)) for (id,label,processor) in handler.fields]
-        
-class TimelineHandler(TableHandler):    
-
-    def end(self):
-        if not hasattr(self,'status'):
-            self.status = 'ok'
-                   
-        D = {}    
-        
-        if self.status == 'ok':
-            table = getTimelineTable(self)
-            if table:  D['table'] = table
-            
-        D['status'] = self.status    
-        if self.status == 'error':       
-            D['errors'] = self.errors
-        elif self.status == 'warning':
-            D['warnings'] = self.warnings
-         
-        if hasattr(self,'reqId'):
-            D['reqId'] = self.reqId
-        if hasattr(self,'sig'):
-            D['sig'] = self.sig
-            
-        D['version'] = '0.6'
-        
-        self.write(self.responseHandler + '(' + GoogleJson(D) + ');')
-
-        self.finish()
- 
- 
 def infertimecol(collection):
     if hasattr(collection,'DateFormat') and 'Y' in collection.DateFormat:
         if collection.ColumnGroups.has_key('TimeColNames'):
@@ -929,7 +736,7 @@ def getTimelineTable(handler):
         handler.errors = [{'reason':'other','message':'TimeCol not found.'}]
         return        
      
-    cols = [{'id':id,'label':label,'type':getType(handler,i,id)} for (i,(id,label,processor)) in enumerate(handler.fields)]
+    cols = [{'id':id,'label':label,'type':getType(handler,i,id)} for (i,(id,label)) in enumerate(handler.fields)]
     labels  = [c['label'] for c in cols]
     
     if timecol == '__keys__':
@@ -945,7 +752,7 @@ def getTimelineTable(handler):
                   
         timevalInds = [labels.index(x) for x in timevalNames]
         
-        timevalNames = uniqify(ListUnion([[labels[i] for i in timevalInds if r['c'][i]['v'] != None] for r in obj]))
+        timevalNames = uniqify(ListUnion([[labels[i] for i in timevalInds if r[i] != None] for r in obj]))
         timevalNames.sort()
         timevalInds = [labels.index(x) for x in timevalNames]
 
@@ -953,17 +760,15 @@ def getTimelineTable(handler):
         formatter2 = td.MongoToJSDateFormatter(handler.collection.DateFormat)
         timevals = [formatter2(formatter1(x)) for x in timevalNames]
         
-        othercols = [', '.join([r['c'][l]['v'] for l in labelcolInds if r['c'][l]['v']]) for r in obj]
+        othercols = [', '.join([r[l] for l in labelcolInds if r[l]]) for r in obj]
         
         cols = [{'id':'Date','label': timecolname, 'type':'date'}] + [{'id':str(j),'label': o, 'type':'number'} for  (j,o) in enumerate(othercols)]
-        
-        obj = [{'c': [{'v':tv}] + [r['c'][i] for r in obj]}  for (i,tv) in zip(timevalInds,timevals)]
-        #obj = [[tv] + [r['c'][i] for r in obj]  for (i,tv) in zip(timevalInds,timevals)]
                 
+        obj = [[tv] + [r[i] for r in obj]  for (i,tv) in zip(timevalInds,timevals)]
+       
     
     elif timecol in handler.vars:
-        
-
+       
         assert timecol in labels
         timecolInd = labels.index(timecol)
         assert cols[timecolInd]['type'] == 'Date'
@@ -972,34 +777,15 @@ def getTimelineTable(handler):
         if timecolInd != 0:
             cols.insert(cols.pop(timeColInd),0)            
             for r in obj:
-                r['c'].insert(r['c'].pop(timeColInd),0)        
+                r.insert(r.pop(timeColInd),0)        
    
     return {'cols':cols,'rows':obj}
 
-import re
-dateRe = re.compile('new[\s]+Date\([\s]*[\d]+[\s]*,[\s]*[\d]+[\s]*,[\s]*[\d]+[\s]*\)')
-from numpy import isnan 
 
-def GoogleJson(D):
-    if isinstance(D,dict):
-        return  '{' + ','.join([str(k) + ':' + GoogleJson(v) for (k,v) in D.items()]) + '}'
-    elif isinstance(D,list) or isinstance(D,tuple):
-        return '[' + ','.join([GoogleJson(k) for k in D]) + ']'
-    elif is_string_like(D):
-        if dateRe.match(D):
-            return D   
-        else:
-            return repr(D)
-    elif is_num_like(D):
-        if isnan(D):
-            return '0'
-        else:
-            return str(D)
-    elif not D:
-        return '0'
-    else:
-        print type(D)
-        raise ValueError, 'Value cant be converted.'
+class TimelineHandler(TableHandler):    
+
+    tablemaker = getTimelineTable
+ 
         
 
 

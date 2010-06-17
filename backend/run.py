@@ -17,12 +17,11 @@ class GovLove(tornado.web.Application):
     def __init__(self,ioloop):
         handlers = [
             (r"/", MainHandler),
-            (r"/uberget", api.GetHandler),
+            (r"/get", api.GetHandler),
             (r"/find", api.FindHandler),
-            (r"/get", api.SimpleDataHandler),
-            (r"/gtable", api.TableHandler),
-            (r"/gtimeline", api.TimelineHandler),
             (r"/sources", api.SourceHandler),
+            (r"/table", api.TableHandler),
+            (r"/time", api.TimelineHandler),
         ]
         settings = dict(
             template_path=os.path.join(os.path.dirname(__file__), "templates"),
