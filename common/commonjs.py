@@ -12,11 +12,11 @@ def js_call(context,key,value):
     name = context.instructions[key]['name']
     return context.eval(name + '(' + json.dumps(value,default=ju.default) + ')')
 
-class pyV8CommonJS(PyV8.JS_Context):
+class pyV8CommonJS(PyV8.JSContext):
 
     def __init__(self,*args,**kwargs):
     
-        PyV8.JS_Context.__init__(self,*args,**kwargs)
+        PyV8.JSContext.__init__(self,*args,**kwargs)
         
         self.commonJS_location = COMMONJS_LOCATION
         
