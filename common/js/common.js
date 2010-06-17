@@ -11,7 +11,7 @@ var require = function require(filename) {
         
         try {
             // get the text of the module
-            var modtext = require._mod_texts[filename];
+            var modtext = read(filename);
             // Wrap it in a function
             var f = new Function("require", "exports", modtext);
             // Prepare function arguments
@@ -32,4 +32,3 @@ var require = function require(filename) {
 // loaded.  It must be an empty string or a string that ends with "/".
 
 require._cache = {};               // So we only load modules once
-require._mod_texts = {};
