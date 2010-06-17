@@ -66,7 +66,7 @@ var _ = require("../common/js/underscore.js")._
  weekday[5]="Friday";
  weekday[6]="Saturday";
 
- var timephrase = function(tObj){
+ var phrase = function(tObj){
      var dateObj = convertToDT(tObj);
 
       var ftObj = tObjFlatten(tObj);
@@ -99,4 +99,4 @@ var _ = require("../common/js/underscore.js")._
 
 exports.tObjFlatten = tObjFlatten;
 exports.convertToDT = convertToDT;
-exports.timephrase=timephrase;
+exports.phrase=phrase;

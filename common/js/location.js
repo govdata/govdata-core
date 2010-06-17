@@ -26,4 +26,4 @@ var phrase = function (l){
  }
  
 
-  exports.spacephrase = spacephrase
+exports.phrase = phrase
