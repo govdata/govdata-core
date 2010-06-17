@@ -619,24 +619,22 @@ class TableHandler(GetHandler):
         for k in args.keys():
             args[k] = args[k][0]
         self.args = args
-        self.jsonPcallback = args.pop('callback',None)
-        self.returnMetadata = args.pop('returnMetadata',False) 
-        query = json.loads(args['q'])
-        print query
-        self.queryVal = query
-        query['timeQuery'] = query.get('timeQuery','null')
-        query['spaceQuery'] = query.get('spaceQuery','null')
-        query['query'] = querySequence = query['query']
+ 
+        args['query'] = querySequence = json.loads(args['query'])
+        args['timeQuery'] = json.loads(args.get('timeQuery','null'))
+        args['spaceQuery'] = json.loads(args.get('spaceQuery','null'))
+
         if isinstance(querySequence, dict):
             querySequence = [querySequence]
         actions = [q['action'] for q in querySequence]
         if set(actions) <= set(EXPOSED_ACTIONS) and 'find' == actions[0]:
-            query['returnObj'] = True
-            query['stream'] = False                 
-            query['processor'] = functools.partial(table_processor,self)
+            args['returnObj'] = True
+            args['stream'] = False                 
+            args['processor'] = functools.partial(table_processor,self)
             self.field_order = querySequence[0].get('kargs',{}).get('fields',None)
-            self.get_response(query)            
+            self.get_response(args)            
         else:
+            self.begin()
             self.status = 'error'
             self.errors = [{'reason':'invalid_query'}]
             self.end()
@@ -649,10 +647,9 @@ class TableHandler(GetHandler):
         D = {}    
 
         if self.status == 'ok':
-            tablemaker = self.tablemaker
-            table = tablemaker(self)
+            table = self.tablemaker()
             if table:
-                D['table'] = table
+                D['data'] = table
 
         D['status'] = self.status    
         if self.status == 'error':       
@@ -667,7 +664,11 @@ class TableHandler(GetHandler):
             
             D["metadata"] = makemetadata(collection,sci,subcols)
         
-        self.write(self.jsonPcallback + '(' + json.dumps(D,default=pm.json_util.default) + ');')
+        self.write(json.dumps(D,default=pm.json_util.default) + ');')
+
+        if self.jsonPcallback:
+            self.write(')')
+  
         self.finish()
         
 
@@ -726,7 +727,7 @@ def getTimelineTable(handler):
         handler.errors = [{'reason':'other','message':'No results.'}]
         return
 
-    timecol = handler.queryVal.get('timecol',None)
+    timecol = handler.args.get('timecol',None)
     
     if timecol == None:
         timecol = infertimecol(handler.collection)
@@ -741,7 +742,7 @@ def getTimelineTable(handler):
     
     if timecol == '__keys__':
     
-        timecolname = handler.queryVal.get('timecolname','Date')
+        timecolname = handler.args.get('timecolname','Date')
         
         labelcols =  handler.collection.metadata['']['ColumnGroups']['LabelColumns']
         assert set(labelcols) <= set(labels)
