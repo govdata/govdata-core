@@ -4,6 +4,7 @@ from common.mongo import Collection, cleanCollection, SPECIAL_KEYS
 from common.utils import IsFile, listdir, is_string_like, ListUnion, uniqify,createCertificate, rgetattr,rhasattr, dictListUniqify, Flatten
 import common.timedate as td
 import common.location as loc
+import common.commonjs as commonjs
 import common.solr as ourSolr
 import backend.api as api
 import solr
@@ -122,9 +123,10 @@ def updateCollectionIndex(collectionName,incertpath,certpath, slicesCorrespondTo
     solr_interface.commit()
     
     createCertificate(certpath,'Collection ' + collectionName + ' indexed.')        
-
-def queryToText(q,translators):
-    return ', '.join([key + '=' + (translators[key](value) if translators.has_key(key) else value) for (key,value) in q.items()])
+    
+    
+def queryToText(q,context):
+    return ', '.join([key + '=' + (commonjs.js_call(context,key,value) if context.instructions.has_key(key) else value) for (key,value) in q.items()])  
     
 
 def mongoID(q,collectionName):
@@ -132,7 +134,7 @@ def mongoID(q,collectionName):
     return hashlib.sha1(json.dumps(queryID,default=ju.default)).hexdigest()
     
     
-def addToIndex(q,d,collection,solr_interface,contentColNums = None, timeColInds=None,timeColNames=None, timeColNameInds = None,timeColNameDivisions = None,timeColNamePhrases=None,OverallDate = '', OverallDateFormat = '', timeFormatter = None,reverseTimeFormatter = None,dateDivisions=None,datePhrases=None,mindate = None,maxdate = None,OverallLocation = None, spaceColNames = None, spaceColInds = None,subColInd = None,Return=False):
+def addToIndex(q,d,collection,solr_interface,contentColNums = None, timeColInds=None,timeColNames=None, timeColNameInds = None,timeColNameDivisions = None,timeColNamePhrases=None,OverallDate = '', OverallDateFormat = '', timeFormatter = None,reverseTimeFormatter = None,dateDivisions=None,datePhrases=None,mindate = None,maxdate = None,OverallLocation = None, spaceColNames = None, spaceColInds = None,subColInd = None,Return=False,translatorContext=None):
 
 
     q['__versionNumber__'] = collection.currentVersion
@@ -145,7 +147,7 @@ def addToIndex(q,d,collection,solr_interface,contentColNums = None, timeColInds=
     
     d['mongoID'] = mongoID(q,collection.name)
     
-    d['mongoText'] = queryToText(q,collection.translators)
+    d['mongoText'] = queryToText(q,translatorContext)
     
     d['versionNumber'] = collection.currentVersion
 
@@ -167,9 +169,9 @@ def addToIndex(q,d,collection,solr_interface,contentColNums = None, timeColInds=
     contentColNums = [i for i in contentColNums if i not in query.keys()]
     
     if d['volume'] < 1000:
-        smallAdd(d,query,collection,contentColNums, timeColInds ,timeColNames , timeColNameInds ,timeColNameDivisions ,timeColNamePhrases ,OverallDate , OverallDateFormat, timeFormatter ,reverseTimeFormatter ,dateDivisions ,datePhrases ,mindate ,maxdate ,OverallLocation , spaceColNames , spaceColInds ,subColInd )
+        smallAdd(d,query,collection,contentColNums, timeColInds ,timeColNames , timeColNameInds ,timeColNameDivisions ,timeColNamePhrases ,OverallDate , OverallDateFormat, timeFormatter ,reverseTimeFormatter ,dateDivisions ,datePhrases ,mindate ,maxdate ,OverallLocation , spaceColNames , spaceColInds ,subColInd, translatorContext)
     else:
-        largeAdd(d,query,collection,contentColNums,  timeColInds ,timeColNames , timeColNameInds ,timeColNameDivisions ,timeColNamePhrases ,OverallDate, OverallDateFormat, timeFormatter ,reverseTimeFormatter ,dateDivisions ,datePhrases ,mindate ,maxdate ,OverallLocation , spaceColNames , spaceColInds ,subColInd)
+        largeAdd(d,query,collection,contentColNums,  timeColInds ,timeColNames , timeColNameInds ,timeColNameDivisions ,timeColNamePhrases ,OverallDate, OverallDateFormat, timeFormatter ,reverseTimeFormatter ,dateDivisions ,datePhrases ,mindate ,maxdate ,OverallLocation , spaceColNames , spaceColInds ,subColInd, translatorContext)
 
     Subcollections = uniqify(ListUnion(collection.find(query).distinct(str(subColInd))))
     metadata = collection.metadata['']
@@ -193,7 +195,7 @@ def addToIndex(q,d,collection,solr_interface,contentColNums = None, timeColInds=
         solr_interface.add(**d)
    
     
-def smallAdd(d,query,collection,contentColNums, timeColInds ,timeColNames , timeColNameInds ,timeColNameDivisions ,timeColNamePhrases ,OverallDate, OverallDateFormat, timeFormatter ,reverseTimeFormatter ,dateDivisions ,datePhrases ,mindate ,maxdate ,OverallLocation , spaceColNames , spaceColInds ,subColInd ):
+def smallAdd(d,query,collection,contentColNums, timeColInds ,timeColNames , timeColNameInds ,timeColNameDivisions ,timeColNamePhrases ,OverallDate, OverallDateFormat, timeFormatter ,reverseTimeFormatter ,dateDivisions ,datePhrases ,mindate ,maxdate ,OverallLocation , spaceColNames , spaceColInds ,subColInd,translatorContext ):
 
     R = collection.find(query,timeout=False)
     colnames = []
@@ -208,7 +210,8 @@ def smallAdd(d,query,collection,contentColNums, timeColInds ,timeColNames , time
         if not commonLocation:
             break     
 
-    Translators = dict([(x,collection.translators.get(collection.totalVariables[int(x)],None) if '.' not in x else None) for x in contentColNums])
+    
+    Translators =  dict ([(x,functools.partial(commonjs.js_call,translatorContext,collection.totalVariables[int(x)]) if collection.translators.has_key(collection.totalVariables[int(x)]) else None)  if '.' not in x else (None,None) for x in contentColNums])
     
     for (i,r) in enumerate(R):
     
@@ -266,7 +269,7 @@ def smallAdd(d,query,collection,contentColNums, timeColInds ,timeColNames , time
         
     return d
     
-def largeAdd(d,query,collection,contentColNums, timeColInds ,timeColNames , timeColNameInds ,timeColNameDivisions ,timeColNamePhrases ,OverallDate , OverallDateFormat, timeFormatter ,reverseTimeFormatter ,dateDivisions ,datePhrases ,mindate ,maxdate ,OverallLocation , spaceColNames , spaceColInds ,subColInd ):
+def largeAdd(d,query,collection,contentColNums, timeColInds ,timeColNames , timeColNameInds ,timeColNameDivisions ,timeColNamePhrases ,OverallDate , OverallDateFormat, timeFormatter ,reverseTimeFormatter ,dateDivisions ,datePhrases ,mindate ,maxdate ,OverallLocation , spaceColNames, spaceColInds, subColInd, translatorContext):
 
     print '0'
     exists = []
@@ -337,17 +340,18 @@ def largeAdd(d,query,collection,contentColNums, timeColInds ,timeColNames , time
     if commonLocation:
         d['commonLocation'] = loc.phrase(commonLocation)
         
-    
-    Translators = dict([(x,collection.translators.get(collection.totalVariables[int(x)],None) if '.' not in x else None) for x in contentColNums])
-    
+    Translators =  dict ([(x,functools.partial(commonjs.js_call,translatorContext,collection.totalVariables[int(x)]) if collection.translators.has_key(collection.totalVariables[int(x)]) else None)  if '.' not in x else (None,None) for x in contentColNums])
+        
     print '3'    
 
     d['sliceContents'] = ' '.join(uniqify(ListUnion([ Translate(collection.find(query).distinct(x), Translators[x]) for x in contentColNums])))
 
     return d
+    
 
 def Translate(L,translator):
-    return map(translator,L) if translator else L
+	return map(translator,L) if translator else L
+
     
 def initialize_argdict(collection):
 
@@ -436,9 +440,12 @@ def initialize_argdict(collection):
         
     if 'Subcollections' in collection.totalVariables:
         ArgDict['subColInd'] = collection.totalVariables.index('Subcollections')
-        
-        
+
+    ArgDict['translatorContext'] = commonjs.translatorContext(collection.translators)
+            
     return d, ArgDict
+	
+
 
 def getSliceColTuples(collection):
     sliceColList = collection.sliceCols
@@ -456,7 +463,6 @@ def MoreThanOne(collection,key):
     return v1 != v2
  
 
-    
     
 def getNums(collection,namelist):
     numlist = []
@@ -479,7 +485,7 @@ def getStrs(collection,namelist):
     return numlist
         
 
-def makestr(r,x,translator = None):
+def makestr(r,x,translator = None,context):
     
     v = rgetattr(r,x.split('.'))
     if translator:

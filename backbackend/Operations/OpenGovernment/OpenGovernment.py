@@ -484,9 +484,9 @@ def updateMetacollection(iterator, metacollection,incremental,versionNumber,tota
     
     translators = metadata[''].get('translators',{})
     for t in tcs:
-        translators[t] = {'module':'common.timedate','name':'phrase'}
+        translators[t] = {'body':'require("../common/js/timedate").phrase(value)','name':'timephrase'}
     for s in spcs:
-        translators[s] = {'module':'common.location','name':'phrase2'}    
+        translators[s] = {'body':'require("../common/js/location").phrase2(value)','name':'locphrase'}    
     metadata['']['translators'] = translators    
 
     metacollection.ensure_index([('__name__',pm.DESCENDING),('__versionNumber__',pm.DESCENDING)], unique=True)   
