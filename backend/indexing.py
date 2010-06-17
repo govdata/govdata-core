@@ -485,7 +485,7 @@ def getStrs(collection,namelist):
     return numlist
         
 
-def makestr(r,x,translator = None,context):
+def makestr(r,x,translator = None):
     
     v = rgetattr(r,x.split('.'))
     if translator:
