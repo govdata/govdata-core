@@ -148,8 +148,8 @@ def addToIndex(q,d,collection,solr_interface,contentColNums = None, timeColInds=
     
     d['mongoID'] = mongoID(q,collection.name)
     
-    d['mongoText'] = queryToText(q,translatorContext)
-    
+    d['mongoText'] = queryToText(q,translatorContext)    
+
     d['versionNumber'] = collection.currentVersion
 
     if dateDivisions == None:
