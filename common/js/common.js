@@ -11,7 +11,7 @@ var require = function require(filename) {
         
         try {
             // get the text of the module
-            var modtext = _mod_texts[filename];
+            var modtext = require._mod_texts[filename];
             // Wrap it in a function
             var f = new Function("require", "exports", modtext);
             // Prepare function arguments
