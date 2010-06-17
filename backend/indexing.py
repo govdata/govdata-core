@@ -350,7 +350,7 @@ def largeAdd(d,query,collection,contentColNums, timeColInds ,timeColNames , time
     
 
 def Translate(L,translator):
-	return map(translator,L) if translator else L
+    return map(translator,L) if translator else L
 
     
 def initialize_argdict(collection):
@@ -444,7 +444,7 @@ def initialize_argdict(collection):
     ArgDict['translatorContext'] = commonjs.translatorContext(collection.translators)
             
     return d, ArgDict
-	
+    
 
 
 def getSliceColTuples(collection):
