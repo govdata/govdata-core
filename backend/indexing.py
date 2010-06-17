@@ -9,6 +9,7 @@ import common.solr as ourSolr
 import backend.api as api
 import solr
 import itertools
+import functools
 import json
 import pymongo as pm
 import pymongo.json_util as ju
