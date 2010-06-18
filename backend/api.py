@@ -432,7 +432,7 @@ def setArgTuple(t,k,v):
 
 
 def makemetadata(collection,sci,subcols):
-    metadataInd = {'':('All',collection.metadata[''])}
+    metadataInd = {'':'All'}
     metalist = {}
     if sci:
         for (ID,scs) in subcols:            
