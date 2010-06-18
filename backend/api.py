@@ -613,11 +613,10 @@ class TableHandler(GetHandler):
         args = self.request.arguments
         for k in args.keys():
             args[k] = args[k][0]
-        self.args = json.loads(args['q'])
+        args = json.loads(args['q'])
+        self.args = args
  
         querySequence = args['query']
-        args['timeQuery'] = args.get('timeQuery','null')
-        args['spaceQuery'] = args.get('spaceQuery','null')
 
         if isinstance(querySequence, dict):
             querySequence = [querySequence]
