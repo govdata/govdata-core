@@ -32,13 +32,8 @@ class GetHandler(asyncCursorHandler):
         args = self.request.arguments
         for k in args.keys():
             args[k] = args[k][0]
-
-        args['query'] = json.loads(args['query']) 
-
-        if 'timeQuery' in args.keys():
-            args['timeQuery'] = json.loads(args['timeQuery'])
-        if 'spaceQuery' in args.keys():
-            args['spaceQuery'] = json.loads(args['spaceQuery'])
+            
+        args = json.loads(args['q'])
             
         self.get_response(args)
 
@@ -618,11 +613,11 @@ class TableHandler(GetHandler):
         args = self.request.arguments
         for k in args.keys():
             args[k] = args[k][0]
-        self.args = args
+        self.args = json.loads(args['q'])
  
-        args['query'] = querySequence = json.loads(args['query'])
-        args['timeQuery'] = json.loads(args.get('timeQuery','null'))
-        args['spaceQuery'] = json.loads(args.get('spaceQuery','null'))
+        querySequence = args['query']
+        args['timeQuery'] = args.get('timeQuery','null')
+        args['spaceQuery'] = args.get('spaceQuery','null')
 
         if isinstance(querySequence, dict):
             querySequence = [querySequence]

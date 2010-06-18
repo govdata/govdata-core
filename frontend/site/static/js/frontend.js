@@ -36,20 +36,9 @@ var Frontend = {};
     Frontend.openDoc = function(doc) {
         var query = GovLove.getQueryForDoc(doc);
         console.log(query);
-        GovLove.timeline(query);
-    }
-    
-    Frontend.table = function(doc_id) {
-        var doc = GovLove.docs[doc_id];
-        console.log(doc);
-        var t = $('<div class="table" style="height: 200px; width: 200px; margin-top: 50px;"></div>');
-        t.appendTo($("body"));
-        t.show().dialog({ 
-                        autoOpen: true,
-                        modal: false,
-                        option: "stack",
-                        width: 800,
-                        height: 500 });        
+        GovLove.get(query, function(d) {
+            console.log(d);
+        });
     }
     
     Frontend.run = function() {

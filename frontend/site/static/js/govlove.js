@@ -1,6 +1,6 @@
 var GovLove = {};
 (function($) {
-    GovLove.api_url = "http://ec2-184-73-37-151.compute-1.amazonaws.com"
+    GovLove.api_url = "http://ec2-184-73-70-72.compute-1.amazonaws.com"
     var result_template = "";
     var cache = {};
     var state = {};
@@ -78,15 +78,13 @@ var GovLove = {};
         // $.getJSON("/static/exampledata.json",callback);
     }
     
-    GovLove.get = function(q,callback,options) {
-        var params = {
-            "q" : q
-        };
-        $.extend(params,options);
+    GovLove.get = function(query,callback,options) {
+        $.extend(query,options);
         $.ajax({
             url: GovLove.api_url+"/get",
-            data: params,
+            data: $.param(query,true),
             dataType: "jsonp",
+            processData: false,
             success: callback,
             complete: function(d) {
                 // do error checking
@@ -94,6 +92,13 @@ var GovLove = {};
                 console.log(d);
             }
         });
+    }
+    
+    GovLove.cleanQuery = function(query) {
+        _.each(query,function(v,k) {
+            query[k] = encodeURI(JSON.stringify(v));
+        });
+        return query;
     }
 
     GovLove.getQueryForDoc = function(doc, options) {
@@ -105,7 +110,7 @@ var GovLove = {};
         var mongoQuery = eval('('+doc.query[0]+')');
         var collectionName = doc.collectionName[0];
         var query = GovLove.Query(collectionName).find(mongoQuery).limit(params.limit).toString()
-        return query;
+        return GovLove.cleanQuery(query);
     }
     
     GovLove.formatDate = function(dateStr) {
@@ -113,8 +118,9 @@ var GovLove = {};
         return dateStr;
     }
     
-    GovLove.locationToText = function() {
+    GovLove.locationToText = function(loc) {
         // TODO: converts location value from a query object into english readable text
+        return loc;
     }
     
     GovLove.cluster = function(docs) {
