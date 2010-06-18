@@ -618,11 +618,10 @@ class TableHandler(GetHandler):
         # pre take off any paramaters besides q
         self.jsonPcallback = args.pop('callback',None)
 
-        self.args = json.loads(args['q'])
+        args = json.loads(args['q'])
+        self.args = args
  
         querySequence = args['query']
-        args['timeQuery'] = args.get('timeQuery','null')
-        args['spaceQuery'] = args.get('spaceQuery','null')
 
         if isinstance(querySequence, dict):
             querySequence = [querySequence]
