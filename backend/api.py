@@ -32,10 +32,13 @@ class GetHandler(asyncCursorHandler):
         args = self.request.arguments
         for k in args.keys():
             args[k] = args[k][0]
+        
+        # pre take off any paramaters besides q
+        self.jsonPcallback = args.pop('callback',None)
+
+        q = json.loads(args['q'])
             
-        args = json.loads(args['q'])
-            
-        self.get_response(args)
+        self.get_response(q)
 
 
     @tornado.web.asynchronous
@@ -61,9 +64,7 @@ class GetHandler(asyncCursorHandler):
         self.stream = args.pop('stream',True)
         
         self.returnMetadata = args.pop('returnMetadata',False)   
-        
-        self.jsonPcallback = args.pop('callback',None)
-        
+                
         self.processor = functools.partial(gov_processor,args.pop('processor',None))
        
         passed_args = dict([(key,args.get(key,None)) for key in ['timeQuery','spaceQuery','versionNumber']]) 
@@ -613,6 +614,10 @@ class TableHandler(GetHandler):
         args = self.request.arguments
         for k in args.keys():
             args[k] = args[k][0]
+        
+        # pre take off any paramaters besides q
+        self.jsonPcallback = args.pop('callback',None)
+
         self.args = json.loads(args['q'])
  
         querySequence = args['query']

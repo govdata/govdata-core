@@ -87,13 +87,13 @@
         (function($) {
             $(function() {
                 Frontend.run();
-                GovLove.find("art", function(data) {
-                    window.d = data;
-                    GovLove.docs = data["response"]["docs"];
-                    GovLove.templates.find_result(data, function(html) {
-                        $("#results").html(html);
-                    });
-                });
+                // GovLove.find("art", function(data) {
+                //     window.d = data;
+                //     GovLove.docs = data["response"]["docs"];
+                //     GovLove.templates.find_result(data, function(html) {
+                //         $("#results").html(html);
+                //     });
+                // });
                 
                 // var query = '{"collectionName":"BEA_NIPA","querySequence":"[[\\"find\\",[[{\\"Line\\":\\"55\\"}],{}]],[\\"limit\\",[[15],{}]]]","timeQuery":"{\\"format\\":\\"Y\\"}"}';
                 // var query = '{"collectionName":"BEA_NIPA","querySequence":"[[\\"find\\",[[{\\"Level_1\\":\\"Plus: Gold, NIPAs\\"}],{}]]]"}';
