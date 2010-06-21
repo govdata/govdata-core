@@ -5,6 +5,8 @@ import json
 import pymongo.json_util as ju
 import PyV8
 
+COMMONJS_PATH = '../../common/js/'
+
 COMMONJS="""
 /*
  * An implementation of the CommonJS Modules 1.0
@@ -12,8 +14,9 @@ COMMONJS="""
  */
  
 
-var require = function require(filename) {
+var require = function require(id) {
      
+    var filename = """ + COMMONJS_PATH + """filename + ".js"; 
     // Only load the module if it is not already cached.
     if (!require._cache.hasOwnProperty(filename)) {
         
@@ -82,16 +85,15 @@ class translatorContext(pyV8CommonJS):
         
         pyV8CommonJS.__init__(self,*args,**kwargs)
         
-        self.instructions = instructions
-        for instruction in instructions.values():
-            self.add_instruction(instruction)
+        self.instructions = {}
+        for (name,body) in instructions.items():
+            self.add_instruction(name,body)
 
                         
-    def add_instruction(self,instruction):
+    def add_instruction(self,name,body):
     
-        name = instruction['name']
-        body = instruction['body']
-        
-        code = 'var ' + name + ' = function(value){' + body + '};'
+        code = 'var processor_' + name +  '= function(value){' + body + '};'
         
         self.load(code=code)
+
+        self.instructions[name] = {'name' : 'processor_' + name, 'body':body}

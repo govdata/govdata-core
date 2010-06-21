@@ -135,7 +135,7 @@ def mongoID(q,collectionName):
     return hashlib.sha1(json.dumps(queryID,default=ju.default)).hexdigest()
     
     
-def addToIndex(q,d,collection,solr_interface,contentColNums = None, timeColInds=None,timeColNames=None, timeColNameInds = None,timeColNameDivisions = None,timeColNamePhrases=None,OverallDate = '', OverallDateFormat = '', timeFormatter = None,reverseTimeFormatter = None,dateDivisions=None,datePhrases=None,mindate = None,maxdate = None,OverallLocation = None, spaceColNames = None, spaceColInds = None,subColInd = None,Return=False,translatorContext=None):
+def addToIndex(q,d,collection,solr_interface,contentColNums = None, timeColInds=None,timeColNames=None, timeColNameInds = None,timeColNameDivisions = None,timeColNamePhrases=None,OverallDate = '', OverallDateFormat = '', timeFormatter = None,reverseTimeFormatter = None,dateDivisions=None,datePhrases=None,mindate = None,maxdate = None,OverallLocation = None, spaceColNames = None, spaceColInds = None,subColInd = None,Return=False,value_processors=None):
 
 
     q['__versionNumber__'] = collection.currentVersion
@@ -148,7 +148,7 @@ def addToIndex(q,d,collection,solr_interface,contentColNums = None, timeColInds=
     
     d['mongoID'] = mongoID(q,collection.name)
     
-    d['mongoText'] = queryToText(q,translatorContext)    
+    d['mongoText'] = queryToText(q,value_processors)    
 
     d['versionNumber'] = collection.currentVersion
 
@@ -170,9 +170,9 @@ def addToIndex(q,d,collection,solr_interface,contentColNums = None, timeColInds=
     contentColNums = [i for i in contentColNums if i not in query.keys()]
     
     if d['volume'] < 1000:
-        smallAdd(d,query,collection,contentColNums, timeColInds ,timeColNames , timeColNameInds ,timeColNameDivisions ,timeColNamePhrases ,OverallDate , OverallDateFormat, timeFormatter ,reverseTimeFormatter ,dateDivisions ,datePhrases ,mindate ,maxdate ,OverallLocation , spaceColNames , spaceColInds ,subColInd, translatorContext)
+        smallAdd(d,query,collection,contentColNums, timeColInds ,timeColNames , timeColNameInds ,timeColNameDivisions ,timeColNamePhrases ,OverallDate , OverallDateFormat, timeFormatter ,reverseTimeFormatter ,dateDivisions ,datePhrases ,mindate ,maxdate ,OverallLocation , spaceColNames , spaceColInds ,subColInd, value_processors)
     else:
-        largeAdd(d,query,collection,contentColNums,  timeColInds ,timeColNames , timeColNameInds ,timeColNameDivisions ,timeColNamePhrases ,OverallDate, OverallDateFormat, timeFormatter ,reverseTimeFormatter ,dateDivisions ,datePhrases ,mindate ,maxdate ,OverallLocation , spaceColNames , spaceColInds ,subColInd, translatorContext)
+        largeAdd(d,query,collection,contentColNums,  timeColInds ,timeColNames , timeColNameInds ,timeColNameDivisions ,timeColNamePhrases ,OverallDate, OverallDateFormat, timeFormatter ,reverseTimeFormatter ,dateDivisions ,datePhrases ,mindate ,maxdate ,OverallLocation , spaceColNames , spaceColInds ,subColInd, value_processors)
 
     Subcollections = uniqify(ListUnion(collection.find(query).distinct(str(subColInd))))
     metadata = collection.metadata['']
@@ -196,12 +196,11 @@ def addToIndex(q,d,collection,solr_interface,contentColNums = None, timeColInds=
         solr_interface.add(**d)
    
     
-def smallAdd(d,query,collection,contentColNums, timeColInds ,timeColNames , timeColNameInds ,timeColNameDivisions ,timeColNamePhrases ,OverallDate, OverallDateFormat, timeFormatter ,reverseTimeFormatter ,dateDivisions ,datePhrases ,mindate ,maxdate ,OverallLocation , spaceColNames , spaceColInds ,subColInd,translatorContext ):
+def smallAdd(d,query,collection,contentColNums, timeColInds ,timeColNames , timeColNameInds ,timeColNameDivisions ,timeColNamePhrases ,OverallDate, OverallDateFormat, timeFormatter ,reverseTimeFormatter ,dateDivisions ,datePhrases ,mindate ,maxdate ,OverallLocation , spaceColNames , spaceColInds ,subColInd, value_processors ):
 
     R = collection.find(query,timeout=False)
     colnames = []
     d['sliceContents'] = []
-    d['slicePhrases'] = []
     Subcollections = []
     
     spaceVals = spaceColNames
@@ -210,13 +209,10 @@ def smallAdd(d,query,collection,contentColNums, timeColInds ,timeColNames , time
         commonLocation = loc.intersect(commonLocation,sv)
         if not commonLocation:
             break     
-
-    
-    Translators =  dict ([(x,functools.partial(commonjs.js_call,translatorContext,collection.totalVariables[int(x)]) if collection.translators.has_key(collection.totalVariables[int(x)]) else None)  if '.' not in x else (None,None) for x in contentColNums])
-    
+  
     for (i,r) in enumerate(R):
     
-        d['sliceContents'].append( ' '.join([makestr(r,x,Translators[x]) if rhasattr(r,x.split('.')) else '' for x in contentColNums]))
+        d['sliceContents'].append(' '.join([translate(rgetattr(r,x.split('.')),value_processors[x]) if rhasattr(r,x.split('.')) else '' for x in contentColNums]))
                       
         colnames  = uniqify(colnames + r.keys())
         
@@ -240,8 +236,7 @@ def smallAdd(d,query,collection,contentColNums, timeColInds ,timeColNames , time
                     commonLocation = loc.intersect(commonLocation,r[str(x)]) if commonLocation != None else None
                     spaceVals.append(location)
                    
-    d['sliceContents'] = ' '.join(d['sliceContents'])
-    d['slicePhrases'] = ', '.join(d['slicePhrases'])
+    d['sliceContents'] = decode(' '.join(d['sliceContents']))
     Subcollections = uniqify(Subcollections)
     d['columnNames'] = [collection.totalVariables[int(x)] for x in colnames if x.isdigit()]
     d['dimension'] = len(d['columnNames'])
@@ -270,7 +265,7 @@ def smallAdd(d,query,collection,contentColNums, timeColInds ,timeColNames , time
         
     return d
     
-def largeAdd(d,query,collection,contentColNums, timeColInds ,timeColNames , timeColNameInds ,timeColNameDivisions ,timeColNamePhrases ,OverallDate , OverallDateFormat, timeFormatter ,reverseTimeFormatter ,dateDivisions ,datePhrases ,mindate ,maxdate ,OverallLocation , spaceColNames, spaceColInds, subColInd, translatorContext):
+def largeAdd(d,query,collection,contentColNums, timeColInds ,timeColNames , timeColNameInds ,timeColNameDivisions ,timeColNamePhrases ,OverallDate , OverallDateFormat, timeFormatter ,reverseTimeFormatter ,dateDivisions ,datePhrases ,mindate ,maxdate ,OverallLocation , spaceColNames, spaceColInds, subColInd, value_processors):
 
     print '0'
     exists = []
@@ -340,19 +335,19 @@ def largeAdd(d,query,collection,contentColNums, timeColInds ,timeColNames , time
             break 
     if commonLocation:
         d['commonLocation'] = loc.phrase(commonLocation)
-        
-    Translators =  dict ([(x,functools.partial(commonjs.js_call,translatorContext,collection.totalVariables[int(x)]) if collection.translators.has_key(collection.totalVariables[int(x)]) else None)  if '.' not in x else (None,None) for x in contentColNums])
-        
+                
     print '3'    
 
-    d['sliceContents'] = ' '.join(uniqify(ListUnion([ Translate(collection.find(query).distinct(x), Translators[x]) for x in contentColNums])))
+    d['sliceContents'] = decode(' '.join(uniqify(ListUnion([Translate_list(collection.find(query).distinct(x), value_processors[x]) for x in contentColNums]))))
 
     return d
-    
 
-def Translate(L,translator):
-    return map(translator,L) if translator else L
 
+def translate(trans,l):
+    return trans(l) if trans else l
+
+def translate_list(trans,l):
+    return map(trans,l) if trans else l
     
 def initialize_argdict(collection):
 
@@ -441,11 +436,30 @@ def initialize_argdict(collection):
         
     if 'Subcollections' in collection.totalVariables:
         ArgDict['subColInd'] = collection.totalVariables.index('Subcollections')
-    
-    translators = stringifyDictElements(collection.translators)
-    ArgDict['translatorContext'] = commonjs.translatorContext(translators)
-            
+     
+    value_processor_instructions = stringifyDictElements(collection.value_processors)
+    vpcontext = commonjs.translatorContext(value_processor_instructions)
+    ArgDict['value_processors'] = get_processors(value_processor_instructions,collection, vpcontext ,commonjs.js_call)
+                                    
     return d, ArgDict
+    
+
+
+def get_processors(instruction_set,collection,context,callfunc):
+    
+    processors = {}   
+    for (i,name) in enumerate(collection.totalVariables):
+        x = str(i)
+        processors[x] = (None,None)
+        if instruction_set.has_key(name):
+            processors[x] = functools.partial(callfunc,processor_context,name)
+    vpcolgroups = [x for x in instruction_set.keys() if x in collection.ColumnGroups.keys()]
+    for vpc in vpcolgroups:
+        for name in vpc:
+            x = str(collection.totalVariables.index(name))
+            processors[x] =  functools.partial(callfunc,context,vpc)
+            
+    return processors
     
 
 def stringifyDictElements(d):
@@ -490,11 +504,7 @@ def getStrs(collection,namelist):
     return numlist
         
 
-def makestr(r,x,translator = None):
-    
-    v = rgetattr(r,x.split('.'))
-    if translator:
-        v = translator(v)
+def decode(v):
     try:
         v = v.encode('utf-8')
     except UnicodeEncodeError:

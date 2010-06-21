@@ -55,7 +55,8 @@ class Collection(pm.collection.Collection):
         else:
             self.metadata = dict([(l['__name__'],l) for l in self.metaCollection.find()])
             
-        self.translators = self.metadata[''].get('translators',{})
+        self.value_processors = self.metadata[''].get('value_processors',{})
+        self.name_processors = self.metadata[''].get('name_processors',{})
 
 
         slicesname =  '__' + name + '__SLICES__'

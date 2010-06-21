@@ -482,12 +482,18 @@ def updateMetacollection(iterator, metacollection,incremental,versionNumber,tota
     metadata['']['totalVariables'] = totalVariables
     metadata['']['Source'] = pm.son.SON(metadata['']['Source'])
     
-    translators = metadata[''].get('translators',{})
-    for t in tcs:
-        translators[t] = {'body':'return require("../../common/js/timedate.js").phrase(value);','name':'timephrase'}
-    for s in spcs:
-        translators[s] = {'body':'return require("../../common/js/location.js").phrase(value); ','name':'spacephrase'}    
-    metadata['']['translators'] = translators    
+    value_processors = metadata[''].get('value_processors',{})
+    if metadata['']['ColumnGroups'].get('TimeColumns',None):
+        value_processors['TimeColumns'] = 'return require("timedate").phrase(value);'
+    if metadata['']['ColumnGroups'].get('SpaceColumns',None):
+        value_processors['SpaceColumns'] =  'return require("location").phrase(value);'
+    metadata['']['value_processors'] = value_processors    
+    
+    name_processors = metadata[''].get('name_processors',{})
+    if metadata['']['ColumnGroups'].get('TimeColNames',None):
+        dateFormat = metadata['']['DateFormat']
+        name_processors['TimeColNames'] = 'return require("timedate").phrase(require("timedate").stringtomongo(value,"' + dateFormat + '"));'
+    metadata['']['name_processors'] = name_processors  
 
     metacollection.ensure_index([('__name__',pm.DESCENDING),('__versionNumber__',pm.DESCENDING)], unique=True)   
     
