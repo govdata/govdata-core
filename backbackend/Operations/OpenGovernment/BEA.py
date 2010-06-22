@@ -1923,7 +1923,7 @@ def backend_BEA_II(creates = OG.CERT_PROTOCOL_ROOT + II_NAME + '/'):
     [fs, ts, args] = zip(*D)
     downloader = zip(fs,ts)
     
-    OG.backendProtocol(II_NAME,ii_parser,downloader = downloader,downloadArgs = args,uptostep='updateCollection')
+    OG.backendProtocol(II_NAME,ii_parser,downloader = downloader,downloadArgs = args)
 
     
 

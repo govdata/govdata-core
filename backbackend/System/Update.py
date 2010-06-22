@@ -425,7 +425,7 @@ def DoOp(i,j,SsName,SsTemp,SsRTStore,CreatesList,IsFast,CallMode,TouchList,DepLi
 	ModName = '.'.join(j.split('.')[:-1]) ; OpName = j.split('.')[-1] ; ModDirName = '../' + '/'.join(j.split('.')[:-2])
 	OldATime = os.path.getatime(ModDirName) ; OldMTime = os.path.getmtime(ModDirName)
 	Command = GetCommand(j,ModName,OpName,TempSOIS,TempOutput,CallMode)
-        print 'Comand',Command
+
 	
 	if j not in TouchList: 
 		MoveToTemp(Creates,IsFast,SsRTStore)		
@@ -564,7 +564,7 @@ def GetCommand(j,ModuleName,OpName,TempStdOutInSession,TempOutput,CallMode=DEFAU
 			"import System.Utils",
 			"sys.stdout = System.Utils.multicaster(\"" + TempStdOutInSession + "\",sys.__stdout__)",
 			"sys.stderr = System.Utils.multicaster(\"" + TempStdOutInSession + "\",sys.__stderr__)",
-                        "print(\"TEST\")",
+         
 			"try:\n\tfrom " + ModuleName + " import " + OpName + "\nexcept:\n\ttraceback.print_exc()\n\traise ImportError",
 			"try:\n\texec \"V = " + OpName + "()\"\nexcept:\n\ttraceback.print_exc()\n\traise Error",
 			"F = open(\"" + TempOutput + "\",\"w\")", 
