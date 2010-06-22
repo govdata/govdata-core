@@ -362,7 +362,7 @@ def UpdateLinks(ActivatedLinkListSequence, Seed, AU = None, Exceptions = None, S
 						jt.args = ["-c",argstr]
 						
 						jt.joinFiles = True
-						jt.jobEnvironment = dict([(k,os.environ[k]) for k in ['PYTHONPATH','PATH']])
+						jt.jobEnvironment = dict([(k,os.environ[k]) for k in ['PYTHONPATH','PATH','V8_HOME','LD_LIBRARY_PATH']])
 						TempSOIS = SsTemp + RUNSTDOUTINSESSION + '_' + j
 						jt.outputPath = ':' + os.environ['DataEnvironmentDirectory'] + '/' + TempSOIS[3:]
 						jt.jobName = j
@@ -425,6 +425,7 @@ def DoOp(i,j,SsName,SsTemp,SsRTStore,CreatesList,IsFast,CallMode,TouchList,DepLi
 	ModName = '.'.join(j.split('.')[:-1]) ; OpName = j.split('.')[-1] ; ModDirName = '../' + '/'.join(j.split('.')[:-2])
 	OldATime = os.path.getatime(ModDirName) ; OldMTime = os.path.getmtime(ModDirName)
 	Command = GetCommand(j,ModName,OpName,TempSOIS,TempOutput,CallMode)
+        print 'Comand',Command
 	
 	if j not in TouchList: 
 		MoveToTemp(Creates,IsFast,SsRTStore)		
@@ -557,14 +558,14 @@ def InSessionStdOutToStdOut(TempStdOutInSession,TempStdOut):
 def GetCommand(j,ModuleName,OpName,TempStdOutInSession,TempOutput,CallMode=DEFAULT_CALLMODE):
 
 
-	Commands = ["'import pickle,traceback",
+	Commands = ["'import pickle,traceback,os",
 			"creates = (\"" + TempStdOutInSession + "\",\"" + TempOutput + "\")", 
 			"execfile(\"../System/initialize_for_production\")",
 			"import System.Utils",
 			"sys.stdout = System.Utils.multicaster(\"" + TempStdOutInSession + "\",sys.__stdout__)",
 			"sys.stderr = System.Utils.multicaster(\"" + TempStdOutInSession + "\",sys.__stderr__)",
-			"from " + ModuleName + " import " + OpName,
-#			"exec \"V = " + OpName + "()",
+                        "print(\"TEST\")",
+			"try:\n\tfrom " + ModuleName + " import " + OpName + "\nexcept:\n\ttraceback.print_exc()\n\traise ImportError",
 			"try:\n\texec \"V = " + OpName + "()\"\nexcept:\n\ttraceback.print_exc()\n\traise Error",
 			"F = open(\"" + TempOutput + "\",\"w\")", 
 			"try:\n\tpickle.dump(V,F)\nexcept:\n\tprint \"Output of " + j + " cannot be pickled\"", 

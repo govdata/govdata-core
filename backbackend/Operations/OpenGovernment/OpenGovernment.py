@@ -607,7 +607,6 @@ def sliceInsert(c,collection,sliceColTuples,VarMap,sliceDB,DIFF,version):
         if all([VarMap[k] in c.keys() if is_string_like(k) else any([VarMap[kk] in c.keys() for kk in k]) for k in sct]):
             slice = pm.son.SON([(k,c[VarMap[k]]) for k in Flatten(sct) if VarMap[k] in c.keys()])
             if not sliceDB.find_one({'slice':slice,'version':version}):
-                print 'newslice',slice
                 if DIFF:
                     sliceDB.update({'slice':slice},{'$set':{'version':version,'original':version}},upsert=True)
                 else:
