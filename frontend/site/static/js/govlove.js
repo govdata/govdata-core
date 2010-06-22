@@ -85,7 +85,6 @@ var GovLove = {};
     GovLove.get = function(q,callback,options) {
         var params = {
             "q" : q,
-            "callback" : "GovLove.load"
         };
         $.extend(params,options);
         $.ajax({
@@ -156,7 +155,9 @@ var GovLove = {};
                     collection : collectionName,
                     query : [],
                     timeQuery : {"format":"Y"},
-                    spaceQuery: {}
+                    spaceQuery: {},
+                    returnMetadata: true,
+                    returnObj: true
                  },
             find: function(q) {
                 this.val.query.push(createSimpleAction("find",q))
