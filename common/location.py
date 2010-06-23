@@ -125,7 +125,7 @@ def phrase(l):
 
 def phrase2(l):
     """Human readable phrase"""
-    return ', '.join([y  for (x,y) in l.items() if x != 'f'] + ([SPACE_DIVISIONS.get[x] + ' FIPS=' + y for (x,y) in l['f'].items() if SPACE_DIVISIONS.has_key(x)] if 'f' in l.keys() else []))
+    return ', '.join([y  for (x,y) in l.items() if x != 'f' and SPACE_DIVISIONS.has_key(x)] + ([SPACE_DIVISIONS[x] + ' FIPS=' + y for (x,y) in l['f'].items() if SPACE_DIVISIONS.has_key(x)] if 'f' in l.keys() else []))
 
 
 def modPhrase(l):

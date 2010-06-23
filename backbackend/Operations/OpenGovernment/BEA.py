@@ -1628,6 +1628,8 @@ def parse_ii(infile,rowtypename):
         aggtype = 'country'
     elif 'country' in rtn and 'state' in rtn:
         aggtype = 'state&country'
+    elif 'state' in rtn:
+        aggtype = 'state'
     else:
         aggtype = 'both'
     
@@ -1657,7 +1659,7 @@ def parse_ii(infile,rowtypename):
         names[i] = names[i].split(' - ')[-1].strip()
     if aggtype in ['both','industry','none']:
         names[0] = 'Industry'
-    elif aggtype == 'country':
+    elif aggtype in ['country','state']:
         names[0] = 'Location'
     elif aggtype == 'state&country':
         names[0] = 'USState'
@@ -1682,6 +1684,10 @@ def parse_ii(infile,rowtypename):
         for r in data:
                 r['Industry'] = pm.son.SON([('Level 0', r['Industry'])])
 
+    elif aggtype == 'state':
+        process_ii_state(data,'Location')
+        for r in data:
+                r['Industry'] = pm.son.SON([('Level 0', r['Industry'])])
     
     elif aggtype == 'both':
         for r in data:
@@ -1693,13 +1699,7 @@ def parse_ii(infile,rowtypename):
         process_ii_location(data)   
 
     elif aggtype == 'state&country':
-        catcol = np.array([d['USState'] for d in data])
-        [catcols,hl] = OG.gethierarchy(catcol,hr,postprocessor = lambda x : x.strip(' \t:'))
-        catnames = ['D','s']
-        for (i,r) in enumerate(data):
-            H = zip(catnames,[c[i] for c in catcols])
-            H = [(k,v) for (k,v) in H if v]
-            r['USState'] = pm.son.SON(H)
+        process_ii_state(data,'USState')
         process_ii_location(data)
         
     footerlines = F
@@ -1709,6 +1709,15 @@ def parse_ii(infile,rowtypename):
   
     return [data,headerlines,footerlines,unit,timecolnames]
 
+def process_ii_state(data,name):
+    catcol = np.array([d[name] for d in data])
+    [catcols,hl] = OG.gethierarchy(catcol,hr,postprocessor = lambda x : x.strip(' \t:'))
+    catnames = ['D','s']
+    for (i,r) in enumerate(data):
+        H = zip(catnames,[c[i] for c in catcols])
+        H = [(k,v) for (k,v) in H if v]
+        r[name] = pm.son.SON(H)
+        
 def process_ii_location(data):
     catcol = np.array([d['Location'] for d in data])
     [catcols,hl] = OG.gethierarchy(catcol,hr,postprocessor = lambda x : x.strip())
@@ -1753,7 +1762,7 @@ def process_ii_rec(rec,rtn,names,cross_vals):
         rec = pm.son.SON(zip(names,rec))
         rec['Location'] = 'All countries total'
         return [rec]
-    elif rtn == 'country':
+    elif rtn in ['country','state']:
         rec = pm.son.SON(zip(names,rec))
         rec['Industry'] = 'All industries total'
         return [rec]
@@ -1799,7 +1808,7 @@ def process_ii_rec(rec,rtn,names,cross_vals):
         r['USState'] = ival 
         recs.append(r)
         return recs
-                    
+
                     
 def division_descrs_ii(tag):
     if tag == 'us_investment':

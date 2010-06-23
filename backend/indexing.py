@@ -456,7 +456,7 @@ def get_processors(instruction_set,collection,context,callfunc):
         processors[x] = None
         processors_key[name] = None
         if instruction_set.has_key(name):
-            processors[x] = functools.partial(callfunc,processor_context,name)
+            processors[x] = functools.partial(callfunc,context,name)
             processors_key[name] = processors[x]
     vpcolgroups = [x for x in instruction_set.keys() if x in collection.ColumnGroups.keys()]
     for vpc in vpcolgroups:
@@ -512,9 +512,12 @@ def getStrs(collection,namelist):
 
 def decode(v):
     try:
-        v = v.encode('utf-8')
-    except UnicodeEncodeError:
-        return v.decode('latin-1').encode('utf-8')
+        v = v.decode('utf-8')
+    except (UnicodeEncodeError,UnicodeDecodeError):
+        try:
+            return v.decode('latin-1').encode('utf-8')
+        except (UnicodeEncodeError,UnicodeDecodeError):
+            return v.encode('utf-8')
     else:
         return v
     
