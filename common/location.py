@@ -111,27 +111,26 @@ def makeHierarchy(V,E):
         
 def divisions(l):
     """Converts space object (dict) into the levels auto expands FIPS codes"""
-    assert set(l.keys()) <= set(SPACE_DIVISIONS.keys()), 'Unrecognized spatial key codes.'
-    return [SPACE_DIVISIONS[x] for x in l.keys() if x != 'f'] + ([SPACE_DIVISIONS[x] +  ' FIPS' for x in l['f']] if 'f' in l.keys() else [])
+    return [SPACE_DIVISIONS[x] for x in l.keys() if x != 'f' and SPACE_DIVISIONS.has_key(x)] + ([SPACE_DIVISIONS[x] +  ' FIPS' for x in l['f'] if SPACE_DIVISIONS.has_key(x)] if 'f' in l.keys() else [])
     
     
 def divisions2(l):
     """Converts space object (dict) into the levels auto expands FIPS codes"""
-    assert set(l.keys()) <= set(SPACE_DIVISIONS.keys()), 'Unrecognized spatial key codes.'
-    return [SPACE_DIVISIONS[x] for x in l.keys() if x != 'f'] + ([SPACE_DIVISIONS[x]  for x in l['f'] if x not in l.keys()] if 'f' in l.keys() else [])
+    return [SPACE_DIVISIONS[x] for x in l.keys() if x != 'f' and SPACE_DIVISIONS.has_key(x)] + ([SPACE_DIVISIONS[x]  for x in l['f'] if x not in l.keys() and SPACE_DIVISIONS.has_key(x)] if 'f' in l.keys() else [])
     
 def phrase(l):
     """Human readable phrase"""
-    return ', '.join([SPACE_DIVISIONS[x] + '=' + y  for (x,y) in l.items() if x != 'f'] + ([SPACE_DIVISIONS[x] + ' FIPS=' + y for (x,y) in l['f'].items()] if 'f' in l.keys() else []))
+    return ', '.join([SPACE_DIVISIONS[x] + '=' + y  for (x,y) in l.items() if x != 'f' and SPACE_DIVISIONS.has_key(x)] + ([SPACE_DIVISIONS[x] + ' FIPS=' + y for (x,y) in l['f'].items() if SPACE_DIVISIONS.has_key(x)] if 'f' in l.keys() else []))
+
 
 def phrase2(l):
     """Human readable phrase"""
-    return ', '.join([y  for (x,y) in l.items() if x != 'f'] + ([SPACE_DIVISIONS[x] + ' FIPS=' + y for (x,y) in l['f'].items()] if 'f' in l.keys() else []))
-   
-    
+    return ', '.join([y  for (x,y) in l.items() if x != 'f'] + ([SPACE_DIVISIONS.get[x] + ' FIPS=' + y for (x,y) in l['f'].items() if SPACE_DIVISIONS.has_key(x)] if 'f' in l.keys() else []))
+
+
 def modPhrase(l):
     """phrase for phrase matching indexing"""
-    return ' '.join(['"' + SPACE_DIVISIONS[x] + '=' + y + '"' for (x,y) in l.items() if x != 'f'] + (['"' + SPACE_DIVISIONS[x] + ' FIPS=' + y + '"' for (x,y) in l['f'].items()] if 'f' in l.keys() else []))
+    return ' '.join(['"' + SPACE_DIVISIONS[x] + '=' + y + '"' for (x,y) in l.items() if x != 'f' and SPACE_DIVISIONS.has_key(x)] + (['"' + SPACE_DIVISIONS[x] + ' FIPS=' + y + '"' for (x,y) in l['f'].items() if SPACE_DIVISIONS.has_key(x)] if 'f' in l.keys() else []))
 
 def integrate(l1,l2):
     """Combines two space objects"""

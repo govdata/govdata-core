@@ -1674,14 +1674,19 @@ def parse_ii(infile,rowtypename):
 
     if aggtype == 'industry':
         process_ii_industry(data)
+        for r in data:
+            r['Location'] = pm.son.SON([('c', r['Location'])])
 
     elif aggtype == 'country':
         process_ii_location(data)
+        for r in data:
+                r['Industry'] = pm.son.SON([('Level 0', r['Industry'])])
+
     
     elif aggtype == 'both':
         for r in data:
-            r['Location'] = {'c':  r['Location']}
-            r['Industry'] = {'Level 0': r['Industry']}
+            r['Location'] = pm.son.SON([('c', r['Location'])])
+            r['Industry'] = pm.son.SON([('Level 0', r['Industry'])])
     
     elif aggtype == 'none':
         process_ii_industry(data)
@@ -1832,6 +1837,8 @@ class ii_parser(OG.dataIterator):
         D['Note'] = 'The financial and operating data available from these interactive tables cover only nonbank parents and affiliates. Nonbank parents (affiliates) exclude parents (affiliates) engaged in deposit banking and closely related functions, including commercial banks, savings institutions, credit unions, and bank and financial holding companies.'
 
         D['URL'] = 'http://www.bea.gov/international/'
+
+        D['value_processors'] = {'Industry':'return require("underscore")._.values(value).join(", ");'}
 
         #add subgroups for division, entity, series, industryType from little saved metadata
         
