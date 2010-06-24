@@ -1,6 +1,6 @@
 var GovLove = {};
 (function($) {
-    GovLove.api_url = "http://ec2-184-73-70-72.compute-1.amazonaws.com"
+    GovLove.api_url = "http://ec2-174-129-182-198.compute-1.amazonaws.com"
     var result_template = "";
     var cache = {};
     var state = {};
