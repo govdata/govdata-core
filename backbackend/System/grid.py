@@ -2,7 +2,11 @@ import drmaa
 import time
 import os
 
-PATH_TO_PYTHON = 'python'
+try:
+	import System.config.PerMachineSetup as P
+	PATH_TO_PYTHON = P.PATH_TO_PYTHON
+except:
+	PATH_TO_PYTHON = 'python'
 
 def submitJobs(joblist):
 
