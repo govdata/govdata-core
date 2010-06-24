@@ -1,5 +1,6 @@
 import drmaa
 import time
+import os
 
 PATH_TO_PYTHON = 'python'
 
