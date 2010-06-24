@@ -169,7 +169,7 @@ def addToIndex(q,d,collection,solr_interface,contentColNums = None, timeColInds=
 
     contentColNums = [i for i in contentColNums if i not in query.keys()]
     
-    if d['volume' > 0:
+    if d['volume'] > 0:
         if d['volume'] < 5000:
             smallAdd(d,query,collection,contentColNums, timeColInds ,timeColNames , timeColNameInds ,timeColNameDivisions ,timeColNamePhrases ,OverallDate , OverallDateFormat, timeFormatter ,reverseTimeFormatter ,dateDivisions ,datePhrases ,mindate ,maxdate ,OverallLocation , spaceColNames , spaceColInds ,subColInd, value_processors)
         else:
