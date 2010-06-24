@@ -10,8 +10,7 @@ def submitJobs(joblist):
         argstr = j['argstr']
         name = j['name']
         outfile = j['outfile']
-        
-        skip = block_size*i
+    
         jt = Session.createJobTemplate()
         jt.remoteCommand = PATH_TO_PYTHON
         jt.workingDirectory = os.getcwd()       
