@@ -1,6 +1,8 @@
 import drmaa
 import time
 
+PATH_TO_PYTHON = 'python'
+
 def submitJobs(joblist):
 
     Session = drmaa.Session()
