@@ -166,10 +166,11 @@ def addToIndex(q,d,collection,solr_interface,contentColNums = None, timeColInds=
         
     #stats
     d['volume'] = collection.find(query).count()
-    
+
     contentColNums = [i for i in contentColNums if i not in query.keys()]
     
-    if d['volume'] < 1000:
+
+    if d['volume'] < 5000:
         smallAdd(d,query,collection,contentColNums, timeColInds ,timeColNames , timeColNameInds ,timeColNameDivisions ,timeColNamePhrases ,OverallDate , OverallDateFormat, timeFormatter ,reverseTimeFormatter ,dateDivisions ,datePhrases ,mindate ,maxdate ,OverallLocation , spaceColNames , spaceColInds ,subColInd, value_processors)
     else:
         largeAdd(d,query,collection,contentColNums,  timeColInds ,timeColNames , timeColNameInds ,timeColNameDivisions ,timeColNamePhrases ,OverallDate, OverallDateFormat, timeFormatter ,reverseTimeFormatter ,dateDivisions ,datePhrases ,mindate ,maxdate ,OverallLocation , spaceColNames , spaceColInds ,subColInd, value_processors)
@@ -517,7 +518,7 @@ def decode(v):
         try:
             return v.decode('latin-1').encode('utf-8')
         except (UnicodeEncodeError,UnicodeDecodeError):
-            return v.encode('utf-8')
+            return unicode(v.encode('utf-8'),errors='ignore')
     else:
         return v
     
