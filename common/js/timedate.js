@@ -72,6 +72,11 @@ var _ = require("underscore")._
       var ftObj = tObjFlatten(tObj);
 
       var s = '';
+      
+      if ('q' in ftObj){
+        s += 'Q' + ftObj['q']
+      }
+      
       if (('d' in ftObj && 'm' && ftObj && 'Y' in ftObj) || 'w' in ftObj){
           s += weekday[dateObj.getDay()] + ' '
       }
@@ -95,7 +100,32 @@ var _ = require("underscore")._
 
   }
 
+var stringtomongo = function(tstring,dateformat){
+	var clist = new Array();
+	clist[0] = 0
+	var llist = new Array();
+	llist[0] = 1
+    for (ind=1;ind<dateformat.length;ind++){
+    	
+        if (dateformat[ind] != dateformat[ind-1]){
+        	clist.push(ind)
+			llist.push(0)
+        } 
+        llist[llist.length-1] += 1
+        
+	}
+	
+	var result = new Object();
+	for (ind in clist){
+	    i = clist[ind]
+	    if (tstring[i] !== 'X'){
+			result[dateformat[i]] = {'' : tstring.slice(i,i + llist[ind])}
+		}
+	}
+	
+	return result
 
+};
 
 exports.tObjFlatten = tObjFlatten;
 exports.convertToDT = convertToDT;
