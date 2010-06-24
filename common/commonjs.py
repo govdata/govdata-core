@@ -16,7 +16,8 @@ COMMONJS="""
 
 var require = function require(id) {
      
-    var filename = """ + COMMONJS_PATH + """filename + ".js"; 
+    var filename = \"""" + COMMONJS_PATH + """\" + id + ".js"; 
+    
     // Only load the module if it is not already cached.
     if (!require._cache.hasOwnProperty(filename)) {
         
@@ -47,6 +48,7 @@ require._cache = {};               // So we only load modules once
 
 def js_call(context,key,value):
     name = context.instructions[key]['name']
+    
     return context.eval(name + '(' + json.dumps(value,default=ju.default) + ')')
 
 import os
@@ -86,8 +88,10 @@ class translatorContext(pyV8CommonJS):
         pyV8CommonJS.__init__(self,*args,**kwargs)
         
         self.instructions = {}
+
         for (name,body) in instructions.items():
             self.add_instruction(name,body)
+
 
                         
     def add_instruction(self,name,body):

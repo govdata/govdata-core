@@ -126,8 +126,8 @@ def updateCollectionIndex(collectionName,incertpath,certpath, slicesCorrespondTo
     createCertificate(certpath,'Collection ' + collectionName + ' indexed.')        
     
     
-def queryToText(q,context):
-    return ', '.join([key + '=' + (commonjs.js_call(context,key,value) if context.instructions.has_key(key) else value) for (key,value) in q.items()])  
+def queryToText(q,processors):
+    return ', '.join([key + '=' + translate(processors[key],value) for (key,value) in q.items()])  
     
 
 def mongoID(q,collectionName):
@@ -135,7 +135,7 @@ def mongoID(q,collectionName):
     return hashlib.sha1(json.dumps(queryID,default=ju.default)).hexdigest()
     
     
-def addToIndex(q,d,collection,solr_interface,contentColNums = None, timeColInds=None,timeColNames=None, timeColNameInds = None,timeColNameDivisions = None,timeColNamePhrases=None,OverallDate = '', OverallDateFormat = '', timeFormatter = None,reverseTimeFormatter = None,dateDivisions=None,datePhrases=None,mindate = None,maxdate = None,OverallLocation = None, spaceColNames = None, spaceColInds = None,subColInd = None,Return=False,value_processors=None):
+def addToIndex(q,d,collection,solr_interface,contentColNums = None, timeColInds=None,timeColNames=None, timeColNameInds = None,timeColNameDivisions = None,timeColNamePhrases=None,OverallDate = '', OverallDateFormat = '', timeFormatter = None,reverseTimeFormatter = None,dateDivisions=None,datePhrases=None,mindate = None,maxdate = None,OverallLocation = None, spaceColNames = None, spaceColInds = None,subColInd = None,Return=False,value_processors=None,value_processors_key=None):
 
 
     q['__versionNumber__'] = collection.currentVersion
@@ -148,7 +148,7 @@ def addToIndex(q,d,collection,solr_interface,contentColNums = None, timeColInds=
     
     d['mongoID'] = mongoID(q,collection.name)
     
-    d['mongoText'] = queryToText(q,value_processors)    
+    d['mongoText'] = queryToText(q,value_processors_key)    
 
     d['versionNumber'] = collection.currentVersion
 
@@ -166,34 +166,35 @@ def addToIndex(q,d,collection,solr_interface,contentColNums = None, timeColInds=
         
     #stats
     d['volume'] = collection.find(query).count()
-    
+
     contentColNums = [i for i in contentColNums if i not in query.keys()]
     
-    if d['volume'] < 1000:
-        smallAdd(d,query,collection,contentColNums, timeColInds ,timeColNames , timeColNameInds ,timeColNameDivisions ,timeColNamePhrases ,OverallDate , OverallDateFormat, timeFormatter ,reverseTimeFormatter ,dateDivisions ,datePhrases ,mindate ,maxdate ,OverallLocation , spaceColNames , spaceColInds ,subColInd, value_processors)
-    else:
-        largeAdd(d,query,collection,contentColNums,  timeColInds ,timeColNames , timeColNameInds ,timeColNameDivisions ,timeColNamePhrases ,OverallDate, OverallDateFormat, timeFormatter ,reverseTimeFormatter ,dateDivisions ,datePhrases ,mindate ,maxdate ,OverallLocation , spaceColNames , spaceColInds ,subColInd, value_processors)
-
-    Subcollections = uniqify(ListUnion(collection.find(query).distinct(str(subColInd))))
-    metadata = collection.metadata['']
-    for sc in Subcollections:
-        metadata.update(collection.metadata.get(sc,{}))
-    for k in metadata.keys():
-        if k in STANDARD_META:
-            if k in STANDARD_META_FORMATS.keys():
-                val = coerceToFormat(metadata[k],STANDARD_META_FORMATS[k])
-                if val:
-                    d[str(k)] = val
-            else:
-                d[str(k)] = str(metadata[k])
+    if d['volume'] > 0:
+        if d['volume'] < 5000:
+            smallAdd(d,query,collection,contentColNums, timeColInds ,timeColNames , timeColNameInds ,timeColNameDivisions ,timeColNamePhrases ,OverallDate , OverallDateFormat, timeFormatter ,reverseTimeFormatter ,dateDivisions ,datePhrases ,mindate ,maxdate ,OverallLocation , spaceColNames , spaceColInds ,subColInd, value_processors)
         else:
-            if is_string_like(metadata[k]):
-                d[str(k) + '_t'] = metadata[k]        
-
-    if Return:
-        return d
-    else:
-        solr_interface.add(**d)
+            largeAdd(d,query,collection,contentColNums,  timeColInds ,timeColNames , timeColNameInds ,timeColNameDivisions ,timeColNamePhrases ,OverallDate, OverallDateFormat, timeFormatter ,reverseTimeFormatter ,dateDivisions ,datePhrases ,mindate ,maxdate ,OverallLocation , spaceColNames , spaceColInds ,subColInd, value_processors)
+    
+        Subcollections = uniqify(ListUnion(collection.find(query).distinct(str(subColInd))))
+        metadata = collection.metadata['']
+        for sc in Subcollections:
+            metadata.update(collection.metadata.get(sc,{}))
+        for k in metadata.keys():
+            if k in STANDARD_META:
+                if k in STANDARD_META_FORMATS.keys():
+                    val = coerceToFormat(metadata[k],STANDARD_META_FORMATS[k])
+                    if val:
+                        d[str(k)] = val
+                else:
+                    d[str(k)] = str(metadata[k])
+            else:
+                if is_string_like(metadata[k]):
+                    d[str(k) + '_t'] = metadata[k]        
+    
+        if Return:
+            return d
+        else:
+            solr_interface.add(**d)
    
     
 def smallAdd(d,query,collection,contentColNums, timeColInds ,timeColNames , timeColNameInds ,timeColNameDivisions ,timeColNamePhrases ,OverallDate, OverallDateFormat, timeFormatter ,reverseTimeFormatter ,dateDivisions ,datePhrases ,mindate ,maxdate ,OverallLocation , spaceColNames , spaceColInds ,subColInd, value_processors ):
@@ -212,7 +213,7 @@ def smallAdd(d,query,collection,contentColNums, timeColInds ,timeColNames , time
   
     for (i,r) in enumerate(R):
     
-        d['sliceContents'].append(' '.join([translate(rgetattr(r,x.split('.')),value_processors[x]) if rhasattr(r,x.split('.')) else '' for x in contentColNums]))
+        d['sliceContents'].append(' '.join([translate(value_processors.get(x,None),rgetattr(r,x.split('.'))) if rhasattr(r,x.split('.')) else '' for x in contentColNums]))
                       
         colnames  = uniqify(colnames + r.keys())
         
@@ -338,7 +339,7 @@ def largeAdd(d,query,collection,contentColNums, timeColInds ,timeColNames , time
                 
     print '3'    
 
-    d['sliceContents'] = decode(' '.join(uniqify(ListUnion([Translate_list(collection.find(query).distinct(x), value_processors[x]) for x in contentColNums]))))
+    d['sliceContents'] = decode(' '.join(uniqify(ListUnion([translate_list(value_processors.get(x,None) ,collection.find(query).distinct(x)) for x in contentColNums]))))
 
     return d
 
@@ -347,6 +348,7 @@ def translate(trans,l):
     return trans(l) if trans else l
 
 def translate_list(trans,l):
+    
     return map(trans,l) if trans else l
     
 def initialize_argdict(collection):
@@ -439,7 +441,8 @@ def initialize_argdict(collection):
      
     value_processor_instructions = stringifyDictElements(collection.value_processors)
     vpcontext = commonjs.translatorContext(value_processor_instructions)
-    ArgDict['value_processors'] = get_processors(value_processor_instructions,collection, vpcontext ,commonjs.js_call)
+    ArgDict['value_processors'],ArgDict['value_processors_key'] = get_processors(value_processor_instructions,collection, vpcontext ,commonjs.js_call)
+    
                                     
     return d, ArgDict
     
@@ -448,18 +451,22 @@ def initialize_argdict(collection):
 def get_processors(instruction_set,collection,context,callfunc):
     
     processors = {}   
+    processors_key = {}
     for (i,name) in enumerate(collection.totalVariables):
         x = str(i)
-        processors[x] = (None,None)
+        processors[x] = None
+        processors_key[name] = None
         if instruction_set.has_key(name):
-            processors[x] = functools.partial(callfunc,processor_context,name)
+            processors[x] = functools.partial(callfunc,context,name)
+            processors_key[name] = processors[x]
     vpcolgroups = [x for x in instruction_set.keys() if x in collection.ColumnGroups.keys()]
     for vpc in vpcolgroups:
-        for name in vpc:
+        for name in collection.ColumnGroups[vpc]:
             x = str(collection.totalVariables.index(name))
             processors[x] =  functools.partial(callfunc,context,vpc)
+            processors_key[name] = processors[x]
             
-    return processors
+    return processors,processors_key
     
 
 def stringifyDictElements(d):
@@ -506,9 +513,12 @@ def getStrs(collection,namelist):
 
 def decode(v):
     try:
-        v = v.encode('utf-8')
-    except UnicodeEncodeError:
-        return v.decode('latin-1').encode('utf-8')
+        v = v.decode('utf-8')
+    except (UnicodeEncodeError,UnicodeDecodeError):
+        try:
+            return v.decode('latin-1').encode('utf-8')
+        except (UnicodeEncodeError,UnicodeDecodeError):
+            return unicode(v.encode('utf-8'),errors='ignore')
     else:
         return v
     
