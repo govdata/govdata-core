@@ -1,4 +1,5 @@
 import drmaa
+import time
 
 def submitJobs(jobList):
 
