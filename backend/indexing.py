@@ -65,7 +65,7 @@ STANDARD_META = ['title','subject','description','author','keywords','content_ty
 STANDARD_META_FORMATS = {'keywords':'tplist','last_modified':'dt','dateReleased':'dt'}
 
 @activate(lambda x : x[1],lambda x : x[2])
-def updateCollectionIndex(collectionName,incertpath,certpath, slicesCorrespondToIndexes = False):
+def updateCollectionIndex(collectionName,incertpath,certpath, slicesCorrespondToIndexes = False,verbose=False):
     """incrementally update the query database.
     
         For a given collection with name NAME, this creates (or updates)  the associated collection __NAME__SLICES__
@@ -106,12 +106,16 @@ def updateCollectionIndex(collectionName,incertpath,certpath, slicesCorrespondTo
     solr_interface = solr.SolrConnection("http://localhost:8983/solr")    
     
     sliceDB = collection.slices
+    slicecount = sliceDB.count()
     
-    for r in sliceDB.find({'original':{'$gt':atVersion},'version':currentVersion},timeout=False):      
+    for (i,r) in enumerate(sliceDB.find({'original':{'$gt':atVersion},'version':currentVersion},timeout=False)):      
         q = r['slice']  
-        print 'Adding:' , q, 'in', collectionName    
+        if verbose:
+            print 'Adding:' , q, 'in', collectionName    
+        if (i/1000)*1000 == i:
+            print 'At slice:', i
         dd = d.copy()       
-        addToIndex(q,dd,collection,solr_interface,**ArgDict)  
+        addToIndex(q,dd,collection,solr_interface,slicecount,**ArgDict)  
         
 
     for r in sliceDB.find({'version':{'$gte':atVersion,'$lt':currentVersion},'original':{'$lte':atVersion}},timeout=False):
@@ -135,7 +139,7 @@ def mongoID(q,collectionName):
     return hashlib.sha1(json.dumps(queryID,default=ju.default)).hexdigest()
     
     
-def addToIndex(q,d,collection,solr_interface,contentColNums = None, timeColInds=None,timeColNames=None, timeColNameInds = None,timeColNameDivisions = None,timeColNamePhrases=None,OverallDate = '', OverallDateFormat = '', timeFormatter = None,reverseTimeFormatter = None,dateDivisions=None,datePhrases=None,mindate = None,maxdate = None,OverallLocation = None, spaceColNames = None, spaceColInds = None,subColInd = None,Return=False,value_processors=None,value_processors_key=None):
+def addToIndex(q,d,collection,solr_interface,slicecount,contentColNums = None, timeColInds=None,timeColNames=None, timeColNameInds = None,timeColNameDivisions = None,timeColNamePhrases=None,OverallDate = '', OverallDateFormat = '', timeFormatter = None,reverseTimeFormatter = None,dateDivisions=None,datePhrases=None,mindate = None,maxdate = None,OverallLocation = None, spaceColNames = None, spaceColInds = None,subColInd = None,Return=False,value_processors=None,value_processors_key=None):
 
 
     q['__versionNumber__'] = collection.currentVersion
@@ -166,12 +170,12 @@ def addToIndex(q,d,collection,solr_interface,contentColNums = None, timeColInds=
         
     #stats
     d['volume'] = collection.find(query).count()
-
+    
     contentColNums = [i for i in contentColNums if i not in query.keys()]
     
     if d['volume'] > 0:
         if d['volume'] < 5000:
-            smallAdd(d,query,collection,contentColNums, timeColInds ,timeColNames , timeColNameInds ,timeColNameDivisions ,timeColNamePhrases ,OverallDate , OverallDateFormat, timeFormatter ,reverseTimeFormatter ,dateDivisions ,datePhrases ,mindate ,maxdate ,OverallLocation , spaceColNames , spaceColInds ,subColInd, value_processors)
+            smallAdd(d,query,collection,contentColNums, timeColInds ,timeColNames , timeColNameInds ,timeColNameDivisions ,timeColNamePhrases ,OverallDate , OverallDateFormat, timeFormatter ,reverseTimeFormatter ,dateDivisions ,datePhrases ,mindate ,maxdate ,OverallLocation , spaceColNames , spaceColInds ,subColInd, value_processors,slicecount)
         else:
             largeAdd(d,query,collection,contentColNums,  timeColInds ,timeColNames , timeColNameInds ,timeColNameDivisions ,timeColNamePhrases ,OverallDate, OverallDateFormat, timeFormatter ,reverseTimeFormatter ,dateDivisions ,datePhrases ,mindate ,maxdate ,OverallLocation , spaceColNames , spaceColInds ,subColInd, value_processors)
     
@@ -197,7 +201,7 @@ def addToIndex(q,d,collection,solr_interface,contentColNums = None, timeColInds=
             solr_interface.add(**d)
    
     
-def smallAdd(d,query,collection,contentColNums, timeColInds ,timeColNames , timeColNameInds ,timeColNameDivisions ,timeColNamePhrases ,OverallDate, OverallDateFormat, timeFormatter ,reverseTimeFormatter ,dateDivisions ,datePhrases ,mindate ,maxdate ,OverallLocation , spaceColNames , spaceColInds ,subColInd, value_processors ):
+def smallAdd(d,query,collection,contentColNums, timeColInds ,timeColNames , timeColNameInds ,timeColNameDivisions ,timeColNamePhrases ,OverallDate, OverallDateFormat, timeFormatter ,reverseTimeFormatter ,dateDivisions ,datePhrases ,mindate ,maxdate ,OverallLocation , spaceColNames , spaceColInds ,subColInd, value_processors,slicecount):
 
     R = collection.find(query,timeout=False)
     colnames = []
@@ -212,8 +216,8 @@ def smallAdd(d,query,collection,contentColNums, timeColInds ,timeColNames , time
             break     
   
     for (i,r) in enumerate(R):
-    
-        d['sliceContents'].append(' '.join([translate(value_processors.get(x,None),rgetattr(r,x.split('.'))) if rhasattr(r,x.split('.')) else '' for x in contentColNums]))
+        if slicecount < 100000:
+            d['sliceContents'].append(' '.join([translate(value_processors.get(x,None),rgetattr(r,x.split('.'))) if rhasattr(r,x.split('.')) else '' for x in contentColNums]))
                       
         colnames  = uniqify(colnames + r.keys())
         
