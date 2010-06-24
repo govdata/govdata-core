@@ -170,31 +170,31 @@ def addToIndex(q,d,collection,solr_interface,contentColNums = None, timeColInds=
     contentColNums = [i for i in contentColNums if i not in query.keys()]
     
     if d['volume' > 0:
-		if d['volume'] < 5000:
-			smallAdd(d,query,collection,contentColNums, timeColInds ,timeColNames , timeColNameInds ,timeColNameDivisions ,timeColNamePhrases ,OverallDate , OverallDateFormat, timeFormatter ,reverseTimeFormatter ,dateDivisions ,datePhrases ,mindate ,maxdate ,OverallLocation , spaceColNames , spaceColInds ,subColInd, value_processors)
-		else:
-			largeAdd(d,query,collection,contentColNums,  timeColInds ,timeColNames , timeColNameInds ,timeColNameDivisions ,timeColNamePhrases ,OverallDate, OverallDateFormat, timeFormatter ,reverseTimeFormatter ,dateDivisions ,datePhrases ,mindate ,maxdate ,OverallLocation , spaceColNames , spaceColInds ,subColInd, value_processors)
-	
-		Subcollections = uniqify(ListUnion(collection.find(query).distinct(str(subColInd))))
-		metadata = collection.metadata['']
-		for sc in Subcollections:
-			metadata.update(collection.metadata.get(sc,{}))
-		for k in metadata.keys():
-			if k in STANDARD_META:
-				if k in STANDARD_META_FORMATS.keys():
-					val = coerceToFormat(metadata[k],STANDARD_META_FORMATS[k])
-					if val:
-						d[str(k)] = val
-				else:
-					d[str(k)] = str(metadata[k])
-			else:
-				if is_string_like(metadata[k]):
-					d[str(k) + '_t'] = metadata[k]        
-	
-		if Return:
-			return d
-		else:
-			solr_interface.add(**d)
+        if d['volume'] < 5000:
+            smallAdd(d,query,collection,contentColNums, timeColInds ,timeColNames , timeColNameInds ,timeColNameDivisions ,timeColNamePhrases ,OverallDate , OverallDateFormat, timeFormatter ,reverseTimeFormatter ,dateDivisions ,datePhrases ,mindate ,maxdate ,OverallLocation , spaceColNames , spaceColInds ,subColInd, value_processors)
+        else:
+            largeAdd(d,query,collection,contentColNums,  timeColInds ,timeColNames , timeColNameInds ,timeColNameDivisions ,timeColNamePhrases ,OverallDate, OverallDateFormat, timeFormatter ,reverseTimeFormatter ,dateDivisions ,datePhrases ,mindate ,maxdate ,OverallLocation , spaceColNames , spaceColInds ,subColInd, value_processors)
+    
+        Subcollections = uniqify(ListUnion(collection.find(query).distinct(str(subColInd))))
+        metadata = collection.metadata['']
+        for sc in Subcollections:
+            metadata.update(collection.metadata.get(sc,{}))
+        for k in metadata.keys():
+            if k in STANDARD_META:
+                if k in STANDARD_META_FORMATS.keys():
+                    val = coerceToFormat(metadata[k],STANDARD_META_FORMATS[k])
+                    if val:
+                        d[str(k)] = val
+                else:
+                    d[str(k)] = str(metadata[k])
+            else:
+                if is_string_like(metadata[k]):
+                    d[str(k) + '_t'] = metadata[k]        
+    
+        if Return:
+            return d
+        else:
+            solr_interface.add(**d)
    
     
 def smallAdd(d,query,collection,contentColNums, timeColInds ,timeColNames , timeColNameInds ,timeColNameDivisions ,timeColNamePhrases ,OverallDate, OverallDateFormat, timeFormatter ,reverseTimeFormatter ,dateDivisions ,datePhrases ,mindate ,maxdate ,OverallLocation , spaceColNames , spaceColInds ,subColInd, value_processors ):
