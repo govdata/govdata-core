@@ -22,10 +22,11 @@ def submitJobs(joblist):
         jt.remoteCommand = PATH_TO_PYTHON
         jt.workingDirectory = os.getcwd()       
 
-        jt.args = ["-c",argstr]
+        jt.args = ["-c","execfile('../System/initialize_for_production'); " + argstr]
         jt.joinFiles = True
         jt.jobEnvironment = dict([(k,os.environ[k]) for k in ['PYTHONPATH','PATH','V8_HOME','LD_LIBRARY_PATH']])        
-        jt.outputPath = ':' + os.environ['DataEnvironmentDirectory'] + '/' + outfile
+        jt.outputPath = ':' + os.environ['DataEnvironmentDirectory'] + '/Temp/' + outfile
+        jt.errorPath = jt.outputPath
         jt.jobName = name
         jobid = Session.runJob(jt)
         jobs.append(jobid)
@@ -38,20 +39,32 @@ def submitJobs(joblist):
             js = Session.jobStatus(id)
             if js == 'done':
                 retval = Session.wait(id,drmaa.Session.TIMEOUT_WAIT_FOREVER)
+                print 'retval=', retval
                 if retval.exitStatus != 0:
+                    
                     for j in jobs:
-                        Session.control(j,'terminate')
+                        try:
+                            Session.control(j,drmaa.JobControlAction.TERMINATE)
+			except drmaa.InvalidJobException:
+                            pass
                     Session.exit()
-                    raise Exception, 'Job ' + jobs[i]['name'] + ' threw an exception during grid run.  See error in ' + jobs[i]['outfile'] + '.'
+                    raise Exception, 'Job ' + joblist[i]['name'] + ' threw an exception during grid run.  See error in ' + joblist[i]['outfile'] + '.'
                 else:
+                    print 'job', id, '(' + joblist[i]['name'] + ')', 'succeeded.'
                     retvals[i] = retval 
                 
             elif js == 'failed':
                 for j in jobs:
-                    Session.control(j,'terminate')
+                    try:
+                        Session.control(j,drmaa.JobControlAction.TERMINATE)
+	    	    except drmaa.InvalidJobException:
+	                pass
+
                 Session.exit()
-                raise Exception, 'bork'
+                raise Exception, 'Job ' + joblist[i]['name'] + ' failed during grid run.  See error in ' + joblist[i]['outfile'] + '.'
+
             else:
+                print 'job', id, 'running.'
                 running = True
                 
         if not running:
