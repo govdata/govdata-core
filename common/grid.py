@@ -1,7 +1,7 @@
 import drmaa
 import time
 
-def submitJobs(jobList):
+def submitJobs(joblist):
 
     Session = drmaa.Session()
     jobs = []
