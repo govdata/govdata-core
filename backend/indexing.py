@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 from common.mongo import Collection, cleanCollection, SPECIAL_KEYS
-from common.utils import IsFile, listdir, is_string_like, ListUnion, uniqify,createCertificate, rgetattr,rhasattr, dictListUniqify, Flatten,MakeDir
+from common.utils import IsFile, listdir, is_string_like, ListUnion, uniqify,createCertificate, rgetattr,rhasattr, dictListUniqify, Flatten,MakeDir, PathExists, IsDir
 import common.timedate as td
 import common.location as loc
 import common.commonjs as commonjs
@@ -107,6 +107,7 @@ def updateCollectionIndex(collectionName,incertpath,certpath, verbose=False):
     slicecount = sliceDB.find({'original':{'$gt':atVersion},'version':currentVersion}).count()
     block_size = 50000
     MakeDir(certpath)
+  
     
     if slicecount < block_size:
         add_slices(collectionName,currentVersion,atVersion,0,None)

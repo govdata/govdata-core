@@ -7,7 +7,7 @@ def MakeDir(DirName,creates = ()):
 	'''
 	if os.path.exists(DirName):
 		delete(DirName)
-		os.mkdir(DirName)
+	os.mkdir(DirName)
 
 def delete(ToDelete):
 	'''
