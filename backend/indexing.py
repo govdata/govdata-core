@@ -19,6 +19,7 @@ import hashlib
 import urllib
 import urllib2
 import ast
+import math
 from System.Protocols import activate
 
 def pathToSchema():
@@ -65,7 +66,7 @@ STANDARD_META = ['title','subject','description','author','keywords','content_ty
 STANDARD_META_FORMATS = {'keywords':'tplist','last_modified':'dt','dateReleased':'dt'}
 
 @activate(lambda x : x[1],lambda x : x[2])
-def updateCollectionIndex(collectionName,incertpath,certpath, slicesCorrespondToIndexes = False,verbose=False):
+def updateCollectionIndex(collectionName,incertpath,certpath, verbose=False):
     """incrementally update the query database.
     
         For a given collection with name NAME, this creates (or updates)  the associated collection __NAME__SLICES__
@@ -90,10 +91,7 @@ def updateCollectionIndex(collectionName,incertpath,certpath, slicesCorrespondTo
                 -- not actually existing in the current version (this needs to be checked to handle the situation of something that has been deleted and then re-added)
 
     """
-    collection = Collection(collectionName)
-    currentVersion = collection.currentVersion
-  
-    d,ArgDict = initialize_argdict(collection)
+
 
     S = ourSolr.query('collectionName:' + collectionName,fl = 'versionNumber',sort='versionNumber desc',wt = 'json')
     existing_slice = ast.literal_eval(S)['response']['docs']
@@ -102,32 +100,69 @@ def updateCollectionIndex(collectionName,incertpath,certpath, slicesCorrespondTo
         atVersion = existing_slice[0]['versionNumber'][0]
     else:
         atVersion = -1
+         
+    collection = Collection(collectionName)
+    sliceDB = collection.slices
+    slicecount = sliceDB.find({'original':{'$gt':atVersion},'version':currentVersion}).count()
+    block_size = 50000
+    MakeDir(certpath)
+    
+    if slicecount < block_size:
+        add_slices(collectionName,currentVerison,atVersion,0,None)
+    else:       
+        try:
+            import System.grid as grid
+        except ImportError:
+            add_slices(collectionName,currentVerison,atVersion,0,None)
+        else:
+            num_blocks = int(math.ceil(float(slicecount)/block_size))
+            jobdescrs = [{'argstr': "import backend.indexing as I; I.add_slices('" + ", ".join([repr(x) for x in [collectionName, currentVersion,atVersion, block_size*i, block_size]]) + ")",'outfile': certpath[:3] + str(i),'name': 'Index' + collectionName + '_' + str(i)} for i in range(num_blocks)]
+            retvals = grid.submitJobs(jobdescrs)
+                    
+    delete_slices(sliceDB,currentVersion,atVersion)
+    
+    createCertificate(certpath + 'final.txt','Collection ' + collectionName + ' indexed.')     
+
+  
+def add_slices(collectionName,currentVersion, atVersion,skip,limit): 
+    collection = Collection(collectionName)
+  
+    d,ArgDict = initialize_argdict(collection)        
 
     solr_interface = solr.SolrConnection("http://localhost:8983/solr")    
     
     sliceDB = collection.slices
     slicecount = sliceDB.count()
     
-    for (i,r) in enumerate(sliceDB.find({'original':{'$gt':atVersion},'version':currentVersion},timeout=False)):      
+    slice = sliceDB.find({'original':{'$gt':atVersion},'version':currentVersion},timeout=False)
+    
+    if skip:
+        slice = slice.skip(skip)
+    if limit:
+        slice = slice.limit(limit)
+
+        
+    for (i,r) in enumerate(slice):      
         q = r['slice']  
         if verbose:
             print 'Adding:' , q, 'in', collectionName    
-        if (i/1000)*1000 == i:
-            print 'At slice:', i
+        if (i/100)*100 == i:
+            print i, '(', skip + i , ')'
         dd = d.copy()       
         addToIndex(q,dd,collection,solr_interface,slicecount,**ArgDict)  
-        
+       
+    solr_interface.commit()
 
+
+def delete_slices(sliceDB,currentVersion,atVersion):
+    solr_interface = solr.SolrConnection("http://localhost:8983/solr")    
     for r in sliceDB.find({'version':{'$gte':atVersion,'$lt':currentVersion},'original':{'$lte':atVersion}},timeout=False):
         q = r['slice']
         ID = mongoID(q)
         print 'deleting', ID, q
-        solr_interface.delete_query('mongoID:' + ID)
-                
-        
+        solr_interface.delete_query('mongoID:' + ID) 
     solr_interface.commit()
-    
-    createCertificate(certpath,'Collection ' + collectionName + ' indexed.')        
+      
     
     
 def queryToText(q,processors):
