@@ -118,7 +118,7 @@ def updateCollectionIndex(collectionName,incertpath,certpath, verbose=False):
             add_slices(collectionName,currentVerison,atVersion,0,None)
         else:
             num_blocks = int(math.ceil(float(slicecount)/block_size))
-            jobdescrs = [{'argstr': "import backend.indexing as I; I.add_slices('" + ", ".join([repr(x) for x in [collectionName, currentVersion,atVersion, block_size*i, block_size]]) + ")",'outfile': certpath[:3] + str(i),'name': 'Index' + collectionName + '_' + str(i)} for i in range(num_blocks)]
+            jobdescrs = [{'argstr': "import backend.indexing as I; I.add_slices(" + ", ".join([repr(x) for x in [collectionName, currentVersion,atVersion, block_size*i, block_size]]) + ")",'outfile': certpath + str(i),'name': 'Index' + collectionName + '_' + str(i)} for i in range(num_blocks)]
             retvals = grid.submitJobs(jobdescrs)
                     
     delete_slices(sliceDB,currentVersion,atVersion)
