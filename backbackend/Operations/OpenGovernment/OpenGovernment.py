@@ -126,7 +126,7 @@ def backendProtocol(collectionName,parser,downloader = None, downloadProtocol= N
         if createPath == None:
             createPath = certdir + ID + 'createCertificate.txt'
         if indexPath == None:
-            indexPath = certdir + ID + 'indexCertificate.txt'   
+            indexPath = certdir + ID + 'indexCertificates/'   
     
 
     if downloader:
