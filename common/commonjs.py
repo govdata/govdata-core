@@ -8,12 +8,7 @@ import PyV8
 COMMONJS_PATH = '../../common/js/'
 
 COMMONJS="""
-/*
- * An implementation of the CommonJS Modules 1.0
- * Copyright (c) 2009 by David Flanagan
- */
  
-
 var require = function require(id) {
      
     var filename = \"""" + COMMONJS_PATH + """\" + id + ".js"; 
@@ -47,9 +42,12 @@ require._cache = {};               // So we only load modules once
 """
 
 def js_call(context,key,value):
+
     name = context.instructions[key]['name']
-    
+
     return context.eval(name + '(' + json.dumps(value,default=ju.default) + ')')
+
+     
 
 import os
 class JSReadEnv(PyV8.JSClass):
@@ -60,6 +58,9 @@ class JSReadEnv(PyV8.JSClass):
             os.environ['PROTECTION'] = 'ON'
             return s
 
+    def Print(self,value):
+        print(value)
+
 
 
 class pyV8CommonJS(PyV8.JSContext):
@@ -67,7 +68,7 @@ class pyV8CommonJS(PyV8.JSContext):
     def __init__(self):
     
         PyV8.JSContext.__init__(self,JSReadEnv())
-  
+
         self.enter()
 
         self.eval(COMMONJS)

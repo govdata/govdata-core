@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 from common.mongo import Collection, cleanCollection, SPECIAL_KEYS
-from common.utils import IsFile, listdir, is_string_like, ListUnion, uniqify,createCertificate, rgetattr,rhasattr, dictListUniqify, Flatten
+from common.utils import IsFile, listdir, is_string_like, ListUnion, uniqify,createCertificate, rgetattr,rhasattr, dictListUniqify, Flatten,MakeDir
 import common.timedate as td
 import common.location as loc
 import common.commonjs as commonjs
@@ -102,13 +102,14 @@ def updateCollectionIndex(collectionName,incertpath,certpath, verbose=False):
         atVersion = -1
          
     collection = Collection(collectionName)
+    currentVersion = collection.currentVersion
     sliceDB = collection.slices
     slicecount = sliceDB.find({'original':{'$gt':atVersion},'version':currentVersion}).count()
     block_size = 50000
     MakeDir(certpath)
     
     if slicecount < block_size:
-        add_slices(collectionName,currentVerison,atVersion,0,None)
+        add_slices(collectionName,currentVersion,atVersion,0,None)
     else:       
         try:
             import System.grid as grid
@@ -124,11 +125,11 @@ def updateCollectionIndex(collectionName,incertpath,certpath, verbose=False):
     createCertificate(certpath + 'final.txt','Collection ' + collectionName + ' indexed.')     
 
   
-def add_slices(collectionName,currentVersion, atVersion,skip,limit): 
+def add_slices(collectionName,currentVersion, atVersion,skip,limit,verbose=False): 
     collection = Collection(collectionName)
   
     d,ArgDict = initialize_argdict(collection)        
-
+    
     solr_interface = solr.SolrConnection("http://localhost:8983/solr")    
     
     sliceDB = collection.slices
@@ -144,12 +145,14 @@ def add_slices(collectionName,currentVersion, atVersion,skip,limit):
         
     for (i,r) in enumerate(slice):      
         q = r['slice']  
-        if verbose:
-            print 'Adding:' , q, 'in', collectionName    
-        if (i/100)*100 == i:
+        if verbose or (i/100)*100 == i:
+            print 'Adding:' , q, 'in', collectionName
             print i, '(', skip + i , ')'
         dd = d.copy()       
-        addToIndex(q,dd,collection,solr_interface,slicecount,**ArgDict)  
+        try:
+            addToIndex(q,dd,collection,solr_interface,slicecount,**ArgDict)  
+        except AttributeError:
+            addToIndex(q,dd,collection,solr_interface,slicecount,**ArgDict)
        
     solr_interface.commit()
 

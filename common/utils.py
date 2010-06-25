@@ -1,4 +1,23 @@
 import os
+import shutil
+
+def MakeDir(DirName,creates = ()):
+	'''
+	is a "strong" directory maker -- if DirName already exists, this deletes it first 
+	'''
+	if os.path.exists(DirName):
+		delete(DirName)
+		os.mkdir(DirName)
+
+def delete(ToDelete):
+	'''
+	unified "strong" version of delete that uses os.remove for a file 
+	and shutil.rmtree for a directory tree
+	'''
+	if os.path.isfile(ToDelete):
+		os.remove(ToDelete)
+	elif os.path.isdir(ToDelete):
+		shutil.rmtree(ToDelete)
 
 def PathExists(ToCheck):
 	'''
