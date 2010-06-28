@@ -868,7 +868,7 @@ def find(q, timeQuery = None, spaceQuery = None, hlParams=None,facetParams=None,
         else:
             params['fq'] = Flatten([params['fq'],fq])
             
-    if facetParams == None and params.get('facet.field',None) == None:
+    if facetParams == None and params.get('facet',None) == None and params.get('facet.field',None) == None:
         facetParams = {'field':['agency','subagency','dataset','dateDivisions']}
                     
     return solr.queryUrl(q,hlParams,facetParams,mltParams,**params)
