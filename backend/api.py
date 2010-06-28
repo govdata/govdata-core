@@ -860,6 +860,9 @@ def find(q, timeQuery = None, spaceQuery = None, hlParams=None,facetParams=None,
             params['fq'] = fq
         else:
             params['fq'] = Flatten([params['fq'],fq])
+    
+    if params.get('fl',None) == None:
+        params['fl'] = '*,score'
             
     if spaceQuery:
         fq = loc.queryToSolr(spaceQuery)
