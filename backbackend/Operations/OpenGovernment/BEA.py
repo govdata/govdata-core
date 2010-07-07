@@ -1292,7 +1292,7 @@ def LAPI_preparse(maindir,table,level):
         
         id = table + '_' + linecode
       
-        subjdata = [list(x) for x inzip(*[tuple(Codes['Hierarchy'][i])]*len(X))]
+        subjdata = [list(x) for x in zip(*[tuple(Codes['Hierarchy'][i])]*len(X))]
 
         X = X.addcols([[table]*len(X),[line]*len(X),[table + ',LA,' + id]*len(X)] + subjdata ,names=['Table','Line','Subcollections'] + subjnames) 
         X = X.addcols([loc_processor(fips,aname,level) for (fips,aname) in X[['FIPS','AreaName']]],names = ['Location'])
