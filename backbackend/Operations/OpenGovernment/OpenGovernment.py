@@ -280,7 +280,7 @@ class csv_parser(dataIterator):
                 
             for k in self.ColumnGroups.get('TimeColumns',[]) + self.ColumnGroups.get('SpaceColumns',[]):
                 if k in r.keys():
-                    r[k] = eval(r[k])
+                    r[k] = eval(r[k])               
             
             self.IND += 1
                 
@@ -349,7 +349,7 @@ def updateCollection(download_dir,collectionName,parserClass,checkpath,certpath,
             
         else:
             versionNumber = 0
-            IndexCols = uniqify([x for x in ['Subcollections'] + sliceColList + ListUnion([ColumnGroups.get(k,[]) for k in ['IndexColumns','LabelColumns','TimeColumns','SpaceColumns']]) if x not in uniqueIndexes])
+            IndexCols = uniqify([x for x in ['Subcollections'] + sliceColList + ListUnion([ColGroupsFlatten(ColumnGroups,k) for k in ['IndexColumns','LabelColumns','TimeColumns','SpaceColumns']]) if x not in uniqueIndexes])
             
             totalVariables = SPECIAL_KEYS + uniqueIndexes + IndexCols
             
@@ -426,6 +426,9 @@ def updateCollection(download_dir,collectionName,parserClass,checkpath,certpath,
     createCertificate(certpath,'Collection ' + collectionName + ' written to DB.')
 
 
+def ColGroupsFlatten(ColumnGroups,k):
+    return Flatten([x if x not in ColumnGroups else ColGroupsFlatten(ColumnGroups,x) for x in ColumnGroups.get(k,[])])
+    
 
 def getContentCols(iterator):
 
@@ -601,7 +604,6 @@ def processRecord(c,collection,VarMap,totalVariables,uniqueIndexes,versionNumber
     
     return id
     
-     
 def sliceInsert(c,collection,sliceColTuples,VarMap,sliceDB,DIFF,version):        
     for sct in sliceColTuples:
         if all([VarMap[k] in c.keys() if is_string_like(k) else any([VarMap[kk] in c.keys() for kk in k]) for k in sct]):

@@ -3,7 +3,10 @@ import re
 import json
 
 import pymongo.json_util as ju
-import PyV8
+try:
+    import PyV8
+except:
+    pass
 
 COMMONJS_PATH = '../../common/js/'
 
