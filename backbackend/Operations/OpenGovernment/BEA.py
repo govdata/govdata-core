@@ -22,8 +22,9 @@ def SafeContents(x):
 def getzip(url,zippath,dirpath=None):
     assert zippath.endswith('.zip')
     if dirpath == None:
-        dirpath = zippath[:-4]      
-    wget(url,zippath)
+        dirpath = zippath[:-4]
+    print url, zippath      
+    os.system('wget ' + url + ' -O ' + zippath)
     os.system('unzip -d ' + dirpath + ' ' + zippath)
     
     
@@ -268,10 +269,10 @@ def NEA_preparser2(inpath,filepath,metadatapath,L = None):
         else:
             Z = X1[0]
             
-        topics = sorted(uniqify(X.coloring['Topics']))
-        X.coloring['Topics'] = topics
+        topics = sorted(uniqify(Z.coloring['Topics']))
+        Z.coloring['Topics'] = topics
         for topic in topics:
-            X.renamecol(topic,'Topic ' + topic)
+            Z.renamecol(topic,'Topic ' + topic)
             
         K = ['Category','Section','Units','Notes','DownloadedOn','LastRevised','Table','Footer']
         Z.metadata = {}
@@ -825,7 +826,8 @@ def RegionalGDP_Preparse2(maindir):
     Subcollections['M'] = AllMeta
     Subcollections['M']['Title'] = 'GDP by Metropolitan Area'
     
-    IH = [tuple(X.ColumnGroups['IndustryHierarchy'][:i]) for i in range(1,len(X.ColumnGroups['IndustryHierarchy']) + 1)]
+    ColGroups['IndustryHierarchy'].sort()
+    IH = [tuple(ColGroups['IndustryHierarchy'][:i]) for i in range(1,len(ColGroups['IndustryHierarchy']) + 1)]
 
     AllMeta = {}
     AllMeta['Source'] = [('Agency',{'Name':'Department of Commerce','ShortName':'DOC'}),('Subagency',{'Name':'Bureau of Economic Analysis','ShortName':'BEA'}),('Program','Regional Economic Accounts'), ('Dataset','Regional GDP Data')]
@@ -1153,10 +1155,10 @@ def SQPI_preparse(maindir):
         X = X.addcols(['{"s":' + repr(x) + ',"f":{"s":' + repr(f) + '}}' for (f,x) in X[['State FIPS','State Name']]],names = ['Location'])
         X = X.deletecols(['State FIPS','State Name'])    
 
-        subj = sorted(uniqify(Z.coloring.pop('Categories')))
-        Z.coloring['SubjectHierarchy'] = subj
+        subj = sorted(uniqify(X.coloring.pop('Categories')))
+        X.coloring['SubjectHierarchy'] = subj
         for s in subj:
-            Z.renamecol(s,'Subject ' + s)
+            X.renamecol(s,'Subject ' + s)
         
         X.renamecol('Line Code','LineCode')
         X.renamecol('Line Title','Line')
@@ -1214,10 +1216,10 @@ def SAPI_preparse(maindir):
         X = X.addcols(['{"s":' + repr(sname) + ',"f":{"s":' + repr(fips) + '}}' for (fips,sname) in X[['State FIPS','State Name']]],names = ['Location'])
         X = X.deletecols(['State FIPS','State Name'])   
         
-        subj = sorted(uniqify(Z.coloring.pop('Categories')))
-        Z.coloring['SubjectHierarchy'] = subj
+        subj = sorted(uniqify(X.coloring.pop('Categories')))
+        X.coloring['SubjectHierarchy'] = subj
         for s in subj:
-            Z.renamecol(s,'Subject ' + s)   
+            X.renamecol(s,'Subject ' + s)   
         
         X.renamecol('Line Code','LineCode')
         X.renamecol('Line Title','Line')
@@ -1338,6 +1340,7 @@ def PI_metadata(maindir):
     AllMeta['DateFormat'] = 'YYYYqmm'
     
     SH  = AllMeta['ColumnGroups']['SubjectHierarchy']
+    SH.sort()
     SHL = [tuple(SH[:i]) for i in range(1,len(SH) + 1)] 
     
     AllMeta['sliceCols'] = [['Location','Table'] + SHL]
@@ -1405,10 +1408,11 @@ def get_intl_transactions_files(maindir):
 ITrans_NAME = 'BEA_InternationalTransactions'
 
 def backend_BEA_ITrans(creates = OG.CERT_PROTOCOL_ROOT + ITrans_NAME + '/'):
-    OG.backendProtocol(ITrans_NAME,None,downloader = [(get_intl_transactions,'get_transactions'),(get_intl_transactions_detailed,'get_transactions_detailed'),(get_intl_transactions_files,'get_files')],uptostep='download_check')
+    OG.backendProtocol(ITrans_NAME,None,downloader = [(MakeDirs,'initialize'),(get_intl_transactions,'get_transactions'),(get_intl_transactions_detailed,'get_transactions_detailed'),(get_intl_transactions_files,'get_files')],uptostep='download_check')
 
 
 #=-=-=-=-=-=-=-=-=-=-=-=-International trade
+
 
 @activate(lambda x : 'http://www.bea.gov/newsreleases/international/trade/trad_time_series.xls',lambda x : x[0] + 'trade.xls')
 def get_intl_trade(maindir):
@@ -1421,6 +1425,7 @@ def get_intl_trade_services_detailed(maindir):
     
 @activate(lambda x : 'http://www.bea.gov/international/zip',lambda x : x[0] + 'trade_detailed/')
 def get_intl_trade_goods_detailed(maindir):
+    MakeDirs(maindir + 'trade_detailed/')
     getzip('http://www.bea.gov/international/zip/IDS0008Hist.zip',maindir + 'trade_detailed/detailed_trade_goods_historical_quarterly.zip')
     getzip('http://www.bea.gov/international/zip/IDS0008.zip',maindir + 'trade_detailed/detailed_trade_goods_current_quarterly.zip')
     getzip('http://www.bea.gov/international/zip/IDS0182.zip',maindir + 'trade_detailed/detailed_trade_goods_current_monthly.zip')
@@ -1430,7 +1435,7 @@ ITrade_NAME = 'BEA_InternationalTrade'
 
 
 def backend_BEA_ITrade(creates = OG.CERT_PROTOCOL_ROOT + ITrade_NAME + '/'):
-    OG.backendProtocol(ITrade_NAME,None,downloader = [(get_intl_trade,'get_trade'),(get_intl_trade_goods_detailed,'get_trade_goods_detailed')],uptostep='download_check')
+    OG.backendProtocol(ITrade_NAME,None,downloader = [(MakeDirs,'initialize'),(get_intl_trade,'get_trade'),(get_intl_trade_goods_detailed,'get_trade_goods_detailed')],uptostep='download_check')
 
 
 #=-=-=-=-=-=-=-=-=-=-=-=-International investment aggregates

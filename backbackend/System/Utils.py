@@ -362,7 +362,7 @@ def MakeDir(DirName,creates = ()):
 def wget(getpath,savepath,opstring=''):
 	os.system('wget ' + opstring + ' "' + getpath + '" -O "' + savepath + '"')
 
-
+@activate(None,lambda x : x[0])
 def MakeDirs(DirName):
 	os.makedirs(DirName)
 
