@@ -271,7 +271,7 @@ def NEA_preparser2(inpath,filepath,metadatapath,L = None):
         topics = sorted(uniqify(X.coloring['TopicHierarchy']))
         X.coloring['TopicHierarchy'] = topics
         for t in topics:
-        	X.renamecol(t,'Topic ' + t)
+            X.renamecol(t,'Topic ' + t)
             
         K = ['Category','Section','Units','Notes','DownloadedOn','LastRevised','Table','Footer']
         Z.metadata = {}
@@ -458,10 +458,10 @@ def FAT_preparser2(maindir):
         topics = sorted(uniqify(X.coloring.pop('Categories')))
         X.coloring['TopicHierarchy'] = topics
         for t in topics:
-        	X.renamecol(t,'Topic ' + t)
+            X.renamecol(t,'Topic ' + t)
         
         X1 = X[X['Line'] != ''].deletecols(['Category','Label','DisplayLevel'])
-		X1.metadata = X.metadata
+        X1.metadata = X.metadata
         X = X1
                  
         X.coloring['TimeColNames'] = X.coloring['Data']
@@ -719,7 +719,7 @@ def RegionalGDP_Preparse2(maindir):
         inds = sorted(uniqify(Z.coloring.pop('Categories')))
         Z.coloring['IndustryHierarchy'] = inds
         for t in topics:
-        	Z.renamecol(t,'Industry ' + t)        
+            Z.renamecol(t,'Industry ' + t)        
         
         Z.renamecol('State','Location')
         Z = Z.addcols(['{"s":' + repr(z['Location']) + ',"f":{"s":' + repr(z['FIPS']) + '}}' for z in Z],names = ['Location'])
@@ -777,11 +777,11 @@ def RegionalGDP_Preparse2(maindir):
         X.renamecol('ParsedComponent','Component')
         X.renamecol('industry_name','Industry')
 
-		if 'Categories' in X.coloring.keys(): 
+        if 'Categories' in X.coloring.keys(): 
         inds = sorted(uniqify(X.coloring.pop('Categories')))
         X.coloring['IndustryHierarchy'] = inds
         for t in topics:
-        	X.renamecol(t,'Industry ' + t)       
+            X.renamecol(t,'Industry ' + t)       
         
         X1 = X.deletecols('component_name')
         X1 = X1.addcols(['{"m":' + repr(x['Metropolitan Area']) + ',"f":{"m":' + repr(x['FIPS']) + '}}' for x in X],names=['Location'])
@@ -1152,7 +1152,7 @@ def SQPI_preparse(maindir):
         subj = sorted(uniqify(Z.coloring.pop('Categories')))
         Z.coloring['SubjectHierarchy'] = subj
         for s in subj:
-        	Z.renamecol(s,'Subject ' + s)
+            Z.renamecol(s,'Subject ' + s)
         
         X.renamecol('Line Code','LineCode')
         X.renamecol('Line Title','Line')
@@ -1213,7 +1213,7 @@ def SAPI_preparse(maindir):
         subj = sorted(uniqify(Z.coloring.pop('Categories')))
         Z.coloring['SubjectHierarchy'] = subj
         for s in subj:
-        	Z.renamecol(s,'Subject ' + s)   
+            Z.renamecol(s,'Subject ' + s)   
         
         X.renamecol('Line Code','LineCode')
         X.renamecol('Line Title','Line')
