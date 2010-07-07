@@ -778,11 +778,11 @@ def RegionalGDP_Preparse2(maindir):
         X.renamecol('industry_name','Industry')
 
         if 'Categories' in X.coloring.keys(): 
-        inds = sorted(uniqify(X.coloring.pop('Categories')))
-        X.coloring['IndustryHierarchy'] = inds
-        for t in topics:
-            X.renamecol(t,'Industry ' + t)       
-        
+            inds = sorted(uniqify(X.coloring.pop('Categories')))
+            X.coloring['IndustryHierarchy'] = inds
+            for t in topics:
+                X.renamecol(t,'Industry ' + t)       
+            
         X1 = X.deletecols('component_name')
         X1 = X1.addcols(['{"m":' + repr(x['Metropolitan Area']) + ',"f":{"m":' + repr(x['FIPS']) + '}}' for x in X],names=['Location'])
         X1 = X1.deletecols(['FIPS','Metropolitan Area'])      
