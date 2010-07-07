@@ -318,7 +318,8 @@ def NEA_preparser2(inpath,filepath,metadatapath,L = None):
     ColGroups['LabelColumns'] =  ['Table','Topics']
     AllMeta['ColumnGroups'] = ColGroups
     AllMeta['DateFormat'] = 'YYYYqmm'
-    AllMeta['sliceCols'] = [['Section','Table','Topic Level_0','Topic Level_1','Topic Level_2', ('Topic Level_3','Topic Level_4','Topic Level_5')]]
+    
+    AllMeta['sliceCols'] = [['Section','Table','Topic Level_0','Topic Level_1','Topic Level_2'] + [tuple(ColGroups['Topics'][:i]) for i in range(4,len(ColGroups['Topics']) + 1)]]
     AllMeta['phraseCols'] = ['Section','Table','Topic','Line','TableNo']
 
     
@@ -824,7 +825,7 @@ def RegionalGDP_Preparse2(maindir):
     Subcollections['M'] = AllMeta
     Subcollections['M']['Title'] = 'GDP by Metropolitan Area'
     
-    IH = tuple(X.ColumnGroups['IndustryHierarchy'])
+    IH = [tuple(X.ColumnGroups['IndustryHierarchy'][:i]) for i in range(1,len(X.ColumnGroups['IndustryHierarchy']) + 1)]
 
     AllMeta = {}
     AllMeta['Source'] = [('Agency',{'Name':'Department of Commerce','ShortName':'DOC'}),('Subagency',{'Name':'Bureau of Economic Analysis','ShortName':'BEA'}),('Program','Regional Economic Accounts'), ('Dataset','Regional GDP Data')]
@@ -833,7 +834,7 @@ def RegionalGDP_Preparse2(maindir):
     ColGroups['SpaceColumns'] = ['Location']
     AllMeta['ColumnGroups'] = ColGroups
     AllMeta['DateFormat'] = 'YYYYqmm' 
-    AllMeta['sliceCols'] = [['Location', IH] ,['Location','Component'],[IH,'Component']]
+    AllMeta['sliceCols'] = [['Location'] + IH ,['Location','Component'],['Component'] + IH]
     AllMeta['phraseCols'] = ['Component', 'IndClass','IndustryHiearchy','Units','Units']    
 
     Subcollections[''] = AllMeta
@@ -1336,7 +1337,10 @@ def PI_metadata(maindir):
     AllMeta['ColumnGroups'] = {'SpaceColumns' : ['Location'],'SubjectHierarchy':['Subject Level_' + str(i) for i in range(1,8)]}
     AllMeta['DateFormat'] = 'YYYYqmm'
     
-    AllMeta['sliceCols'] = [['Location','Table',tuple(AllMeta['ColumnGroups']['SubjectHierarchy'])]]
+    SH  = AllMeta['ColumnGroups']['SubjectHierarchy']
+    SHL = [tuple(SH[:i]) for i in range(1,len(SH) + 1)] 
+    
+    AllMeta['sliceCols'] = [['Location','Table'] + SHL]
     AllMeta['phraseCols'] = ['Table','Subject','Line','LineCode']  
     Metadata[''] = AllMeta
     
