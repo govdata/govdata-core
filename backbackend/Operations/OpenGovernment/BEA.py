@@ -254,7 +254,7 @@ def NEA_preparser2(inpath,filepath,metadatapath,L = None):
         X1 = [x[x['Line'] != ''].deletecols(['Category','Label','DisplayLevel']) for x in X]
         for i in range(len(X)):
             X1[i].metadata = X[i].metadata
-            X1[i].coloring['TopicHierarchy'] = X1[i].coloring.pop('Categories')
+            X1[i].coloring['Topics'] = X1[i].coloring.pop('Categories')
             X1[i].coloring['TimeColNames'] = X1[i].coloring['Data']
             X1[i].coloring.pop('Data')
             for k in range(len(X1[i].coloring['TimeColNames'])):
@@ -268,10 +268,10 @@ def NEA_preparser2(inpath,filepath,metadatapath,L = None):
         else:
             Z = X1[0]
             
-        topics = sorted(uniqify(X.coloring['TopicHierarchy']))
-        X.coloring['TopicHierarchy'] = topics
-        for t in topics:
-            X.renamecol(t,'Topic ' + t)
+        topics = sorted(uniqify(X.coloring['Topics']))
+        X.coloring['Topics'] = topics
+        for topic in topics:
+            X.renamecol(topic,'Topic ' + topic)
             
         K = ['Category','Section','Units','Notes','DownloadedOn','LastRevised','Table','Footer']
         Z.metadata = {}
@@ -314,7 +314,8 @@ def NEA_preparser2(inpath,filepath,metadatapath,L = None):
     AllMeta['Source'] = [('Agency',{'Name':'Department of Commerce','ShortName':'DOC'}),('Subagency',{'Name':'Bureau of Economic Analysis','ShortName':'BEA'}),('Program','National Economic Accounts'), ('Dataset',Category)]
     AllMeta['TopicHierarchy'] = ('Agency','Subagency','Program','Dataset','Section','Table')
     AllMeta['UniqueIndexes'] = ['TableNo','Line']
-    ColGroups['LabelColumns'] =  ['Table','TopicHierarchy']
+    ColGroups['Topics'].sort()
+    ColGroups['LabelColumns'] =  ['Table','Topics']
     AllMeta['ColumnGroups'] = ColGroups
     AllMeta['DateFormat'] = 'YYYYqmm'
     AllMeta['sliceCols'] = [['Section','Table','Topic Level_0','Topic Level_1','Topic Level_2', ('Topic Level_3','Topic Level_4','Topic Level_5')]]
@@ -422,7 +423,8 @@ def FAT_preparser1(maindir):
         metadata['Type'] = 'National'
         metadata['Category'] = 'Fixed Asset Tables'
         metadata['Table'] = ' '.join(title.split()[1:])
-        metadata['Section'] = x['Section']
+        metadata['SectionNo'] = x['Section']
+        metadata['Section'] = x['SectionName']
         metadata['Categories'] = ', '.join(['Agency', 'Subagency', 'Type', 'Category', 'Section', 'Table'])
         metadata['Units'] = units.strip('[]')
         if footer:
@@ -456,10 +458,10 @@ def FAT_preparser2(maindir):
         X = tb.tabarray(SVfile = l)
   
         topics = sorted(uniqify(X.coloring.pop('Categories')))
-        X.coloring['TopicHierarchy'] = topics
-        for t in topics:
-            X.renamecol(t,'Topic ' + t)
-        
+        X.coloring['Topics'] = topics
+        for topic in topics:
+            X.renamecol(topic,'Topic ' + topic)
+               
         X1 = X[X['Line'] != ''].deletecols(['Category','Label','DisplayLevel'])
         X1.metadata = X.metadata
         X = X1
@@ -470,10 +472,10 @@ def FAT_preparser2(maindir):
             name = X.coloring['TimeColNames'][j]
             X.renamecol(name,nea_dateparse(name))
             
-        Section = X.metadata['Section'].split('-')[-1].strip()
-        X.metadata.pop('Section')
-        Table = X.metadata['Table']
-        X.metadata.pop('Table')
+        SectionNo = X.metadata.pop('SectionNo').split('-')[-1].strip()
+        Section = X.metadata.pop('Section')
+
+        Table = X.metadata.pop('Table')
         
         for k in X.coloring.keys():
             if k in ColGroups.keys():
@@ -483,7 +485,7 @@ def FAT_preparser2(maindir):
         
         Metadict[t] = dict([(k,X.metadata[k]) for k in GoodKeys if k in X.metadata.keys()])
         
-        X = X.addcols([[t]*len(X),[Table]*len(X),[Section]*len(X),[t]*len(X)],names=['TableNo','Table','Section','Subcollections'])
+        X = X.addcols([[t]*len(X),[Table]*len(X),[SectionNo]*len(X),[Section]*len(X),[t]*len(X)],names=['TableNo','Table','SectionNo','Section','Subcollections'])
         X.saveSV(filedir + str(i) + '.tsv',metadata=['dialect','names','formats'])
     
     AllKeys = uniqify(ListUnion([k.keys() for k in Metadict.values()]))
@@ -499,10 +501,11 @@ def FAT_preparser2(maindir):
     AllMeta['Source'] = [('Agency',{'Name':'Department of Commerce','ShortName':'DOC'}),('Subagency',{'Name':'Bureau of Economic Analysis','ShortName':'BEA'}),('Program','National Economic Accounts'), ('Dataset',Category)]
     AllMeta['TopicHierarchy'] =  ('Agency','Subagency','Program','Dataset','Section','Table')
     AllMeta['UniqueIndexes'] = ['TableNo','Line']
-    ColGroups['LabelColumns'] = ['Table','TopicHierarchy']
+    ColGroups['Topics'].sort()
+    ColGroups['LabelColumns'] = ['Table','Topics']
     AllMeta['ColumnGroups'] = ColGroups
     AllMeta['DateFormat'] = 'YYYYqmm' 
-    AllMeta['sliceCols'] = [['Section','Table'] + [tuple(ColGroups['TopicHierarchy'][:i]) for i in len(ColGroups['TopicHierarchy'])]]
+    AllMeta['sliceCols'] = [['Section','Table'] + [tuple(ColGroups['Topics'][:i]) for i in range(1,len(ColGroups['Topics']) +1)]]
 
     Subcollections = Metadict
     Subcollections[''] = AllMeta
@@ -718,8 +721,8 @@ def RegionalGDP_Preparse2(maindir):
            
         inds = sorted(uniqify(Z.coloring.pop('Categories')))
         Z.coloring['IndustryHierarchy'] = inds
-        for t in topics:
-            Z.renamecol(t,'Industry ' + t)        
+        for ind in inds:
+            Z.renamecol(ind,'Industry ' + ind)        
         
         Z.renamecol('State','Location')
         Z = Z.addcols(['{"s":' + repr(z['Location']) + ',"f":{"s":' + repr(z['FIPS']) + '}}' for z in Z],names = ['Location'])
@@ -780,8 +783,8 @@ def RegionalGDP_Preparse2(maindir):
         if 'Categories' in X.coloring.keys(): 
             inds = sorted(uniqify(X.coloring.pop('Categories')))
             X.coloring['IndustryHierarchy'] = inds
-            for t in topics:
-                X.renamecol(t,'Industry ' + t)       
+            for ind in inds:
+                X.renamecol(ind,'Industry ' + ind)       
             
         X1 = X.deletecols('component_name')
         X1 = X1.addcols(['{"m":' + repr(x['Metropolitan Area']) + ',"f":{"m":' + repr(x['FIPS']) + '}}' for x in X],names=['Location'])

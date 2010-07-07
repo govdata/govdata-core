@@ -11,7 +11,7 @@ except:
 def submitJobs(joblist):
 
     Session = drmaa.Session()
-    jobs = []
+    jobs = {}
     
     for j in joblist:
         argstr = j['argstr']
@@ -29,39 +29,29 @@ def submitJobs(joblist):
         jt.errorPath = jt.outputPath
         jt.jobName = name
         jobid = Session.runJob(jt)
-        jobs.append(jobid)
+        jobs[jobid] = j
         print 'Loading job', name, 'with id', jobid
         
-    retvals = [None]*len(jobs)
+    retvals = {}
     while True:
         running = False
-        for (i,id) in enumerate(jobs):
+        for (id,j) in jobs.items():
             js = Session.jobStatus(id)
             if js == 'done':
                 retval = Session.wait(id,drmaa.Session.TIMEOUT_WAIT_FOREVER)
                 print 'retval=', retval
                 if retval.exitStatus != 0:
-                    
-                    for j in jobs:
-                        try:
-                            Session.control(j,drmaa.JobControlAction.TERMINATE)
-			except drmaa.InvalidJobException:
-                            pass
+                    killAllJobs(jobs,Session)
                     Session.exit()
-                    raise Exception, 'Job ' + joblist[i]['name'] + ' threw an exception during grid run.  See error in ' + joblist[i]['outfile'] + '.'
+                    raise Exception, 'Job ' + j['name'] + ' threw an exception during grid run.  See error in ' + j['outfile'] + '.'
                 else:
-                    print 'job', id, '(' + joblist[i]['name'] + ')', 'succeeded.'
-                    retvals[i] = retval 
+                    print 'job', id, '(' + j['name'] + ')', 'succeeded.'
+                    retvals[id] = (jobs.pop(id),retval)
                 
             elif js == 'failed':
-                for j in jobs:
-                    try:
-                        Session.control(j,drmaa.JobControlAction.TERMINATE)
-	    	    except drmaa.InvalidJobException:
-	                pass
-
+                killAllJobs(jobs,Session)    	    
                 Session.exit()
-                raise Exception, 'Job ' + joblist[i]['name'] + ' failed during grid run.  See error in ' + joblist[i]['outfile'] + '.'
+                raise Exception, 'Job ' + j['name'] + ' failed during grid run.  See error in ' + j['outfile'] + '.'
 
             else:
                 print 'job', id, 'running.'
@@ -75,3 +65,12 @@ def submitJobs(joblist):
     Session.exit()
     
     return retvals
+
+
+
+def killAllJobs(jobs,Session):
+    for id in jobs.keys():
+        try:
+            Session.control(id,drmaa.JobControlAction.TERMINATE)
+        except drmaa.InvalidJobException:
+	    pass
