@@ -623,10 +623,15 @@ def processRecord(c,collection,VarMap,totalVariables,uniqueIndexes,versionNumber
     
 def sliceInsert(c,collection,sliceColTuples,VarMap,sliceDB,DIFF,version):      
     
+    dontcheck = []
     for sct in sliceColTuples:
         if all([VarMap[k] in c.keys() for k in sct]):
             slice = pm.son.SON([(k,c[VarMap[k]]) for k in sct if VarMap[k] in c.keys()])
-            if not sliceDB.find_one({'slice':slice,'version':version}):
+            dc = sct in dontcheck
+            if dc or not sliceDB.find_one({'slice':slice,'version':version}):
+                if not dc:
+                    SCT = set(sct)
+                    dontcheck = uniqify(dontcheck + [ss for ss in sliceColTuples if SCT <= set(ss)])
                 if DIFF:
                     sliceDB.update({'slice':slice},{'$set':{'version':version,'original':version}},upsert=True)
                 else:
