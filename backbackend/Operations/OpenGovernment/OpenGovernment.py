@@ -388,6 +388,7 @@ def updateCollection(download_dir,collectionName,parserClass,checkpath,certpath,
     
         completeSpace = False
         
+        oldc = None
         SpaceCache = {}    
         for file in toParse:
             iterator.refresh(file) 
@@ -415,7 +416,9 @@ def updateCollection(download_dir,collectionName,parserClass,checkpath,certpath,
                 if index % 100 == 0:
                     print 'At', index
                 index += 1
-                processRecord(c,collection,VarMap,totalVariables,uniqueIndexes,versionNumber,specialKeyInds,incremental,sliceDB,sliceColTuplesFlat,ContentCols)
+                sctf = processSct(sliceColTuplesFlat,oldc,c)
+                processRecord(c,collection,VarMap,totalVariables,uniqueIndexes,versionNumber,specialKeyInds,incremental,sliceDB,sctf,ContentCols)
+                oldc = c
                 
         if incremental:
             collection.update({vNInd:versionNumber - 1, retInd : {'$exists':False}}, {'$set':{vNInd:versionNumber}})                    
@@ -429,6 +432,16 @@ def updateCollection(download_dir,collectionName,parserClass,checkpath,certpath,
     
     connection.disconnect()
     createCertificate(certpath,'Collection ' + collectionName + ' written to DB.')
+
+def processSct(sct,oldc,c):
+    if oldc == None:
+        return sct
+    else:
+        keep = []
+        for (i,s) in enumerate(sct):
+            if any([oldc.get(s) != c.get(s) for k in s]):
+                keep.append(i)
+        return [sct[i] for i in keep]
 
 
 def ColGroupsFlatten(ColumnGroups,k):
@@ -614,7 +627,6 @@ def sliceInsert(c,collection,sliceColTuples,VarMap,sliceDB,DIFF,version):
         if all([VarMap[k] in c.keys() for k in sct]):
             slice = pm.son.SON([(k,c[VarMap[k]]) for k in sct if VarMap[k] in c.keys()])
             if not sliceDB.find_one({'slice':slice,'version':version}):
-
                 if DIFF:
                     sliceDB.update({'slice':slice},{'$set':{'version':version,'original':version}},upsert=True)
                 else:
