@@ -331,6 +331,9 @@ def updateCollection(download_dir,collectionName,parserClass,checkpath,certpath,
         ColumnGroups = iterator.ColumnGroups
         
         sliceColTuples = getSliceColTuples(iterator.sliceCols)
+        sliceColTuplesFlat = uniqify([tuple(sorted(uniqify(Flatten(sct)))) for sct in sliceColTuples])
+        print 'SCTF', sliceColTuplesFlat        
+
         sliceColList = uniqify(Flatten(ListUnion(sliceColTuples)))
         ContentCols = set(sliceColList + getContentCols(iterator))
             
@@ -390,7 +393,7 @@ def updateCollection(download_dir,collectionName,parserClass,checkpath,certpath,
             iterator.refresh(file) 
             tcs = iterator.ColumnGroups.get('TimeColumns',[])
             spcs = iterator.ColumnGroups.get('SpaceColumns',[])
-            
+            index = 0
             for c in iterator: 
                 newVars = [x for x in c.keys() if not x in totalVariables]
                 assert not any (['__' in x or '.' in x or x in ColumnGroups.keys() for x in newVars]) , '__ and . must not appear in key names.'     
@@ -409,8 +412,10 @@ def updateCollection(download_dir,collectionName,parserClass,checkpath,certpath,
                             else:
                                 c[spc] = loc.SpaceComplete(c[spc])
                                 SpaceCache[t] = c[spc].copy()      
-                
-                processRecord(c,collection,VarMap,totalVariables,uniqueIndexes,versionNumber,specialKeyInds,incremental,sliceDB,sliceColTuples,ContentCols)
+                if index % 100 == 0:
+                    print 'At', index
+                index += 1
+                processRecord(c,collection,VarMap,totalVariables,uniqueIndexes,versionNumber,specialKeyInds,incremental,sliceDB,sliceColTuplesFlat,ContentCols)
                 
         if incremental:
             collection.update({vNInd:versionNumber - 1, retInd : {'$exists':False}}, {'$set':{vNInd:versionNumber}})                    
@@ -594,7 +599,6 @@ def processRecord(c,collection,VarMap,totalVariables,uniqueIndexes,versionNumber
             collection.remove(s)
                 
     else:
-        print 'New:' , [c[VarMap[k]] for k in uniqueIndexes] 
         c[origInd] = versionNumber
         diff = c
         DIFF = True
@@ -604,11 +608,13 @@ def processRecord(c,collection,VarMap,totalVariables,uniqueIndexes,versionNumber
     
     return id
     
-def sliceInsert(c,collection,sliceColTuples,VarMap,sliceDB,DIFF,version):        
+def sliceInsert(c,collection,sliceColTuples,VarMap,sliceDB,DIFF,version):      
+    
     for sct in sliceColTuples:
-        if all([VarMap[k] in c.keys() if is_string_like(k) else any([VarMap[kk] in c.keys() for kk in k]) for k in sct]):
-            slice = pm.son.SON([(k,c[VarMap[k]]) for k in Flatten(sct) if VarMap[k] in c.keys()])
+        if all([VarMap[k] in c.keys() for k in sct]):
+            slice = pm.son.SON([(k,c[VarMap[k]]) for k in sct if VarMap[k] in c.keys()])
             if not sliceDB.find_one({'slice':slice,'version':version}):
+
                 if DIFF:
                     sliceDB.update({'slice':slice},{'$set':{'version':version,'original':version}},upsert=True)
                 else:

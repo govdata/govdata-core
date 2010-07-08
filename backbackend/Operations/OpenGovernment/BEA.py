@@ -1210,17 +1210,15 @@ def SAPI_preparse(maindir):
         if Summary:             
             unitsdict = {'personal income': 'Thousands of dollars', 'population': 'Number of persons', 'per capita personal income': 'Dollars'}
             units = [unitsdict[i.lower().replace('disposable ', '').strip()] for i in X['Line Title']]          
-            X = X[['Info','Data','Footnotes','Categories']].addcols([units],names=['Units'])
+            summarycol = ['Aggregate']*len(X)
+            X = X[['Info','Data','Footnotes']].addcols([units,summarycol],names=['Units','Subject Level_1'])
      
         X = X.deletecols(['First Year']).addcols(len(X)*[table + ',SA' + (',SA_S' if Summary else '')],names=['Subcollections'])
         X = X.addcols(['{"s":' + repr(sname) + ',"f":{"s":' + repr(fips) + '}}' for (fips,sname) in X[['State FIPS','State Name']]],names = ['Location'])
         X = X.deletecols(['State FIPS','State Name'])   
         
-        subj = sorted(uniqify(X.coloring.pop('Categories')))
-        X.coloring['SubjectHierarchy'] = subj
-        for s in subj:
-            X.renamecol(s,'Subject ' + s)   
-        
+        X.coloring['SubjectHierarchy'] = ['Subject Level_1']
+                
         X.renamecol('Line Code','LineCode')
         X.renamecol('Line Title','Line')
         X.renamecol('Line Title Footnotes', 'Line Footnotes')
@@ -1273,7 +1271,7 @@ def LAPI_preparse(maindir,table,level):
     Codes = tb.tabarray(SVfile = maindir + 'lapi_codes_processed.tsv')
     Codes = Codes[Codes['Table'] == table]
     hr = Codes['Hierarchy'].dtype.names
-    hrnames = ['Subject ' + str(int(n.split('_')[-1]) + 1) for n in hr]
+    subjnames = ['Subject Level_' + str(int(n.split('_')[-1]) + 1) for n in hr]
     
     for (i,c) in enumerate(Codes):
         linecode,line = c['Code'],c['CodeDescr']
@@ -1308,7 +1306,7 @@ def LAPI_preparse(maindir,table,level):
         for n in TimeColNames:
             X.renamecol(n,PI_dateparse(n))    
         X.coloring['TimeColNames'] = X.coloring.pop('Data')
-        X.coloring['SubjectHierarchy'] = list(hRec.dtype.names)
+        X.coloring['SubjectHierarchy'] = subjnames
         
         X.metadata = {'LineFootnote':LineFootnote,'Table':table,'Line':line,'LineCode':linecode}
 
@@ -1344,7 +1342,7 @@ def PI_metadata(maindir):
     SHL = [tuple(SH[:i]) for i in range(1,len(SH) + 1)] 
     
     AllMeta['sliceCols'] = [['Location','Table'] + SHL]
-    AllMeta['phraseCols'] = ['Table','Subject','Line','LineCode']  
+    AllMeta['phraseCols'] = ['Table','SubjectHierarchy','Line','LineCode']  
     Metadata[''] = AllMeta
     
     F = open(maindir + '__metadata.pickle','w')
