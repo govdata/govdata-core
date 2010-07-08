@@ -439,7 +439,7 @@ def processSct(sct,oldc,c):
     else:
         keep = []
         for (i,s) in enumerate(sct):
-            if any([oldc.get(s) != c.get(s) for k in s]):
+            if any([oldc.get(k) != c.get(k) for k in s]):
                 keep.append(i)
         return [sct[i] for i in keep]
 
