@@ -170,7 +170,7 @@ def delete_slices(sliceDB,currentVersion,atVersion):
     
     
 def queryToText(q,processors):
-    return ', '.join([key + '=' + translate(processors[key],value) for (key,value) in q.items()])  
+    return ', '.join([key + '=' + translate(processors[key],decode_obj(value)) for (key,value) in q.items()])  
     
 
 def mongoID(q,collectionName):
@@ -256,7 +256,7 @@ def smallAdd(d,query,collection,contentColNums, timeColInds ,timeColNames , time
   
     for (i,r) in enumerate(R):
         if slicecount < 100000:
-            d['sliceContents'].append(' '.join([translate(value_processors.get(x,None),rgetattr(r,x.split('.'))) if rhasattr(r,x.split('.')) else '' for x in contentColNums]))
+            d['sliceContents'].append(' '.join([translate(value_processors.get(x,None),decode_obj(rgetattr(r,x.split('.')))) if rhasattr(r,x.split('.')) else '' for x in contentColNums]))
                       
         colnames  = uniqify(colnames + r.keys())
         
@@ -280,7 +280,7 @@ def smallAdd(d,query,collection,contentColNums, timeColInds ,timeColNames , time
                     commonLocation = loc.intersect(commonLocation,r[str(x)]) if commonLocation != None else None
                     spaceVals.append(location)
                    
-    d['sliceContents'] = decode(' '.join(d['sliceContents']))
+    d['sliceContents'] = ' '.join(d['sliceContents'])
     Subcollections = uniqify(Subcollections)
     d['columnNames'] = [collection.totalVariables[int(x)] for x in colnames if x.isdigit()]
     d['dimension'] = len(d['columnNames'])
@@ -382,7 +382,7 @@ def largeAdd(d,query,collection,contentColNums, timeColInds ,timeColNames , time
                 
     print '3'    
 
-    d['sliceContents'] = decode(' '.join(uniqify(ListUnion([translate_list(value_processors.get(x,None) ,collection.find(query).distinct(x)) for x in contentColNums]))))
+    d['sliceContents'] = ' '.join(uniqify(ListUnion([translate_list(value_processors.get(x,None) ,map(decode_obj,collection.find(query).distinct(x))) for x in contentColNums])))
 
     return d
 
@@ -553,6 +553,16 @@ def getStrs(collection,namelist):
             numlist.append([str(collection.totalVariables.index(m)) for m in collection.ColumnGroups[n]])
     return numlist
         
+
+def decode_obj(x):
+    if is_string_like(x):
+        return decode(x)
+    elif hasattr(x,'keys'):
+        return pm.son.SON([(k,decode_obj(x[k])) for k in x.keys()]) 
+    elif is_instance(x,list):
+        return [decode_obj(y) for y in x]
+    else:
+        return x
 
 def decode(v):
     try:
