@@ -916,7 +916,7 @@ class SourceHandler(asyncCursorHandler):
 #=-=-=-=-=-=-=-=-=-=-=-=-=-
 
         
-BASE_URL = 'http://govdata.org/OAIHandler'
+BASE_URL = 'http://govdata.org/oai'
 ADMIN_EMAIL = 'govdata@lists.hmdc.harvard.edu'
 
 
@@ -924,36 +924,45 @@ import xml.etree.ElementTree as ET
 
 DC_KEYS = ['Source','description','keywords','URL']
 
-def dc_formatter(record):
+def dc_formatter(record,handler,collection):
     metadata = record['metadata']
-    elt = ET.Element('oai_dc:dc',attrib={'xmlns:oai_dc':"http://www.openarchives.org/OAI/2.0/oai_dc/"})
+    elt = ET.Element('oai_dc:dc',attrib={"xmlns:oai_dc":"http://www.openarchives.org/OAI/2.0/oai_dc/","xmlns:dc":"http://purl.org/dc/elements/1.1/","xmlns:xsi":"http://www.w3.org/2001/XMLSchema-instance","\
+xsi:schemaLocation":"http://www.openarchives.org/OAI/2.0/oai_dc.xsd"})
     vals = {}
-    vals['title'] = metadata['Source']['dataset']
-    vals['creator'] = ', '.join([key + '=' + value for (key,value) in metadata['Source'].items()])
+    title = metadata['Source']['Dataset']
+    vals['title'] = title if is_string_like(title) else title['Name']
+    vals['creator'] = ', '.join([key + ': ' + (value if is_string_like(value) else value['Name']) for (key,value) in metadata['Source'].items() if key != 'Dataset'])
     vals['identifier'] = record['name']
     vals['source'] = metadata.get('URL','')
-    vals['subject'] = metadata.get('keywords','')
+    vals['subject'] = ', '.join(metadata.get('keywords',''))
     vals['description'] = metadata.get('description','')
     vals['date'] = td.convertToUTC(record['timeStamp'])
     for (k,v) in vals.items():
         if v:
             e = ET.Element('dc:' + k)
             e.text = v
-            elt.insert(e) 
-    return e
+            elt.insert(0,e) 
+    m = ET.Element('metadata') ; m.insert(0,elt)
+    h = header(record)
+    r = ET.Element('record') ; r.insert(0,h); r.insert(1,m)
     
-def list_identifier_formatter(record):
+    return r
+    
+def list_identifier_formatter(record,handler,collection):
+    return header(record)
+
+def header(record):
     elt = ET.Element('header')
     id = ET.Element('identifier')
     id.text = record['name'] + ':' + str(record['version'])
-    elt.insert(id)
+    elt.insert(0,id)
     date = ET.Element('datestamp')
     date.text = td.convertToUTC(record['timeStamp'])
-    elt.insert(date)
+    elt.insert(1,date)
     return elt
     
 
-OAI_FORMATS={'oai_dc':{'metadataPrefix':'oai_dc','keys':DC_KEYS,'formatter':dc_formatter,'schema':'http://www.openarchives.org/OAI/2.0/oai_dc.xsd','metadataNameSpace':'http://www.openarchives.org/OAI/2.0/oai_dc/','limit':1000}}
+OAI_FORMATS={'oai_dc':{'metadataPrefix':'oai_dc','keys':DC_KEYS,'formatter':dc_formatter,'schema':'http://www.openarchives.org/OAI/2.0/oai_dc.xsd','metadataNameSpace':'http://www.openarchives.org/OAI/2.0/oai_dc/','limit':10}}
 
 class OAIHandler(asyncCursorHandler):
 
@@ -961,6 +970,9 @@ class OAIHandler(asyncCursorHandler):
     def get(self):
         args = self.request.arguments
  
+        self.stream = False
+        self.returnObj = True
+
         badArgs = any([len(v) > 1 for v in args.values()])            
         for k in args:      
             args[k] = args[k][0]           
@@ -969,7 +981,7 @@ class OAIHandler(asyncCursorHandler):
             self.bad_argument()
             return 
 
-        verb = args.pop('verb','')
+        verb = args.get('verb','')
         if not verb in ['GetRecord','Identify','ListIdentifiers','ListMetadataFormats','ListRecords','ListSets']:
             self.error('badVerb','Illegal Verb or verb argument not specified.')
             return 
@@ -977,20 +989,20 @@ class OAIHandler(asyncCursorHandler):
             self.verb = verb
                 
         if verb == 'GetRecord':
-            if set(args.keys()) != set(['identifier','metadataPrefix']):
+            if set(args.keys()) != set(['identifier','metadataPrefix','verb']):
                 self.bad_argument()
             else:
                 id = args['identifier']
-                mp = args['metadatPrefix']
+                mp = args['metadataPrefix']
                 self.GetRecord(id,mp)
         elif verb == 'Identify':
-            if args.keys():
+            if args.keys() != ['verb']:
                 self.bad_argument()
             else:
                 self.Identify()
         elif verb == 'ListIdentifiers':
-            properArgs = set(args.keys())  <= set(['from','until','set','metadataPrefix','resumptionToken'])
-            baseArg = ('metadataPrefix' in args and 'resumptionToken' not in args) or args.keys() == ['resumptionToken']
+            properArgs = set(args.keys())  <= set(['from','until','set','metadataPrefix','resumptionToken','verb'])
+            baseArg = ('metadataPrefix' in args and 'resumptionToken' not in args) or set(args.keys()) == set(['resumptionToken','verb'])
             if not (properArgs and baseArg):
                 self.bad_argument()
             else:
@@ -1001,24 +1013,24 @@ class OAIHandler(asyncCursorHandler):
                 rt = args.get('resumptionToken')
                 self.ListIdentifiers(mp,From,Until,Set,rt)
         elif verb == 'ListMetadataFormats':
-            if args.keys():
+            if args.keys() != ['verb']:
                 self.bad_argument()
             else:
                 self.ListMetadataFormats()
         elif verb == 'ListRecords':
-            properArgs = set(args.keys())  <= set(['from','until','set','metadataPrefix','resumptionToken'])
-            baseArg = ('metadataPrefix' in args and 'resumptionToken' not in args) or args.keys() == ['resumptionToken']
+            properArgs = set(args.keys())  <= set(['from','until','set','metadataPrefix','resumptionToken','verb'])
+            baseArg = ('metadataPrefix' in args and 'resumptionToken' not in args) or set(args.keys()) == set(['resumptionToken','verb'])
             if not (properArgs and baseArg):
                 self.bad_argument()
             else:
-                mp = args['metadataPrefix']
+                mp = args.get('metadataPrefix',None)
                 From = args.get('from','')
                 Until = args.get('until','')
                 Set = args.get('set')
                 rt = args.get('resumptionToken')
                 self.ListRecords(mp,From,Until,Set,rt)
         elif verb == 'ListSets':
-            properArgs = set(args.keys())  <= set(['resumptionToken'])
+            properArgs = set(args.keys())  <= set(['resumptionToken','verb'])
             if not properArg:
                 self.bad_argument()
             else:
@@ -1027,7 +1039,10 @@ class OAIHandler(asyncCursorHandler):
                    
     def end(self):
         self.finalize()
-        v = oai_wrap(self.data,self.args,text = self.wrap_text,attrib=self.wrap_attrib)
+        if not hasattr(self,'wrap_text'):  self.wrap_text = ''
+        if not hasattr(self,'wrap_attrib'): self.wrap_attrib = None
+        v = oai_wrap(self.data,self.args,self.verb,text = self.wrap_text,attrib=self.wrap_attrib)
+        self.set_header("Content-Type", "text/xml")
         self.write(ET.tostring(v))
         self.finish()
         
@@ -1048,7 +1063,7 @@ class OAIHandler(asyncCursorHandler):
         if id.count(':') != 1:
             self.error('badArgument','id format incorrect -- must contain exactly one ":".')
             return 
-        name = id.split(':')[0].strip ; version = int(id.split(':')[-1])    
+        name = id.split(':')[0].strip() ; version = int(id.split(':')[-1])    
         connection = pm.Connection(document_class=pm.son.SON)
         collection = connection['govdata']['____SOURCES____']       
         self.processor = OAI_FORMATS[mp]['formatter']
@@ -1070,18 +1085,18 @@ class OAIHandler(asyncCursorHandler):
     def ListIdentifiers(self,mp,From,Until,Set,rt):          
         query = {}
         if From or Until:
-            query['tstamp'] = {}
+            query['timeStamp'] = {}
             if From:
                 FromDate = td.convertFromUTC(From)
                 if FromDate:
-                    query['tstamp']['$geq'] = FromDate
+                    query['timeStamp']['$gte'] = FromDate
                 else:
                     self.error('badArgument','"from" timestamp in wrong format')
                     return
             if Until:
                 UntilDate = td.convertFromUTC(Until)
-                if FromDate:
-                    query['tstamp']['$leq'] = UntilDate
+                if UntilDate:
+                    query['timeStamp']['$lte'] = UntilDate
                 else:
                     self.error('badArgument','"until" timestamp in wrong format')
                     return          
@@ -1095,54 +1110,54 @@ class OAIHandler(asyncCursorHandler):
         data = []
         for k in OAI_FORMATS:
             elt = ET.Element('metadataFormat')      
-            for l in ['metadataPrefix','schema','metadataNameSpace']:
+            for (i,l) in enumerate(['metadataPrefix','schema','metadataNameSpace']):
                 elt0 = ET.Element(l)
                 elt0.text = OAI_FORMATS[k][l]
-                elt.insert(elt0)
+                elt.insert(i,elt0)
             data.append(elt)
         self.data = data
         self.end()
         
 
     def ListRecords(self,mp,From,Until,Set,rt):
-        if mp not in OAI_FORMATS.keys():
+        if not rt and  mp not in OAI_FORMATS.keys():
             self.error('cannotDisseminateFormat','Format ' + repr(mp) + ' is not supported by the item or by the repository.')
             return 
         connection = pm.Connection(document_class=pm.son.SON)
         collection = connection['govdata']['____SOURCES____']   
         if rt:
-            count,From,Until,skip,cursor = rt.split('_')
+            count,From,Until,skip,cursor,mp = rt.split('!')
             count = int(count)
             skip = int(skip)
             self.resumptionToken = rt             
         query = {}
         if From or Until:
-            query['tstamp'] = {}
+            query['timeStamp'] = {}
             if From:
                 FromDate = td.convertFromUTC(From)
                 if FromDate:
-                    query['tstamp']['$geq'] = FromDate
+                    query['timeStamp']['$gte'] = FromDate
                 else:
                     self.error('badArgument','"from" timestamp in wrong format')
                     return
             if Until:
                 UntilDate = td.convertFromUTC(Until)
                 if FromDate:
-                    query['tstamp']['$leq'] = UntilDate
+                    query['timeStamp']['$lte'] = UntilDate
                 else:
                     self.error('badArgument','"until" timestamp in wrong format')
                     return                      
         if not rt:
-            count = collection.count(query)
+            count = collection.find(query).count()
             skip = 0
             cursor = -1
-            self.resumptionToken = '_'.join([str(count),From,Until,str(skip),str(cursor)])
+            self.resumptionToken = '!'.join([str(count),From,Until,str(skip),str(cursor),mp])
         if count == 0:
             self.error('noRecordsMatch','The combination of the values of the from, until, and set arguments results in an empty list.')
         elif skip >= count:
             self.error('badArgument','The rt is bad')
         else:
-            querySequence = [('find',[(query,),{'fields':['name','version','timeStamp']}]),('skip',[(skip,),{}]),('limit',[(OAI_FORMATS[mp]['limit'],),{}])]      
+            querySequence = [('find',[(query,),{}]),('skip',[(skip,),{}]),('limit',[(OAI_FORMATS[mp]['limit'],),{}])]      
             self.processor = OAI_FORMATS[mp]['formatter']
             self.add_async_cursor(collection,querySequence)                  
     
@@ -1158,41 +1173,40 @@ class OAIHandler(asyncCursorHandler):
                 self.wrap_text  = 'The combination of the values of the from, until, and set arguments results in an empty list.'
                 self.wrap_attrib = {'code':'noRecordsMatch'}
             else:
-                elt = ET.element('resumptionToken',attrib={'completeListSize':str(len(self.data)),'cursor':'0' })
+                elt = ET.Element('resumptionToken',attrib={'completeListSize':str(len(self.data)),'cursor':'0' })
                 self.data.append(elt)
         elif self.verb == 'ListRecords':
-            count,From,Until,skip,cursor = self.resumptionToken.split('_')
+            count,From,Until,skip,cursor,mp = self.resumptionToken.split('!')
             cursor = str(int(cursor) + 1)
-            elt = ET.element('resumptionToken',attrib={'completeListSize':count,'cursor':cursor})
+            elt = ET.Element('resumptionToken',attrib={'completeListSize':count,'cursor':cursor})
             count = int(count) ; skip = int(skip) 
             skip += len(self.data)
             if count > skip:
-                elt.text =  '_'.join([str(count),From,Until,str(skip),cursor])
+                elt.text =  '!'.join([str(count),From,Until,str(skip),cursor,mp])
             self.data.append(elt)
 
         
 import time
-def oai_wrap(elts,args,text = '',attrib = None):
+def oai_wrap(elts,args,verb,text = '',attrib = None):
     if attrib == None:
         attrib = {}
         
-    response = ET.Element('OAI-PMH',attrib={'xsi:schemaLocation':"http://www.openarchives.org/OAI/2.0/OAI-PMH.xsd"})
+    response = ET.Element('OAI-PMH',attrib={'xmlns':"http://www.openarchives.org/OAI/2.0/",'xmlns:xsi':"http://www.w3.org/2001/XMLSchema-instance", 'xsi:schemaLocation':"http://www.openarchives.org/OAI/2.0/OAI-PMH.xsd"})
     
     responseDate = ET.Element('responseDate')
     responseDate.text = time.strftime('%Y-%m-%dT%H:%M:%SZ') 
     
     request = ET.Element('request',attrib=args)
     request.text = BASE_URL
-
     body = ET.Element(verb,attrib=attrib)
     if text:
         body.text = text
-    for e in elts:
-        body.insert(e)
+    for (i,e) in enumerate(elts):
+        body.insert(i,e)
         
-    response.insert(responseDate)
-    response.insert(request)
-    response.insert(body)
+    response.insert(0,responseDate)
+    response.insert(1,request)
+    response.insert(2,body)
     
     return response
     

@@ -660,7 +660,7 @@ def updateSourceDBFromCollections(collectionNames = None):
 
         subcollections = collection.metadata.values()
         if old_version_number != new_version_number:
-            vCollectionName = collectionName + '__VERSIONS__'
+            vCollectionName = '__' + collectionName + '__VERSIONS__'
             vCollection = db[vCollectionName]
             tstamp = vCollection.find_one({'__versionNumber__':new_version_number},fields=[ '__timeStamp__'])['__timeStamp__']
             
