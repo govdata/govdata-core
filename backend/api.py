@@ -1148,12 +1148,10 @@ class OAIHandler(asyncCursorHandler):
     def ListSets(self,rt):
         connection = pm.Connection(document_class=pm.son.SON)
         collection = connection['govdata']['____SOURCES____']
-#        Sources = collection.distinct('metadata.Source')
-        Sources = collection.find(fields = ['source'])
+        Sources = collection.distinct('source')
         setSpecs = []
         subspecs = []
         for Source in Sources:
-            Source = Source['source']
             for (i,k) in enumerate(Source):
                 if hasattr(Source[k],'keys'):
                     subspec = pm.son.SON([(l,Source[l]) for l in Source.keys()[:i+1]])
