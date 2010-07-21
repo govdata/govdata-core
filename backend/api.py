@@ -1198,7 +1198,7 @@ def get_tquery(query,From,Until):
                 return False
         if Until:
             UntilDate = td.convertFromUTC(Until)
-            if FromDate:
+            if UntilDate:
                 query['timeStamp']['$lte'] = UntilDate
                 return True
             else:
