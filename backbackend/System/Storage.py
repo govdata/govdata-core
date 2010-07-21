@@ -4,7 +4,7 @@ Routines for storing and retrieving information about files and python objects.
 ===========
 
 In the Data Environment, which is devoted to understanding and managing dependency links, 
-routines throughout the starflow often require stored information about files, directories, 
+routines throughout the System often require stored information about files, directories, 
 functions, and data structures.   This information may include:
 		
 1) Information that can't directly be determined by analyzing the file or directory:  
@@ -45,23 +45,23 @@ compute that introspection only once per object per modification, and store the
 results of that introspection in a standardized format in a single place. 
 		
 The  "data model" behind our approach to doing this enables us to be as lazy as possible, 
-leaving as much to operating starflow as we can.  The basic idea is that every object 
-stored on disk in the Data Environment file starflow is one of two things:
-	1) A directory or a file inside a directory  -- whose properties are "at the operating starflow level" 
+leaving as much to operating System as we can.  The basic idea is that every object 
+stored on disk in the Data Environment file System is one of two things:
+	1) A directory or a file inside a directory  -- whose properties are "at the operating System level" 
 		and which don't need to be made "live" to access
 or
 	2) an implied object __inside__ a file -- whose properties are "more specific than
-	the operating starflow level" and which require some form of "being live" to access
+	the operating System level" and which require some form of "being live" to access
 		
 For instance, a python package consists of a directory containing python .py files, and
 in turn each py file is a module containing python objects.  Or a relational database, 
-which is at one level a filestarflow, but which at a lower level consists of records. 
+which is at one level a fileSystem, but which at a lower level consists of records. 
 
 Now, for information about things at the files and directories levels, we are able to 
-rely mostly on things provided by the operating starflow: it obviously already stores 
+rely mostly on things provided by the operating System: it obviously already stores 
 the files themselves, and provides access to file and directory modification 
 information, through things like the 'stat' and 'diff' utilities.     However, for finer 
-detail, we need to supplement the operating starflow.   The basic strategy is:
+detail, we need to supplement the operating System.   The basic strategy is:
 	-- for each of several "Special Supported File Types", store information about the 
 	more detailed parts of the supported file type
 and then
@@ -80,22 +80,22 @@ All other files are treated at the atomic level.  (In the future, other kinds of
 could be stored, e.g. records in a database by integrating database query routines .... etc...)
 	
 '''
-from starflow.Utils import *
+from System.Utils import *
 import marshal, cPickle, os, types, hashlib, traceback
-import starflow.StaticAnalysis
+import System.StaticAnalysis
 
-def FindMtime(path,objectname= '',HoldTimes = None,Simple=True,depends_on=('../starflow/StoredModules/',),creates=('../starflow/StoredModules/',)):
+def FindMtime(path,objectname= '',HoldTimes = None,Simple=True,depends_on=('../System/StoredModules/',),creates=('../System/StoredModules/',)):
 
 	''' 
 	This is the main unified interface to path and path-part mod times that 
-	is to be used throughout the starflow.  
+	is to be used throughout the System.  
 	
 	ARGUMENTS:
 	--path = path whose mod-time is to be assessed	
 	--objectname = name of object within that path, whose mod-time is to be assessed. 
 	--HoldTimes = Dictionary, where:
 		--keys are paths
-		--HoldTimes[Path] is a timestamp that the starflow is meant to "pretend" 
+		--HoldTimes[Path] is a timestamp that the System is meant to "pretend" 
 		is the mod time of Path, if Path comes up as a source or target during the 
 		propagation process, instead of computing the real mod time. 
 	-- Simple = Boolean : if True, only looks just at the modtime of path; if False, 
@@ -145,7 +145,7 @@ def FindMtime(path,objectname= '',HoldTimes = None,Simple=True,depends_on=('../s
 		else:
 			return Mtime
 
-def ListFindMtimes(FileParts,HoldTimes = None,Simple=True,Parallel = True, depends_on=('../starflow/StoredModules',),creates=('../starflow/StoredModules',)):
+def ListFindMtimes(FileParts,HoldTimes = None,Simple=True,Parallel = True, depends_on=('../System/StoredModules',),creates=('../System/StoredModules',)):
 	'''
 	Given a list of files and objects within those files, computes mtimes for them. 
 	This is an optimization on top of FindMtimes, by inspecting a list of file/object pairs,
@@ -207,7 +207,7 @@ def ListFindMtimes(FileParts,HoldTimes = None,Simple=True,Parallel = True, depen
 	if NC > 1:	
 		M = len(SpecialFiles)/NC
 		print 'activating parallel with ', NC, 'processes'
-		Jobs = [JobServer.submit(BlockUpdateModuleStorage, (SpecialFiles[i*M:(i+1)*M],),modules=('starflow.Storage',)) for i in range(NC-1)] +[JobServer.submit(BlockUpdateModuleStorage, (SpecialFiles[(NC-1)*M:],),modules=('starflow.Storage',))]
+		Jobs = [JobServer.submit(BlockUpdateModuleStorage, (SpecialFiles[i*M:(i+1)*M],),modules=('System.Storage',)) for i in range(NC-1)] +[JobServer.submit(BlockUpdateModuleStorage, (SpecialFiles[(NC-1)*M:],),modules=('System.Storage',))]
 	else:
 		if len(SpecialFiles) > 0:
 			UpdateModuleStorage(SpecialFiles)
@@ -483,7 +483,7 @@ def UpdateModuleStorage(path):
 					print reload(Module)
 					L = {}
 					execfile(path,L)
-					Static = starflow.StaticAnalysis.GetFullUses(path)
+					Static = System.StaticAnalysis.GetFullUses(path)
 				except:
 					print 'The Module', ModuleName, 'isn\'t compiling, nothing stored.  Specifically:'
 					print traceback.print_exc()
@@ -559,7 +559,7 @@ class StoredModulePart():
 	'''
 	
 	
-	__module__ =  'starflow.Storage'    #<-- this is specified so that instances of this class pickle correctly, even if they're instantiated at the command prompt.  pickled class instances are pickled with a reference to the module where the instance was made, and unless sthis is set, the value is wrong in the pickled object.  Unfortunately this is inconvenient because if you change the location of this class you have to change the setting of this function, invalidating all the pickled class instances .... ugh.  A better solution is required. 
+	__module__ =  'System.Storage'    #<-- this is specified so that instances of this class pickle correctly, even if they're instantiated at the command prompt.  pickled class instances are pickled with a reference to the module where the instance was made, and unless sthis is set, the value is wrong in the pickled object.  Unfortunately this is inconvenient because if you change the location of this class you have to change the setting of this function, invalidating all the pickled class instances .... ugh.  A better solution is required. 
 	def __init__(self,obj,ScopeName=None,Static=None):
 		self.static = Static
 		self.typestr = repr(type(obj))
@@ -687,5 +687,5 @@ def GetStoredPathNames(path):
 		from path name of the module to be stored. 
 	'''
 
-	StoredPath = '../starflow/StoredModules/' + path.strip('../').replace('/','__')
+	StoredPath = '../System/StoredModules/' + path.strip('../').replace('/','__')
 	return [StoredPath + '.ModuleStorage', StoredPath + '.ModuleTimes']
