@@ -312,7 +312,7 @@ def NEA_preparser2(inpath,filepath,metadatapath,L = None):
     
     Category = AllMeta.pop('Category')
 
-    AllMeta['Source'] = [('Agency',{'Name':'Department of Commerce','ShortName':'DOC'}),('Subagency',{'Name':'Bureau of Economic Analysis','ShortName':'BEA'}),('Program','National Economic Accounts'), ('Dataset',Category)]
+    AllMeta['Source'] = [('Agency',{'Name':'Department of Commerce','ShortName':'DOC'}),('Subagency',{'Name':'Bureau of Economic Analysis','ShortName':'BEA'}),('Program',{'ShortName':'REA','Name':'National Economic Accounts'}), ('Dataset',{'ShortName':'NIPA','Name':Category})]
     AllMeta['TopicHierarchy'] = ('Agency','Subagency','Program','Dataset','Section','Table')
     AllMeta['UniqueIndexes'] = ['TableNo','Line']
     ColGroups['Topics'].sort()
@@ -500,7 +500,7 @@ def FAT_preparser2(maindir):
                 
     Category = AllMeta['Category']
     AllMeta.pop('Category')
-    AllMeta['Source'] = [('Agency',{'Name':'Department of Commerce','ShortName':'DOC'}),('Subagency',{'Name':'Bureau of Economic Analysis','ShortName':'BEA'}),('Program','National Economic Accounts'), ('Dataset',Category)]
+    AllMeta['Source'] = [('Agency',{'Name':'Department of Commerce','ShortName':'DOC'}),('Subagency',{'Name':'Bureau of Economic Analysis','ShortName':'BEA'}),('Program',{'ShortName':'NEA','Name':'National Economic Accounts'}), ('Dataset',{'ShortName':'FAT','Name':Category})]
     AllMeta['TopicHierarchy'] =  ('Agency','Subagency','Program','Dataset','Section','Table')
     AllMeta['UniqueIndexes'] = ['TableNo','Line']
     ColGroups['Topics'].sort()
@@ -830,7 +830,7 @@ def RegionalGDP_Preparse2(maindir):
     IH = [tuple(ColGroups['IndustryHierarchy'][:i]) for i in range(1,len(ColGroups['IndustryHierarchy']) + 1)]
 
     AllMeta = {}
-    AllMeta['Source'] = [('Agency',{'Name':'Department of Commerce','ShortName':'DOC'}),('Subagency',{'Name':'Bureau of Economic Analysis','ShortName':'BEA'}),('Program','Regional Economic Accounts'), ('Dataset','Regional GDP Data')]
+    AllMeta['Source'] = [('Agency',{'Name':'Department of Commerce','ShortName':'DOC'}),('Subagency',{'Name':'Bureau of Economic Analysis','ShortName':'BEA'}),('Program',{'ShortName':'REA','Name':'Regional Economic Accounts'}), ('Dataset',{'ShortName':'RegGDP','Name':'Regional GDP Data'})]
     AllMeta['TopicHierarchy']  = ('Agency','Subagency','Program','Dataset','Category')
     AllMeta['UniqueIndexes'] = ['Location','IndustryCode','ComponentCode','IndClass']
     ColGroups['SpaceColumns'] = ['Location']
@@ -1331,7 +1331,7 @@ def PI_metadata(maindir):
     Metadata['LA'] = {'Title':'Local Area Personal Income', 'Description' : 'Local Area Personal Income data for all US counties, from the <a href="http://www.bea.gov/regional/reis/default.cfm?selTable=Single%20Line">Local Area Personal Income "Single Line of data for all counties"</a> data set under the <a href="http://www.bea.gov/regional/index.htm">Regional Economic Accounts</a> section of the <a href="http://www.bea.gov/">Bureau of Economic Accounts (BEA)</a> website.  For more information on the industry classifications, see the BEA web pages on  <a href="http://www.bea.gov/regional/definitions/nextpage.cfm?key=NAICS">NAICS (1997-2008)</a> and <a href="http://www.bea.gov/regional/definitions/nextpage.cfm?key=SIC">SIC (1963-1997)</a>.  With the exception of per capita estimates, all dollar estimates are in thousands of dollars. All employment estimates are number of jobs. All dollar estimates are in current dollars.'}
 
     AllMeta = {}
-    AllMeta['Source'] = [('Agency',{'Name':'Department of Commerce','ShortName':'DOC'}),('Subagency',{'Name':'Bureau of Economic Analysis','ShortName':'BEA'}),('Program','Regional Economic Accounts'), ('Dataset','Personal Income')]
+    AllMeta['Source'] = [('Agency',{'Name':'Department of Commerce','ShortName':'DOC'}),('Subagency',{'Name':'Bureau of Economic Analysis','ShortName':'BEA'}),('Program',{'ShortName':'REA','Name':'Regional Economic Accounts'}), ('Dataset',{'ShortName':'PI','Name':'Personal Income'})]
     AllMeta['TopicHierarchy']  = ('Agency','Subagency','Dataset','Category','Subcategory','SubjectHierarchy')
     AllMeta['UniqueIndexes'] = ['Location','Table','LineCode']
     AllMeta['ColumnGroups'] = {'SpaceColumns' : ['Location'],'SubjectHierarchy':['Subject Level_' + str(i) for i in range(1,8)]}
@@ -1861,7 +1861,7 @@ class ii_parser(OG.dataIterator):
         
         iCols = ['Division','Entity','Series','Aggregation','Location','USState','Industry']
         
-        D['Source'] = [('Agency',{'Name':'Department of Commerce','ShortName':'DOC'}),('Subagency',{'Name':'Bureau of Economic Analysis','ShortName':'BEA'}),('Program','International Economic Accounts'), ('Dataset','Operations of Multinational Companies')]
+        D['Source'] = [('Agency',{'Name':'Department of Commerce','ShortName':'DOC'}),('Subagency',{'Name':'Bureau of Economic Analysis','ShortName':'BEA'}),('Program',{'ShortName':'IEA','Name':'International Economic Accounts'}), ('Dataset',{'ShortName':'OMC','Name':'Operations of Multinational Companies'})]
                
         D['DateFormat'] = 'YYYY'
         D['ColumnGroups'] = {'TimeColNames':[],'LabelColumns':iCols,'SpaceColumns':['USState','Location']}

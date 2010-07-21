@@ -49,13 +49,16 @@ class Cursor(object):
 
     def __init__(self, collection, spec, fields, skip, limit, slave_okay,
                  timeout, tailable, snapshot=False,
-                 _sock=None, _must_use_master=False, _is_command=False):
+                 _sock=None, _must_use_master=False, _is_command=False,as_class=None):
         """Create a new cursor.
 
         Should not be called directly by application developers.
 
         .. mongodoc:: cursors
         """
+        if as_class is None:
+            as_class = collection.database.connection.document_class
+
         self.__collection = collection
         self.__spec = spec
         self.__fields = fields
@@ -71,6 +74,7 @@ class Cursor(object):
         self.__socket = _sock
         self.__must_use_master = _must_use_master
         self.__is_command = _is_command
+        self.__as_class = as_class
 
         self.__data = []
         self.__id = None
@@ -452,7 +456,7 @@ class Cursor(object):
             self.__connection_id = connection_id
     
             try:
-                response = helpers._unpack_response(response, self.__id)
+                response = helpers._unpack_response(response, self.__id,as_class=self.__as_class)
             except AutoReconnect:
                 db.connection._reset()
                 raise

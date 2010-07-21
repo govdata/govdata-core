@@ -959,6 +959,9 @@ def header(record):
     date = ET.Element('datestamp')
     date.text = td.convertToUTC(record['timeStamp'])
     elt.insert(1,date)
+    spec = ET.Element('setSpec')
+    spec.text = SourceSpec_to_setSpec(record['metadata']['Source'])
+    elt.insert(2,spec)
     return elt
     
 
@@ -1031,7 +1034,7 @@ class OAIHandler(asyncCursorHandler):
                 self.ListRecords(mp,From,Until,Set,rt)
         elif verb == 'ListSets':
             properArgs = set(args.keys())  <= set(['resumptionToken','verb'])
-            if not properArg:
+            if not properArgs:
                 self.bad_argument()
             else:
                  rt = args.get('resumptionToken')
@@ -1087,7 +1090,10 @@ class OAIHandler(asyncCursorHandler):
         status = get_tquery(query,From,Until)
         if not status:
             return
-        querySequence = [('find',[(query,),{'fields':['name','version','timeStamp']}])]
+        status = get_setquery(query,Set)
+        if not status:
+            return
+        querySequence = [('find',[(query,),{'fields':['name','version','timeStamp','metadata.Source']}])]
         connection = pm.Connection(document_class=pm.son.SON)
         collection = connection['govdata']['____SOURCES____']       
         self.processor = list_identifier_formatter
@@ -1121,6 +1127,10 @@ class OAIHandler(asyncCursorHandler):
         status = get_tquery(query,From,Until)
         if not status:
             return
+        status = get_setquery(query,Set)
+        if not status:
+            return
+
         if not rt:
             count = collection.find(query).count()
             skip = 0
@@ -1135,6 +1145,29 @@ class OAIHandler(asyncCursorHandler):
             self.processor = OAI_FORMATS[mp]['formatter']
             self.add_async_cursor(collection,querySequence)                  
     
+    def ListSets(self,rt):
+        connection = pm.Connection(document_class=pm.son.SON)
+        collection = connection['govdata']['____SOURCES____']
+#        Sources = collection.distinct('metadata.Source')
+        Sources = collection.find(fields = ['metadata.Source'])
+        setSpecs = []
+        subspecs = []
+        for Source in Sources:
+            Source = Source['metadata']['Source']
+            for (i,k) in enumerate(Source):
+                if hasattr(Source[k],'keys'):
+                    subspec = pm.son.SON([(l,Source[l]) for l in Source.keys()[:i+1]])
+                    if subspec not in subspecs:
+                        setSpec = ET.Element('setSpec') ; setSpec.text = SourceSpec_to_setSpec(subspec)
+                        setName = ET.Element('setName') ; setName.text = SourceSpec_to_setName(subspec)
+                        e = ET.Element('set') ; e.insert(0,setSpec) ; e.insert(1,setName)
+                        setSpecs.append(e)
+        self.data = setSpecs
+        self.end()
+
+
+        
+
     def finalize(self):
         if self.verb == 'GetRecord':
             if len(self.data) == 0:
@@ -1206,3 +1239,30 @@ def get_tquery(query,From,Until):
                 return False
     else:
         return True
+
+def get_setquery(query,Set):
+    if Set:
+        SourceSpec = setSpec_to_SourceSpec(Set)
+        if SourceSpec:
+            for k in SourceSpec:
+                query['metadata.Source.'+ k] = SourceSpec[k]
+            else:
+                self.error('badArgument','setSpec is formed incorrect')
+                return False
+    return True
+
+def setSpec_to_SourceSpec(spec):
+    x = spec.split(':')
+    if all([y.count('!') == 1 for y in x]):
+        Source = {}
+        for y in x:
+            key,name = y.split('!')
+            Source[key + '.ShortName'] = name
+
+        return Source
+     
+def SourceSpec_to_setSpec(Spec):
+    return ':'.join([k +'!' + Spec[k]['ShortName'] for k in Spec if hasattr(Spec[k],'keys')])
+
+def SourceSpec_to_setName(Spec):
+    return Spec[Spec.keys()[-1]]['Name']
