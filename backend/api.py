@@ -1084,22 +1084,9 @@ class OAIHandler(asyncCursorHandler):
     
     def ListIdentifiers(self,mp,From,Until,Set,rt):          
         query = {}
-        if From or Until:
-            query['timeStamp'] = {}
-            if From:
-                FromDate = td.convertFromUTC(From)
-                if FromDate:
-                    query['timeStamp']['$gte'] = FromDate
-                else:
-                    self.error('badArgument','"from" timestamp in wrong format')
-                    return
-            if Until:
-                UntilDate = td.convertFromUTC(Until)
-                if UntilDate:
-                    query['timeStamp']['$lte'] = UntilDate
-                else:
-                    self.error('badArgument','"until" timestamp in wrong format')
-                    return          
+        status = get_tquery(query,From,Until)
+        if not status:
+            return
         querySequence = [('find',[(query,),{'fields':['name','version','timeStamp']}])]
         connection = pm.Connection(document_class=pm.son.SON)
         collection = connection['govdata']['____SOURCES____']       
@@ -1131,22 +1118,9 @@ class OAIHandler(asyncCursorHandler):
             skip = int(skip)
             self.resumptionToken = rt             
         query = {}
-        if From or Until:
-            query['timeStamp'] = {}
-            if From:
-                FromDate = td.convertFromUTC(From)
-                if FromDate:
-                    query['timeStamp']['$gte'] = FromDate
-                else:
-                    self.error('badArgument','"from" timestamp in wrong format')
-                    return
-            if Until:
-                UntilDate = td.convertFromUTC(Until)
-                if FromDate:
-                    query['timeStamp']['$lte'] = UntilDate
-                else:
-                    self.error('badArgument','"until" timestamp in wrong format')
-                    return                      
+        status = get_tquery(query,From,Until)
+        if not status:
+            return
         if not rt:
             count = collection.find(query).count()
             skip = 0
@@ -1210,9 +1184,25 @@ def oai_wrap(elts,args,verb,text = '',attrib = None):
     
     return response
     
-    
-
-    
-        
-
-
+            
+def get_tquery(query,From,Until):
+    if From or Until:
+        query['timeStamp'] = {}
+        if From:
+            FromDate = td.convertFromUTC(From)
+            if FromDate:
+                query['timeStamp']['$gte'] = FromDate
+                return True
+            else:
+                self.error('badArgument','"from" timestamp in wrong format')
+                return False
+        if Until:
+            UntilDate = td.convertFromUTC(Until)
+            if FromDate:
+                query['timeStamp']['$lte'] = UntilDate
+                return True
+            else:
+                self.error('badArgument','"until" timestamp in wrong format')
+                return False
+    else:
+        return True
