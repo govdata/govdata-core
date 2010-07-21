@@ -931,7 +931,7 @@ xsi:schemaLocation":"http://www.openarchives.org/OAI/2.0/oai_dc.xsd"})
     vals = {}
     title = metadata['Source']['Dataset']
     vals['title'] = title if is_string_like(title) else title['Name']
-    vals['creator'] = ', '.join([key + ': ' + (value if is_string_like(value) else value['Name']) for (key,value) in metadata['Source'].items() if key != 'Dataset'])
+    vals['creator'] = ', '.join([key + ': ' + (value if is_string_like(value) else value['Name']) for (key,value) in record['source'].items() if key != 'Dataset'])
     vals['identifier'] = record['name']
     vals['source'] = metadata.get('URL','')
     vals['subject'] = ', '.join(metadata.get('keywords',''))
@@ -960,7 +960,7 @@ def header(record):
     date.text = td.convertToUTC(record['timeStamp'])
     elt.insert(1,date)
     spec = ET.Element('setSpec')
-    spec.text = SourceSpec_to_setSpec(record['metadata']['Source'])
+    spec.text = SourceSpec_to_setSpec(record['source'])
     elt.insert(2,spec)
     return elt
     
@@ -1087,13 +1087,13 @@ class OAIHandler(asyncCursorHandler):
     
     def ListIdentifiers(self,mp,From,Until,Set,rt):          
         query = {}
-        status = get_tquery(query,From,Until)
+        status = self.get_tquery(query,From,Until)
         if not status:
             return
-        status = get_setquery(query,Set)
+        status = self.get_setquery(query,Set)
         if not status:
             return
-        querySequence = [('find',[(query,),{'fields':['name','version','timeStamp','metadata.Source']}])]
+        querySequence = [('find',[(query,),{'fields':['name','version','timeStamp','source']}])]
         connection = pm.Connection(document_class=pm.son.SON)
         collection = connection['govdata']['____SOURCES____']       
         self.processor = list_identifier_formatter
@@ -1124,10 +1124,10 @@ class OAIHandler(asyncCursorHandler):
             skip = int(skip)
             self.resumptionToken = rt             
         query = {}
-        status = get_tquery(query,From,Until)
+        status = self.get_tquery(query,From,Until)
         if not status:
             return
-        status = get_setquery(query,Set)
+        status = self.get_setquery(query,Set)
         if not status:
             return
 
@@ -1149,11 +1149,11 @@ class OAIHandler(asyncCursorHandler):
         connection = pm.Connection(document_class=pm.son.SON)
         collection = connection['govdata']['____SOURCES____']
 #        Sources = collection.distinct('metadata.Source')
-        Sources = collection.find(fields = ['metadata.Source'])
+        Sources = collection.find(fields = ['source'])
         setSpecs = []
         subspecs = []
         for Source in Sources:
-            Source = Source['metadata']['Source']
+            Source = Source['source']
             for (i,k) in enumerate(Source):
                 if hasattr(Source[k],'keys'):
                     subspec = pm.son.SON([(l,Source[l]) for l in Source.keys()[:i+1]])
@@ -1166,8 +1166,41 @@ class OAIHandler(asyncCursorHandler):
         self.end()
 
 
-        
+    def get_tquery(self,query,From,Until):
+        if From or Until:
+            query['timeStamp'] = {}
+            if From:
+                FromDate = td.convertFromUTC(From)
+                if FromDate:
+                    query['timeStamp']['$gte'] = FromDate
+                    return True
+                else:
+                    self.error('badArgument','"from" timestamp in wrong format')
+                    return False
+            if Until:
+                UntilDate = td.convertFromUTC(Until)
+                if UntilDate:
+                    query['timeStamp']['$lte'] = UntilDate
+                    return True
+                else:
+                    self.error('badArgument','"until" timestamp in wrong format')
+                    return False
+        else:
+            return True
 
+
+    def get_setquery(self,query,Set):
+        if Set:
+            SourceSpec = setSpec_to_SourceSpec(Set)
+            if SourceSpec:
+                for k in SourceSpec:
+                    query['source.'+ k] = SourceSpec[k]
+            else:
+                 self.error('badArgument','setSpec is formed incorrect')
+                 return False
+        return True
+
+        
     def finalize(self):
         if self.verb == 'GetRecord':
             if len(self.data) == 0:
@@ -1217,39 +1250,6 @@ def oai_wrap(elts,args,verb,text = '',attrib = None):
     
     return response
     
-            
-def get_tquery(query,From,Until):
-    if From or Until:
-        query['timeStamp'] = {}
-        if From:
-            FromDate = td.convertFromUTC(From)
-            if FromDate:
-                query['timeStamp']['$gte'] = FromDate
-                return True
-            else:
-                self.error('badArgument','"from" timestamp in wrong format')
-                return False
-        if Until:
-            UntilDate = td.convertFromUTC(Until)
-            if UntilDate:
-                query['timeStamp']['$lte'] = UntilDate
-                return True
-            else:
-                self.error('badArgument','"until" timestamp in wrong format')
-                return False
-    else:
-        return True
-
-def get_setquery(query,Set):
-    if Set:
-        SourceSpec = setSpec_to_SourceSpec(Set)
-        if SourceSpec:
-            for k in SourceSpec:
-                query['metadata.Source.'+ k] = SourceSpec[k]
-            else:
-                self.error('badArgument','setSpec is formed incorrect')
-                return False
-    return True
 
 def setSpec_to_SourceSpec(spec):
     x = spec.split(':')
