@@ -209,7 +209,45 @@ def convertToDT(tObj,convertMode = 'Low'):
             tlist[1] = 3*ftObj['q']
 
     return datetime.date(*tlist)
-    
+
+
+UTC_DATE_FORMAT1 = 'YYYYmmdd'
+UTC_DATE_FORMAT2 = 'YYYYmmddHHMMSS'
+UTC_DATE_FORMATTER1 = mongotimeformatter(UTC_DATE_FORMAT1)
+UTC_DATE_FORMATTER2 = mongotimeformatter(UTC_DATE_FORMAT2)
+UTC_DATE_INFORMAT1 = '%Y-%m-%d'
+UTC_DATE_INFORMAT2 = '%Y-%m-%dT%H:%M:%SZ'
+UTC_DATE_OUTFORMAT1 = '%Y%m%d'
+UTC_DATE_OUTFORMAT2 = '%Y%m%d%H%M%S'
+
+_A = lambda x : str(x) if len(str(x)) > 1 else '0' + str(x)
+
+def convertToUTC(tObj):
+    tObjF = tObjFlatten(tObj)
+    y = str(tObjF['Y'])
+    m = _A(tObjF['m'])
+    d = _A(tObjF['d'])
+    if 'H' in tObjF:
+        H = _A(tObjF['H'])
+        M = _A(tObjF.get('M',0))
+        S = _A(tObjF.get('S',0))
+        return y + '-' + m + '-' + d + 'T' + H + ':' + M + ':' + S + 'Z'
+    else:
+        return y + '-' + m + '-' + d
+
+def convertFromUTC(datestring):
+    try:
+        tstamp = time.strftime(UTC_DATE_OUTFORMAT1,time.strptime(datestring,UTC_DATE_INFORMAT1))
+    except ValueError:
+        try:
+            tstamp = time.strftime(UTC_DATE_OUTFORMAT2,time.strptime(datestring,UTC_DATE_INFORMAT2))
+        except ValueError:
+            return
+        else:
+            return UTC_DATE_FORMATTER2(tstamp)
+    else:
+        return UTC_DATE_FORMATTER1(tstamp)
+
 def convertToSolrDT(tObj,convertMode = 'Low'):
     """Convert to solr DateTime format
     it only handles year month day not hour minute second"""

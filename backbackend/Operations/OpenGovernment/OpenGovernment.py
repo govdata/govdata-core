@@ -660,7 +660,11 @@ def updateSourceDBFromCollections(collectionNames = None):
 
         subcollections = collection.metadata.values()
         if old_version_number != new_version_number:
-            rec = {'name':collectionName,'version':new_version_number,'version_offset':-1,'subcollections':subcollections,'metadata':collection.metadata[''],'source':collection.Source,'iscollection':True}
+            vCollectionName = collectionName + '__VERSIONS__'
+            vCollection = db[vCollectionName]
+            tstamp = vCollection.find_one({'__versionNumber__':new_version_number},fields=[ '__timeStamp__'])['__timeStamp__']
+            
+            rec = {'name':collectionName,'version':new_version_number,'version_offset':-1,'subcollections':subcollections,'metadata':collection.metadata[''],'source':collection.Source,'iscollection':True,'timeStamp':tstamp}
             sCollection.insert(rec,safe=True)
             sCollection.update({'name':collectionName},{'$inc':{'version_offset':1}})
         else:
@@ -699,6 +703,7 @@ def updateSourceDBByHand(data):
         rec['iscollection'] = False
         rec['version'] = new_version_number
         rec['version_offset'] = -1
+        rec['timeStamp'] = td.Now()
  
         if new:
             sCollection.insert(rec,safe=True)

@@ -910,6 +910,295 @@ class SourceHandler(asyncCursorHandler):
 
         self.add_async_cursor(collection,querySequence)
         
-            
+        
+#=-=-=-=-=-=-=-=-=-=-=-=-=-
+#OAI
+#=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+        
+BASE_URL = 'http://govdata.org/OAIHandler'
+ADMIN_EMAIL = 'govdata@lists.hmdc.harvard.edu'
+
+
+import xml.etree.ElementTree as ET
+
+DC_KEYS = ['Source','description','keywords','URL']
+
+def dc_formatter(record):
+    metadata = record['metadata']
+    elt = ET.Element('oai_dc:dc',attrib={'xmlns:oai_dc':"http://www.openarchives.org/OAI/2.0/oai_dc/"})
+    vals = {}
+    vals['title'] = metadata['Source']['dataset']
+    vals['creator'] = ', '.join([key + '=' + value for (key,value) in metadata['Source'].items()])
+    vals['identifier'] = record['name']
+    vals['source'] = metadata.get('URL','')
+    vals['subject'] = metadata.get('keywords','')
+    vals['description'] = metadata.get('description','')
+    vals['date'] = td.convertToUTC(record['timeStamp'])
+    for (k,v) in vals.items():
+        if v:
+            e = ET.Element('dc:' + k)
+            e.text = v
+            elt.insert(e) 
+    return e
+    
+def list_identifier_formatter(record):
+    elt = ET.Element('header')
+    id = ET.Element('identifier')
+    id.text = record['name'] + ':' + str(record['version'])
+    elt.insert(id)
+    date = ET.Element('datestamp')
+    date.text = td.convertToUTC(record['timeStamp'])
+    elt.insert(date)
+    return elt
+    
+
+OAI_FORMATS={'oai_dc':{'metadataPrefix':'oai_dc','keys':DC_KEYS,'formatter':dc_formatter,'schema':'http://www.openarchives.org/OAI/2.0/oai_dc.xsd','metadataNameSpace':'http://www.openarchives.org/OAI/2.0/oai_dc/','limit':1000}}
+
+class OAIHandler(asyncCursorHandler):
+
+    @tornado.web.asynchronous
+    def get(self):
+        args = self.request.arguments
+ 
+        badArgs = any([len(v) > 1 for v in args.values()])            
+        for k in args:      
+            args[k] = args[k][0]           
+        self.args = args
+        if badArgs:
+            self.bad_argument()
+            return 
+
+        verb = args.pop('verb','')
+        if not verb in ['GetRecord','Identify','ListIdentifiers','ListMetadataFormats','ListRecords','ListSets']:
+            self.error('badVerb','Illegal Verb or verb argument not specified.')
+            return 
+        else:
+            self.verb = verb
+                
+        if verb == 'GetRecord':
+            if set(args.keys()) != set(['identifier','metadataPrefix']):
+                self.bad_argument()
+            else:
+                id = args['identifier']
+                mp = args['metadatPrefix']
+                self.GetRecord(id,mp)
+        elif verb == 'Identify':
+            if args.keys():
+                self.bad_argument()
+            else:
+                self.Identify()
+        elif verb == 'ListIdentifiers':
+            properArgs = set(args.keys())  <= set(['from','until','set','metadataPrefix','resumptionToken'])
+            baseArg = ('metadataPrefix' in args and 'resumptionToken' not in args) or args.keys() == ['resumptionToken']
+            if not (properArgs and baseArg):
+                self.bad_argument()
+            else:
+                mp = args['metadataPrefix']
+                From = args.get('from','')
+                Until = args.get('until','')
+                Set = args.get('set')
+                rt = args.get('resumptionToken')
+                self.ListIdentifiers(mp,From,Until,Set,rt)
+        elif verb == 'ListMetadataFormats':
+            if args.keys():
+                self.bad_argument()
+            else:
+                self.ListMetadataFormats()
+        elif verb == 'ListRecords':
+            properArgs = set(args.keys())  <= set(['from','until','set','metadataPrefix','resumptionToken'])
+            baseArg = ('metadataPrefix' in args and 'resumptionToken' not in args) or args.keys() == ['resumptionToken']
+            if not (properArgs and baseArg):
+                self.bad_argument()
+            else:
+                mp = args['metadataPrefix']
+                From = args.get('from','')
+                Until = args.get('until','')
+                Set = args.get('set')
+                rt = args.get('resumptionToken')
+                self.ListRecords(mp,From,Until,Set,rt)
+        elif verb == 'ListSets':
+            properArgs = set(args.keys())  <= set(['resumptionToken'])
+            if not properArg:
+                self.bad_argument()
+            else:
+                 rt = args.get('resumptionToken')
+                 self.ListSets(rt)
+                   
+    def end(self):
+        self.finalize()
+        v = oai_wrap(self.data,self.args,text = self.wrap_text,attrib=self.wrap_attrib)
+        self.write(ET.tostring(v))
+        self.finish()
+        
+    def error(self,code,text):
+        self.data = []
+        self.verb = 'error'
+        self.wrap_text = text
+        self.wrap_attrib = {'code':code}
+        self.end()
+        
+    def bad_argument(self):
+        self.error('badArgument','The request includes illegal arguments, is missing required arguments, includes a repeated argument, or values for arguments have an illegal syntax.') 
+                 
+    def GetRecord(self,id,mp):
+        if mp not in OAI_FORMATS.keys():
+            self.error('cannotDisseminateFormat','Format ' + repr(mp) + ' is not supported by the item or by the repository.')
+            return 
+        if id.count(':') != 1:
+            self.error('badArgument','id format incorrect -- must contain exactly one ":".')
+            return 
+        name = id.split(':')[0].strip ; version = int(id.split(':')[-1])    
+        connection = pm.Connection(document_class=pm.son.SON)
+        collection = connection['govdata']['____SOURCES____']       
+        self.processor = OAI_FORMATS[mp]['formatter']
+        querySequence = [('find',[({'name':name,'version':version},),{}])]
+        self.add_async_cursor(collection,querySequence)
+        
+    def Identify(self):
+        data = []
+        elt = ET.Element('repositoryName'); elt.text = 'Harvard GovData'; data.append(elt)
+        elt = ET.Element('baseURL'); elt.text = BASE_URL; data.append(elt)
+        elt = ET.Element('protocolVersion'); elt.text = '2.0'; data.append(elt)
+        elt = ET.Element('adminEmail'); elt.text = ADMIN_EMAIL; data.append(elt)
+        elt = ET.Element('baseURL'); elt.text = BASE_URL; data.append(elt)
+        elt = ET.Element('earliestDatstamp'); elt.text = '2000-01-01T00:00:00Z'; data.append(elt)
+        elt = ET.Element('granularity'); elt.text = 'YYYY-MM-DDThh:mm:ssZ'; data.append(elt)        
+        self.data = data
+        self.end()
+    
+    def ListIdentifiers(self,mp,From,Until,Set,rt):          
+        query = {}
+        if From or Until:
+            query['tstamp'] = {}
+            if From:
+                FromDate = td.convertFromUTC(From)
+                if FromDate:
+                    query['tstamp']['$geq'] = FromDate
+                else:
+                    self.error('badArgument','"from" timestamp in wrong format')
+                    return
+            if Until:
+                UntilDate = td.convertFromUTC(Until)
+                if FromDate:
+                    query['tstamp']['$leq'] = UntilDate
+                else:
+                    self.error('badArgument','"until" timestamp in wrong format')
+                    return          
+        querySequence = [('find',[(query,),{'fields':['name','version','timeStamp']}])]
+        connection = pm.Connection(document_class=pm.son.SON)
+        collection = connection['govdata']['____SOURCES____']       
+        self.processor = list_identifier_formatter
+        self.add_async_cursor(collection,querySequence)       
+          
+    def ListMetadataFormats(self):
+        data = []
+        for k in OAI_FORMATS:
+            elt = ET.Element('metadataFormat')      
+            for l in ['metadataPrefix','schema','metadataNameSpace']:
+                elt0 = ET.Element(l)
+                elt0.text = OAI_FORMATS[k][l]
+                elt.insert(elt0)
+            data.append(elt)
+        self.data = data
+        self.end()
+        
+
+    def ListRecords(self,mp,From,Until,Set,rt):
+        if mp not in OAI_FORMATS.keys():
+            self.error('cannotDisseminateFormat','Format ' + repr(mp) + ' is not supported by the item or by the repository.')
+            return 
+        connection = pm.Connection(document_class=pm.son.SON)
+        collection = connection['govdata']['____SOURCES____']   
+        if rt:
+            count,From,Until,skip,cursor = rt.split('_')
+            count = int(count)
+            skip = int(skip)
+            self.resumptionToken = rt             
+        query = {}
+        if From or Until:
+            query['tstamp'] = {}
+            if From:
+                FromDate = td.convertFromUTC(From)
+                if FromDate:
+                    query['tstamp']['$geq'] = FromDate
+                else:
+                    self.error('badArgument','"from" timestamp in wrong format')
+                    return
+            if Until:
+                UntilDate = td.convertFromUTC(Until)
+                if FromDate:
+                    query['tstamp']['$leq'] = UntilDate
+                else:
+                    self.error('badArgument','"until" timestamp in wrong format')
+                    return                      
+        if not rt:
+            count = collection.count(query)
+            skip = 0
+            cursor = -1
+            self.resumptionToken = '_'.join([str(count),From,Until,str(skip),str(cursor)])
+        if count == 0:
+            self.error('noRecordsMatch','The combination of the values of the from, until, and set arguments results in an empty list.')
+        elif skip >= count:
+            self.error('badArgument','The rt is bad')
+        else:
+            querySequence = [('find',[(query,),{'fields':['name','version','timeStamp']}]),('skip',[(skip,),{}]),('limit',[(OAI_FORMATS[mp]['limit'],),{}])]      
+            self.processor = OAI_FORMATS[mp]['formatter']
+            self.add_async_cursor(collection,querySequence)                  
+    
+    def finalize(self):
+        if self.verb == 'GetRecord':
+            if len(self.data) == 0:
+                self.verb = 'error'
+                self.wrap_text  = 'The value of the identifier is unknown in this repository.'
+                self.wrap_attrib = {'code':'idDoesNotExist'}
+        elif self.verb == 'ListIdentifiers':
+            if len(self.data) == 0:
+                self.verb = 'error'
+                self.wrap_text  = 'The combination of the values of the from, until, and set arguments results in an empty list.'
+                self.wrap_attrib = {'code':'noRecordsMatch'}
+            else:
+                elt = ET.element('resumptionToken',attrib={'completeListSize':str(len(self.data)),'cursor':'0' })
+                self.data.append(elt)
+        elif self.verb == 'ListRecords':
+            count,From,Until,skip,cursor = self.resumptionToken.split('_')
+            cursor = str(int(cursor) + 1)
+            elt = ET.element('resumptionToken',attrib={'completeListSize':count,'cursor':cursor})
+            count = int(count) ; skip = int(skip) 
+            skip += len(self.data)
+            if count > skip:
+                elt.text =  '_'.join([str(count),From,Until,str(skip),cursor])
+            self.data.append(elt)
+
+        
+import time
+def oai_wrap(elts,args,text = '',attrib = None):
+    if attrib == None:
+        attrib = {}
+        
+    response = ET.Element('OAI-PMH',attrib={'xsi:schemaLocation':"http://www.openarchives.org/OAI/2.0/OAI-PMH.xsd"})
+    
+    responseDate = ET.Element('responseDate')
+    responseDate.text = time.strftime('%Y-%m-%dT%H:%M:%SZ') 
+    
+    request = ET.Element('request',attrib=args)
+    request.text = BASE_URL
+
+    body = ET.Element(verb,attrib=attrib)
+    if text:
+        body.text = text
+    for e in elts:
+        body.insert(e)
+        
+    response.insert(responseDate)
+    response.insert(request)
+    response.insert(body)
+    
+    return response
+    
+    
+
+    
+        
 
 
