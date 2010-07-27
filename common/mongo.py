@@ -46,17 +46,17 @@ class Collection(pm.collection.Collection):
         versionsname = '__' + name + '__VERSIONS__'
         if versionsname in db.collection_names() and versionNumber != 'ALL':
             self.versions = db[versionsname]
-            currentVersion = max(self.versions.distinct('__versionNumber__'))
+            currentVersion = max(self.versions.distinct('versionNumber'))
             self.currentVersion = currentVersion
             if versionNumber == None:
                 versionNumber = currentVersion
             self.versionNumber = versionNumber
-            self.metadata = dict([(l['__name__'],l) for l in self.metaCollection.find({'__versionNumber__':versionNumber})])
+            self.metadata = dict([(l['name'],l) for l in self.metaCollection.find({'versionNumber':versionNumber})])
         else:
-            self.metadata = dict([(l['__name__'],l) for l in self.metaCollection.find()])
+            self.metadata = dict([(l['name'],l) for l in self.metaCollection.find()])
             
-        self.value_processors = self.metadata[''].get('value_processors',{})
-        self.name_processors = self.metadata[''].get('name_processors',{})
+        self.valueProcessors = self.metadata[''].get('valueProcessors',{})
+        self.nameProcessors = self.metadata[''].get('nameProcessors',{})
 
 
         slicesname =  '__' + name + '__SLICES__'

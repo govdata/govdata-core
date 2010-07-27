@@ -85,6 +85,8 @@ def tObjFlatten(tObj):
             S.update(tObjFlatten(tObj[l]))
     return S
 
+
+   
 def generateQueries(DateFormat,timeQuery):
     """Converts nice DateFormat string and simple query format for time and generate mongo icky
     DateFormat : String e.g. YYYYmmdd
@@ -281,9 +283,9 @@ def queryToSolr(timeQuery):
 
         fq = []
         if start:
-            fq.append('begin_date:[* TO ' + start + ']')
+            fq.append('beginDate:[* TO ' + start + ']')
         if end:
-            fq.append('end_date:[' + end + ' TO *]')
+            fq.append('endDate:[' + end + ' TO *]')
             
     return fq
     
@@ -357,6 +359,7 @@ def checkQuery(timeQuery,OverallTime):
         
     return OK
     
+
 def reverse(format):
     fbreaks = [0] + [i for i in range(1,len(format)) if format[i] != format[i-1]] + [len(format)]
     fblocks = zip(fbreaks[:-1],fbreaks[1:])

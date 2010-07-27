@@ -256,15 +256,15 @@ def NEA_preparser2(inpath,filepath,metadatapath,L = None):
         for i in range(len(X)):
             X1[i].metadata = X[i].metadata
             X1[i].coloring['Topics'] = X1[i].coloring.pop('Categories')
-            X1[i].coloring['TimeColNames'] = X1[i].coloring['Data']
+            X1[i].coloring['timeColNames'] = X1[i].coloring['Data']
             X1[i].coloring.pop('Data')
-            for k in range(len(X1[i].coloring['TimeColNames'])):
-                name = X1[i].coloring['TimeColNames'][k]
+            for k in range(len(X1[i].coloring['timeColNames'])):
+                name = X1[i].coloring['timeColNames'][k]
                 X1[i].renamecol(name,nea_dateparse(name))
                 
             
         if len(X1) > 1:     
-            keycols = [x for x in X1[0].dtype.names if x not in X1[0].coloring['TimeColNames']]
+            keycols = [x for x in X1[0].dtype.names if x not in X1[0].coloring['timeColNames']]
             Z = tb.tab_join(X1,keycols=keycols)
         else:
             Z = X1[0]
@@ -274,7 +274,7 @@ def NEA_preparser2(inpath,filepath,metadatapath,L = None):
         for topic in topics:
             Z.renamecol(topic,'Topic ' + topic)
             
-        K = ['Category','Section','Units','Notes','DownloadedOn','LastRevised','Table','Footer']
+        K = ['Category','Section','units','notes','downloadedOn','lastRevised','Table','footer','description']
         Z.metadata = {}
         for k in K:
             h = [x.metadata[k] for x in X if k in x.metadata.keys()]
@@ -286,10 +286,9 @@ def NEA_preparser2(inpath,filepath,metadatapath,L = None):
                 else:
                     print 'metadata type for key', k , 'in table', t, 'not recognized.'
                     
-        Section = Z.metadata['Section']
-        Z.metadata.pop('Section')
-        Table = Z.metadata['Table'].strip().split('.')[-1].strip()
-        Z.metadata.pop('Table')
+        Section = Z.metadata.pop('Section')
+
+        Table = Z.metadata.pop('Table').strip().split('.')[-1].strip()
         
         for k in Z.coloring.keys():
             if k in ColGroups.keys():
@@ -299,7 +298,7 @@ def NEA_preparser2(inpath,filepath,metadatapath,L = None):
         
         Metadict[t] = Z.metadata
 
-        Z = Z.addcols([[t]*len(Z),[Table]*len(Z),[Section]*len(Z),[t]*len(Z)],names=['TableNo','Table','Section','Subcollections'])
+        Z = Z.addcols([[t]*len(Z),[Table]*len(Z),[Section]*len(Z),[t]*len(Z)],names=['TableNo','Table','Section','subcollections'])
         Z.saveSV(filepath + str(j) + '.tsv',metadata=['dialect','formats','names'])
     
     AllKeys = uniqify(ListUnion([k.keys() for k in Metadict.values()]))
@@ -312,13 +311,14 @@ def NEA_preparser2(inpath,filepath,metadatapath,L = None):
     
     Category = AllMeta.pop('Category')
 
-    AllMeta['Source'] = [('Agency',{'Name':'Department of Commerce','ShortName':'DOC'}),('Subagency',{'Name':'Bureau of Economic Analysis','ShortName':'BEA'}),('Program',{'ShortName':'REA','Name':'National Economic Accounts'}), ('Dataset',{'ShortName':'NIPA','Name':Category})]
-    AllMeta['TopicHierarchy'] = ('Agency','Subagency','Program','Dataset','Section','Table')
-    AllMeta['UniqueIndexes'] = ['TableNo','Line']
+    AllMeta['source'] = [('agency',{'name':'Department of Commerce','shortName':'DOC'}),('subagency',{'name':'Bureau of Economic Analysis','shortName':'BEA'}),('program',{'shortName':'REA','name':'National Economic Accounts'}), ('dataset',{'shortName':'NIPA','Name':Category})]
+    AllMeta['topicHierarchy'] = ('agency','subagency','program','dataset','Section','Table')
+    AllMeta['uniqueIndexes'] = ['TableNo','Line']
     ColGroups['Topics'].sort()
-    ColGroups['LabelColumns'] =  ['Table','Topics']
-    AllMeta['ColumnGroups'] = ColGroups
-    AllMeta['DateFormat'] = 'YYYYqmm'
+    ColGroups['labelColumns'] =  ['Table','Topics']
+    AllMeta['columnGroups'] = ColGroups
+    AllMeta['description'] = 'National Income and Product Accounts (NIPA) data from the <a href="http://www.bea.gov/national/nipaweb/SelectTable.asp?Selected=N">All NIPA Tables</a> data set under the <a href="http://www.bea.gov/national/index.htm">National Economic Accounts</a> section of the <a href="http://www.bea.gov/">Bureau of Economic Accounts (BEA)</a> website.  For additional information on the NIPAs, see: <a href="http://www.bea.gov/scb/pdf/misc/nipaguid.pdf">A Guide to the National Income and Product Accounts of the United States (PDF)</a>, <a href="http://www.bea.gov/scb/pdf/2009/11%20November/1109_nipa_method.pdf">Updated Summary of NIPA Methodologies (PDF)</a>, and <a href="http://www.bea.gov/scb/pdf/2003/08August/0803NIPA-Preview.pdf#page=9">Guide to the Numbering of the NIPA Tables (PDF)</a>.'
+    AllMeta['dateFormat'] = 'YYYYqmm'
     
     AllMeta['sliceCols'] = [['Section','Table','Topic Level_0','Topic Level_1','Topic Level_2'] + [tuple(ColGroups['Topics'][:i]) for i in range(4,len(ColGroups['Topics']) + 1)]]
     AllMeta['phraseCols'] = ['Section','Table','Topic','Line','TableNo']
@@ -428,9 +428,9 @@ def FAT_preparser1(maindir):
         metadata['SectionNo'] = x['Section']
         metadata['Section'] = x['SectionName']
         metadata['Categories'] = ', '.join(['Agency', 'Subagency', 'Type', 'Category', 'Section', 'Table'])
-        metadata['Units'] = units.strip('[]')
+        metadata['units'] = units.strip('[]')
         if footer:
-            metadata['Footer'] = '\n'.join(footer)
+            metadata['footer'] = '\n'.join(footer)
 
         metadata['keywords'] = 'National Economic Accounts,' + ','.join(keywords)       
             
@@ -446,7 +446,7 @@ def FAT_preparser2(maindir):
 
     MakeDir(filedir)
    
-    GoodKeys = ['Category', 'Section', 'Units', 'Table', 'Footer']
+    GoodKeys = ['Category', 'Section', 'units', 'Table', 'footer','description']
     
     Metadict = {}
     ColGroups = {}
@@ -468,10 +468,9 @@ def FAT_preparser2(maindir):
         X1.metadata = X.metadata
         X = X1
                  
-        X.coloring['TimeColNames'] = X.coloring['Data']
-        X.coloring.pop('Data')
-        for j in range(len(X.coloring['TimeColNames'])):
-            name = X.coloring['TimeColNames'][j]
+        X.coloring['timeColNames'] = X.coloring.pop('Data')
+        for j in range(len(X.coloring['timeColNames'])):
+            name = X.coloring['timeColNames'][j]
             X.renamecol(name,nea_dateparse(name))
             
         SectionNo = X.metadata.pop('SectionNo').split('-')[-1].strip()
@@ -487,7 +486,7 @@ def FAT_preparser2(maindir):
         
         Metadict[t] = dict([(k,X.metadata[k]) for k in GoodKeys if k in X.metadata.keys()])
         
-        X = X.addcols([[t]*len(X),[Table]*len(X),[SectionNo]*len(X),[Section]*len(X),[t]*len(X)],names=['TableNo','Table','SectionNo','Section','Subcollections'])
+        X = X.addcols([[t]*len(X),[Table]*len(X),[SectionNo]*len(X),[Section]*len(X),[t]*len(X)],names=['TableNo','Table','SectionNo','Section','subcollections'])
         X.saveSV(filedir + str(i) + '.tsv',metadata=['dialect','names','formats'])
     
     AllKeys = uniqify(ListUnion([k.keys() for k in Metadict.values()]))
@@ -500,13 +499,14 @@ def FAT_preparser2(maindir):
                 
     Category = AllMeta['Category']
     AllMeta.pop('Category')
-    AllMeta['Source'] = [('Agency',{'Name':'Department of Commerce','ShortName':'DOC'}),('Subagency',{'Name':'Bureau of Economic Analysis','ShortName':'BEA'}),('Program',{'ShortName':'NEA','Name':'National Economic Accounts'}), ('Dataset',{'ShortName':'FAT','Name':Category})]
-    AllMeta['TopicHierarchy'] =  ('Agency','Subagency','Program','Dataset','Section','Table')
-    AllMeta['UniqueIndexes'] = ['TableNo','Line']
+    AllMeta['source'] = [('agency',{'name':'Department of Commerce','shortName':'DOC'}),('subagency',{'name':'Bureau of Economic Analysis','shortName':'BEA'}),('program',{'shortName':'NEA','name':'National Economic Accounts'}), ('dataset',{'shortName':'FAT','name':Category})]
+    AllMeta['topicHierarchy'] =  ('agency','subagency','program','dataset','Section','Table')
+    AllMeta['uniqueIndexes'] = ['TableNo','Line']
     ColGroups['Topics'].sort()
-    ColGroups['LabelColumns'] = ['Table','Topics']
-    AllMeta['ColumnGroups'] = ColGroups
-    AllMeta['DateFormat'] = 'YYYYqmm' 
+    ColGroups['labelColumns'] = ['Table','Topics']
+    AllMeta['description'] = 'The <a href="http://www.bea.gov/national/FA2004/SelectTable.asp">Standard Fixed Asset Tables</a> data set under the <a href="http://www.bea.gov/national/index.htm">National Economic Accounts</a> section of the <a href="http://www.bea.gov/">Bureau of Economic Accounts (BEA)</a> website.  For additional information on the Fixed Asset Tables, see: <a href="http://www.bea.gov/national/pdf/Fixed_Assets_1925_97.pdf"> Methodology, Fixed Assets and Consumer Durable Goods in the United States, 1925-97 | September 2003 (PDF)</a>, <a href="http://www.bea.gov/scb/pdf/national/niparel/1997/0797fr.pdf">The Measurement of Depreciation in the NIPA\'s | SCB, July 1997 (PDF) </a>, and <a href="http://www.bea.gov/national/FA2004/Tablecandtext.pdf">BEA Rates of Depreciation, Service Lives, Declining-Balance Rates, and Hulten-Wykoff categories | February 2008  (PDF)</a>.'
+    AllMeta['columnGroups'] = ColGroups
+    AllMeta['dateFormat'] = 'YYYYqmm' 
     AllMeta['sliceCols'] = [['Section','Table'] + [tuple(ColGroups['Topics'][:i]) for i in range(1,len(ColGroups['Topics']) +1)]]
 
     Subcollections = Metadict
@@ -599,11 +599,11 @@ def NIPA_preparser1(maindir):
         metadata['Section'] = x['Section']
         metadata['Table'] = ' '.join(title.split()[1:])
         metadata['Categories'] = ', '.join(['Agency', 'Subagency', 'Type', 'Category', 'Section', 'Table'])
-        metadata['Units'] = units.strip('[]')
-        metadata['Notes'] = notes
+        metadata['units'] = units.strip('[]')
+        metadata['notes'] = notes
         metadata['Owner'] = owner
-        metadata['DownloadedOn'] = info.split('Last')[0]
-        metadata['LastRevised'] = info.split('Revised')[1].strip()      
+        metadata['downloadedOn'] = info.split('Last')[0]
+        metadata['lastRevised'] = info.split('Revised')[1].strip()      
 
         if footer:
             metadata['Footer'] = '\n'.join(footer)
@@ -730,10 +730,10 @@ def RegionalGDP_Preparse2(maindir):
         Z = Z.addcols(['{"s":' + repr(z['Location']) + ',"f":{"s":' + repr(z['FIPS']) + '}}' for z in Z],names = ['Location'])
         Z = Z.deletecols(['FIPS'])
         
-        Z.coloring['TimeColNames'] = Z.coloring['Data']
+        Z.coloring['timeColNames'] = Z.coloring['Data']
         Z.coloring.pop('Data')
-        for j in range(len(Z.coloring['TimeColNames'])):
-            name = Z.coloring['TimeColNames'][j]
+        for j in range(len(Z.coloring['timeColNames'])):
+            name = Z.coloring['timeColNames'][j]
             Z.renamecol(name,nea_dateparse(name))
             
         Z.metadata = {}
@@ -747,7 +747,7 @@ def RegionalGDP_Preparse2(maindir):
                 else:
                     print 'metadata type for key', k , 'in table', t, 'not recognized.'
 
-        Z.coloring['LabelColumns'] =  ['Location','Industry','Component']       
+        Z.coloring['labelColumns'] =  ['Location','Industry','Component']       
         for k in Z.coloring.keys():
             if k in ColGroups.keys():
                 ColGroups[k] = uniqify(ColGroups[k] + Z.coloring[k])
@@ -756,7 +756,7 @@ def RegionalGDP_Preparse2(maindir):
         
         Metadict[state] = Z.metadata
         
-        Z = Z.addcols([len(Z)*[indclass], len(Z)*['S']],names=['IndClass','Subcollections'])
+        Z = Z.addcols([len(Z)*[indclass], len(Z)*['S']],names=['IndClass','subcollections'])
         Z.saveSV(outpath + str(i) + '.tsv',metadata=['dialect','names','formats'])
     
     AllKeys = uniqify(ListUnion([k.keys() for k in Metadict.values()]))
@@ -800,13 +800,13 @@ def RegionalGDP_Preparse2(maindir):
             if k not in GoodKeys: 
                 X.metadata.pop(k)
        
-        X.coloring['TimeColNames'] = X.coloring['Data']
+        X.coloring['timeColNames'] = X.coloring['Data']
         X.coloring.pop('Data')
-        for j in range(len(X.coloring['TimeColNames'])):
-            name = X.coloring['TimeColNames'][j]
+        for j in range(len(X.coloring['timeColNames'])):
+            name = X.coloring['timeColNames'][j]
             X.renamecol(name,nea_dateparse(name))
 
-        X.coloring['LabelColumns'] = ['Location','Industry','Component']    
+        X.coloring['labelColumns'] = ['Location','Industry','Component']    
         for k in X.coloring.keys():
             if k in ColGroups.keys():
                 ColGroups[k] = uniqify(ColGroups[k] + X.coloring[k])
@@ -814,7 +814,7 @@ def RegionalGDP_Preparse2(maindir):
                 ColGroups[k] = X.coloring[k]                
         
         Metadict[l] = X.metadata
-        X = X.addcols([['NAICS']*len(X),['M']*len(X)],names=['IndClass','Subcollections'])
+        X = X.addcols([['NAICS']*len(X),['M']*len(X)],names=['IndClass','subcollections'])
         X.saveSV(outpath + str(i+LenR) + '.tsv',metadata=['dialect','names','formats'])
 
     AllKeys = uniqify(ListUnion([k.keys() for k in Metadict.values()]))
@@ -830,14 +830,14 @@ def RegionalGDP_Preparse2(maindir):
     IH = [tuple(ColGroups['IndustryHierarchy'][:i]) for i in range(1,len(ColGroups['IndustryHierarchy']) + 1)]
 
     AllMeta = {}
-    AllMeta['Source'] = [('Agency',{'Name':'Department of Commerce','ShortName':'DOC'}),('Subagency',{'Name':'Bureau of Economic Analysis','ShortName':'BEA'}),('Program',{'ShortName':'REA','Name':'Regional Economic Accounts'}), ('Dataset',{'ShortName':'RegGDP','Name':'Regional GDP Data'})]
-    AllMeta['TopicHierarchy']  = ('Agency','Subagency','Program','Dataset','Category')
-    AllMeta['UniqueIndexes'] = ['Location','IndustryCode','ComponentCode','IndClass']
-    ColGroups['SpaceColumns'] = ['Location']
-    AllMeta['ColumnGroups'] = ColGroups
-    AllMeta['DateFormat'] = 'YYYYqmm' 
+    AllMeta['source'] = [('agency',{'name':'Department of Commerce','shortName':'DOC'}),('subagency',{'name':'Bureau of Economic Analysis','shortName':'BEA'}),('program',{'shortName':'REA','name':'Regional Economic Accounts'}), ('dataset',{'shortName':'RegGDP','name':'Regional GDP Data'})]
+    AllMeta['topicHierarchy']  = ('agency','subagency','program','dataset','Category')
+    AllMeta['uniqueIndexes'] = ['Location','IndustryCode','ComponentCode','IndClass']
+    ColGroups['spaceColumns'] = ['Location']
+    AllMeta['columnGroups'] = ColGroups
+    AllMeta['dateFormat'] = 'YYYYqmm' 
     AllMeta['sliceCols'] = [['Location'] + IH ,['Location','Component'],['Component'] + IH]
-    AllMeta['phraseCols'] = ['Component', 'IndClass','IndustryHiearchy','Units','Units']    
+    AllMeta['phraseCols'] = ['Component', 'IndClass','IndustryHiearchy','Units']    
 
     Subcollections[''] = AllMeta
         
@@ -1151,7 +1151,7 @@ def SQPI_preparse(maindir):
         delete(temppath)
         
         table = X['Table'][0]
-        X = X.deletecols(['First Year']).addcols(len(X)*[table + ',SQ'],names=['Subcollections'])
+        X = X.deletecols(['First Year']).addcols(len(X)*[table + ',SQ'],names=['subcollections'])
         X = X.addcols(['{"s":' + repr(x) + ',"f":{"s":' + repr(f) + '}}' for (f,x) in X[['State FIPS','State Name']]],names = ['Location'])
         X = X.deletecols(['State FIPS','State Name'])    
 
@@ -1213,7 +1213,7 @@ def SAPI_preparse(maindir):
             summarycol = ['Aggregate']*len(X)
             X = X[['Info','Data','Footnotes']].addcols([units,summarycol],names=['Units','Subject Level_1'])
      
-        X = X.deletecols(['First Year']).addcols(len(X)*[table + ',SA' + (',SA_S' if Summary else '')],names=['Subcollections'])
+        X = X.deletecols(['First Year']).addcols(len(X)*[table + ',SA' + (',SA_S' if Summary else '')],names=['subcollections'])
         X = X.addcols(['{"s":' + repr(sname) + ',"f":{"s":' + repr(fips) + '}}' for (fips,sname) in X[['State FIPS','State Name']]],names = ['Location'])
         X = X.deletecols(['State FIPS','State Name'])   
         
@@ -1298,14 +1298,14 @@ def LAPI_preparse(maindir,table,level):
       
         subjdata = [list(x) for x in zip(*[tuple(Codes['Hierarchy'][i])]*len(X))]
 
-        X = X.addcols([[table]*len(X),[line]*len(X),[table + ',LA,' + id]*len(X)] + subjdata ,names=['Table','Line','Subcollections'] + subjnames) 
+        X = X.addcols([[table]*len(X),[line]*len(X),[table + ',LA,' + id]*len(X)] + subjdata ,names=['Table','Line','subcollections'] + subjnames) 
         X = X.addcols([loc_processor(fips,aname,level) for (fips,aname) in X[['FIPS','AreaName']]],names = ['Location'])
         X = X.deletecols(['FIPS','AreaName'])
 
         TimeColNames = X.coloring['Data']
         for n in TimeColNames:
             X.renamecol(n,PI_dateparse(n))    
-        X.coloring['TimeColNames'] = X.coloring.pop('Data')
+        X.coloring['timeColNames'] = X.coloring.pop('Data')
         X.coloring['SubjectHierarchy'] = subjnames
         
         X.metadata = {'LineFootnote':LineFootnote,'Table':table,'Line':line,'LineCode':linecode}
@@ -1331,13 +1331,13 @@ def PI_metadata(maindir):
     Metadata['LA'] = {'Title':'Local Area Personal Income', 'Description' : 'Local Area Personal Income data for all US counties, from the <a href="http://www.bea.gov/regional/reis/default.cfm?selTable=Single%20Line">Local Area Personal Income "Single Line of data for all counties"</a> data set under the <a href="http://www.bea.gov/regional/index.htm">Regional Economic Accounts</a> section of the <a href="http://www.bea.gov/">Bureau of Economic Accounts (BEA)</a> website.  For more information on the industry classifications, see the BEA web pages on  <a href="http://www.bea.gov/regional/definitions/nextpage.cfm?key=NAICS">NAICS (1997-2008)</a> and <a href="http://www.bea.gov/regional/definitions/nextpage.cfm?key=SIC">SIC (1963-1997)</a>.  With the exception of per capita estimates, all dollar estimates are in thousands of dollars. All employment estimates are number of jobs. All dollar estimates are in current dollars.'}
 
     AllMeta = {}
-    AllMeta['Source'] = [('Agency',{'Name':'Department of Commerce','ShortName':'DOC'}),('Subagency',{'Name':'Bureau of Economic Analysis','ShortName':'BEA'}),('Program',{'ShortName':'REA','Name':'Regional Economic Accounts'}), ('Dataset',{'ShortName':'PI','Name':'Personal Income'})]
-    AllMeta['TopicHierarchy']  = ('Agency','Subagency','Dataset','Category','Subcategory','SubjectHierarchy')
-    AllMeta['UniqueIndexes'] = ['Location','Table','LineCode']
-    AllMeta['ColumnGroups'] = {'SpaceColumns' : ['Location'],'SubjectHierarchy':['Subject Level_' + str(i) for i in range(1,8)]}
-    AllMeta['DateFormat'] = 'YYYYqmm'
+    AllMeta['source'] = [('agency',{'name':'Department of Commerce','shortName':'DOC'}),('subagency',{'name':'Bureau of Economic Analysis','shortName':'BEA'}),('program',{'shortName':'REA','name':'Regional Economic Accounts'}), ('dataset',{'shortName':'PI','name':'Personal Income'})]
+    AllMeta['topicHierarchy']  = ('Agency','Subagency','Dataset','Category','Subcategory','SubjectHierarchy')
+    AllMeta['uniqueIndexes'] = ['Location','Table','LineCode']
+    AllMeta['columnGroups'] = {'SpaceColumns' : ['Location'],'SubjectHierarchy':['Subject Level_' + str(i) for i in range(1,8)]}
+    AllMeta['dateFormat'] = 'YYYYqmm'
     
-    SH  = AllMeta['ColumnGroups']['SubjectHierarchy']
+    SH  = AllMeta['columnGroups']['SubjectHierarchy']
     SH.sort()
     SHL = [tuple(SH[:i]) for i in range(1,len(SH) + 1)] 
     
@@ -1861,22 +1861,22 @@ class ii_parser(OG.dataIterator):
         
         iCols = ['Division','Entity','Series','Aggregation','Location','USState','Industry']
         
-        D['Source'] = [('Agency',{'Name':'Department of Commerce','ShortName':'DOC'}),('Subagency',{'Name':'Bureau of Economic Analysis','ShortName':'BEA'}),('Program',{'ShortName':'IEA','Name':'International Economic Accounts'}), ('Dataset',{'ShortName':'OMC','Name':'Operations of Multinational Companies'})]
+        D['source'] = [('agency',{'name':'Department of Commerce','shortName':'DOC'}),('subagency',{'name':'Bureau of Economic Analysis','shortName':'BEA'}),('program',{'shortName':'IEA','name':'International Economic Accounts'}), ('dataset',{'shortName':'OMC','name':'Operations of Multinational Companies'})]
                
-        D['DateFormat'] = 'YYYY'
-        D['ColumnGroups'] = {'TimeColNames':[],'LabelColumns':iCols,'SpaceColumns':['USState','Location']}
+        D['dateFormat'] = 'YYYY'
+        D['columnGroups'] = {'timeColNames':[],'labelColumns':iCols,'spaceColumns':['USState','Location']}
                
         D['sliceCols'] = [iCols]
-        D['UniqueIndexes'] = ['Division','Entity','Series','Aggregation','Location','Line']
+        D['uniqueIndexes'] = ['Division','Entity','Series','Aggregation','Location','Line']
         
         D['description'] = 'Comprehensive data on inward and outward direct investment, including data on direct investment positions and transactions and on the financial and operating characteristics of the multinational companies involved.'
         D['keywords'] = 'multinational,foreign,direct investment'.split(',')
         
-        D['Note'] = 'The financial and operating data available from these interactive tables cover only nonbank parents and affiliates. Nonbank parents (affiliates) exclude parents (affiliates) engaged in deposit banking and closely related functions, including commercial banks, savings institutions, credit unions, and bank and financial holding companies.'
+        D['note'] = 'The financial and operating data available from these interactive tables cover only nonbank parents and affiliates. Nonbank parents (affiliates) exclude parents (affiliates) engaged in deposit banking and closely related functions, including commercial banks, savings institutions, credit unions, and bank and financial holding companies.'
 
-        D['URL'] = 'http://www.bea.gov/international/'
+        D['url'] = 'http://www.bea.gov/international/'
 
-        D['value_processors'] = {'Industry':'return require("underscore")._.values(value).join(", ");'}
+        D['valueProcessors'] = {'Industry':'return require("underscore")._.values(value).join(", ");'}
 
         #add subgroups for division, entity, series, industryType from little saved metadata
         
@@ -1927,10 +1927,10 @@ class ii_parser(OG.dataIterator):
         [data,headerlines,footerlines,unit,timecolnames] = parse_ii(path,rowtypename)
         
         self.metadata[pathtag] = {'header':headerlines,'footer':footerlines,'unit':unit}
-        self.metadata['']['ColumnGroups']['TimeColNames'] = uniqify(self.metadata['']['ColumnGroups']['TimeColNames'] + timecolnames)
+        self.metadata['']['ColumnGroups']['TimeColNames'] = uniqify(self.metadata['']['ColumnGroups']['timeColNames'] + timecolnames)
             
         for (i,r) in enumerate(data):
-            r['Subcollections'] = [tag, seriesname,entityname,indtypename,pathtag]
+            r['subcollections'] = [tag, seriesname,entityname,indtypename,pathtag]
             r['Division'] = tag
             r['Entity'] = entityname
             r['Series'] = seriesname

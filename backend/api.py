@@ -76,7 +76,7 @@ class GetHandler(asyncCursorHandler):
         self.versionNumber = versionNumber
         self.uniqueIndexes = uniqueIndexes
         self.VarMap = dict(zip(vars,[str(x) for x in range(len(vars))])) 
-        self.sci = self.VarMap.get('Subcollections')
+        self.sci = self.VarMap.get('subcollections')
         self.subcols = []
         self.vNInd =  self.VarMap['__versionNumber__']
         self.retInd = self.VarMap['__retained__']
@@ -199,10 +199,10 @@ def get_args(collectionName,querySequence,timeQuery=None, spaceQuery = None, ver
     currentVersion = collection.currentVersion
     
     needsVersioning = versionNumber != 'ALL' and versionNumber != currentVersion
-    vars = collection.totalVariables
-    uniqueIndexes = collection.UniqueIndexes   
+    vars = collection.columns
+    uniqueIndexes = collection.uniqueIndexes   
     
-    ColumnGroups = collection.ColumnGroups
+    ColumnGroups = collection.columnGroups
 
     if versionNumber != 'ALL':  
         insertions = []
@@ -224,23 +224,23 @@ def get_args(collectionName,querySequence,timeQuery=None, spaceQuery = None, ver
             querySequence.insert(i,v)
                 
     if timeQuery:
-        if hasattr(collection,'OverallDate'):
-            OK = td.checkQuery(timeQuery, collection.OverallDate)
+        if hasattr(collection,'overallDate'):
+            OK = td.checkQuery(timeQuery, collection.overallDate)
         
             if not OK:
                 querySequence = []
                 results = []
                 metdata = None
     
-        if hasattr(collection,'DateFormat'):
-            DateFormat = collection.DateFormat
+        if hasattr(collection,'dateFormat'):
+            DateFormat = collection.dateFormat
         else:
             DateFormat = ''
     
         if querySequence and timeQuery:
             tQ = td.generateQueries(DateFormat,timeQuery)
-            TimeColNames = ColumnGroups['TimeColNames'] if 'TimeColNames' in ColumnGroups.keys() else []
-            TimeColumns = ColumnGroups['TimeColumns'] if 'TimeColumns' in ColumnGroups.keys() else []
+            TimeColNames = ColumnGroups['timeColNames'] if 'timeColNames' in ColumnGroups.keys() else []
+            TimeColumns = ColumnGroups['timeColumns'] if 'timeColumns' in ColumnGroups.keys() else []
     
             if tQ == None:                  
                 if TimeColumns:
@@ -263,8 +263,8 @@ def get_args(collectionName,querySequence,timeQuery=None, spaceQuery = None, ver
         TimeColNamesToReturn = 'ALL'
     
     if querySequence and spaceQuery:
-        if hasattr(collection,'OverallLocation'):
-            OK = loc.checkQuery(spaceQuery, collection.OverallLocation)
+        if hasattr(collection,'overallLocation'):
+            OK = loc.checkQuery(spaceQuery, collection.overallLocation)
         
             if not OK:
                 querySequence = []
@@ -273,8 +273,8 @@ def get_args(collectionName,querySequence,timeQuery=None, spaceQuery = None, ver
         
         if querySequence and spaceQuery:
             sQ = loc.generateQueries(spaceQuery)
-            SpaceColNames = ColumnGroups['SpaceColNames'] if 'SpaceColNames' in ColumnGroups.keys() else []
-            SpaceColumns = ColumnGroups['SpaceColumns'] if 'SpaceColumns' in ColumnGroups.keys() else []
+            SpaceColNames = ColumnGroups['spaceColNames'] if 'spaceColNames' in ColumnGroups.keys() else []
+            SpaceColumns = ColumnGroups['spaceColumns'] if 'spaceColumns' in ColumnGroups.keys() else []
     
             if SpaceColNames:                   
                 SpaceColNamesToReturn = [a for a in SpaceColNames if actQueries(sQ,a)]
@@ -357,7 +357,7 @@ def get(*args,**kwargs):
     
     VarMap = dict(zip(vars,[str(x) for x in range(len(vars))]))  
     
-    sci = VarMap.get('Subcollections',None)
+    sci = VarMap.get('subcollections',None)
     subcols = []
     vNInd = VarMap['__versionNumber__']
     retInd = VarMap['__retained__']
@@ -481,8 +481,8 @@ def actionAct(a,v,o):
 
 def processArg(arg,collection):
     """Translates the arg to human readable to collections"""
-    V = collection.totalVariables
-    C = collection.ColumnGroups
+    V = collection.columns
+    C = collection.columnGroups
     if is_string_like(arg):
         argsplit = arg.split('.')
         if argsplit[0] in V:
@@ -528,7 +528,7 @@ def processArg(arg,collection):
 
 import string        
 def processJSValue(code,collection):
-    vars = collection.totalVariables
+    vars = collection.columns
     varMap = dict(zip(vars,[repr(str(x)) for x in range(len(vars))])) 
     T = string.Template(code)
     return T.substitute(varMap)
@@ -672,11 +672,11 @@ class TableHandler(GetHandler):
         
 
     def organize_fields(self,fields):
-        vars = self.collection.totalVariables
+        vars = self.collection.columns
 
-        TimeColumns = self.collection.ColumnGroups.get('TimeColumns',[])
-        SpaceColumns = self.collection.ColumnGroups.get('SpaceColumns',[])
-        TimeColNames = self.collection.ColumnGroups.get('TimeColNames',[])
+        TimeColumns = self.collection.columnGroups.get('timeColumns',[])
+        SpaceColumns = self.collection.columnGroups.get('spaceColumns',[])
+        TimeColNames = self.collection.columnGroups.get('timeColNames',[])
         TimeColNames.sort()
 
         if fields == None:
@@ -689,12 +689,12 @@ class TableHandler(GetHandler):
             fields.sort()
 
             TimeColFields = [str(vars.index(x))  for x in TimeColNames if str(vars.index(x)) in fields]
-            SpecialFields = [str(vars.index(x))  for x in SPECIAL_KEYS +  ['Subcollections'] if str(vars.index(x)) in fields]
+            SpecialFields = [str(vars.index(x))  for x in SPECIAL_KEYS +  ['subcollections'] if str(vars.index(x)) in fields]
 
             fields = SpecialFields + [i for i in fields if i not in TimeColFields + SpecialFields] + TimeColFields
 
         if self.field_order:
-            fields = uniqify(ListUnion([[self.VarMap[kk] for kk in self.collection.ColumnGroups.get(k,[k])] for k in self.field_order]) + [k for k in fields if k != '_id' and vars[int(k)] not in self.field_order])
+            fields = uniqify(ListUnion([[self.VarMap[kk] for kk in self.collection.columnGroups.get(k,[k])] for k in self.field_order]) + [k for k in fields if k != '_id' and vars[int(k)] not in self.field_order])
 
 
         ids = ['_id'] + [field.encode('utf-8') for field in fields]
@@ -711,11 +711,11 @@ class TableHandler(GetHandler):
 #=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 def infertimecol(collection):
-    if hasattr(collection,'DateFormat') and 'Y' in collection.DateFormat:
-        if collection.ColumnGroups.has_key('TimeColNames'):
+    if hasattr(collection,'dateFormat') and 'Y' in collection.DateFormat:
+        if collection.columnGroups.has_key('timeColNames'):
             return '__keys__'
-        elif collection.ColumnGroups.has_key('TimeColumns') and collection.ColumnGroups['TimeColumns']:
-            return collection.ColumnGroups['TimeColumns'][0]
+        elif collection.columnGroups.has_key('timeColumns') and collection.columnGroups['timeColumns']:
+            return collection.columnGroups['timeColumns'][0]
             
      
 def getTimelineTable(handler):
@@ -743,11 +743,11 @@ def getTimelineTable(handler):
     
         timecolname = handler.args.get('timecolname','Date')
         
-        labelcols =  handler.collection.metadata['']['ColumnGroups']['LabelColumns']
+        labelcols =  handler.collection.metadata['']['columnGroups']['labelColumns']
         assert set(labelcols) <= set(labels)
         labelcolInds = [labels.index(l) for l in labelcols]
         
-        timevalNames = [name for name in labels if name in handler.collection.ColumnGroups['TimeColNames']]
+        timevalNames = [name for name in labels if name in handler.collection.ColumnGroups['timeColNames']]
         timevalNames.sort()
                   
         timevalInds = [labels.index(x) for x in timevalNames]
@@ -897,8 +897,8 @@ class SourceHandler(asyncCursorHandler):
            
         querySequence = [[str(action),list(getArgs(args))] for (action,args) in querySequence]
     
-        if querySequence[0][1][0] == () or not (querySequence[0][1][0][0].has_key('version_offset') or querySequence[0][1][0][0].has_key('version')):
-            querySequence[0][1][0] = setArgTuple(querySequence[0][1][0],'version_offset',0)        
+        if querySequence[0][1][0] == () or not (querySequence[0][1][0][0].has_key('versionOffset') or querySequence[0][1][0][0].has_key('version')):
+            querySequence[0][1][0] = setArgTuple(querySequence[0][1][0],'versionOffset',0)        
         
     
         self.stream = False
@@ -922,16 +922,16 @@ ADMIN_EMAIL = 'govdata@lists.hmdc.harvard.edu'
 
 import xml.etree.ElementTree as ET
 
-DC_KEYS = ['Source','description','keywords','URL']
+DC_KEYS = ['source','description','keywords','URL']
 
 def dc_formatter(record,handler,collection):
     metadata = record['metadata']
     elt = ET.Element('oai_dc:dc',attrib={"xmlns:oai_dc":"http://www.openarchives.org/OAI/2.0/oai_dc/","xmlns:dc":"http://purl.org/dc/elements/1.1/","xmlns:xsi":"http://www.w3.org/2001/XMLSchema-instance","\
 xsi:schemaLocation":"http://www.openarchives.org/OAI/2.0/oai_dc.xsd"})
     vals = {}
-    title = metadata['Source']['Dataset']
-    vals['title'] = title if is_string_like(title) else title['Name']
-    vals['creator'] = ', '.join([key + ': ' + (value if is_string_like(value) else value['Name']) for (key,value) in record['source'].items() if key != 'Dataset'])
+    title = metadata['source']['dataset']
+    vals['title'] = title if is_string_like(title) else title['name']
+    vals['creator'] = ', '.join([key + ': ' + (value if is_string_like(value) else value['name']) for (key,value) in record['source'].items() if key != 'dataset'])
     vals['identifier'] = record['name']
     vals['source'] = metadata.get('URL','')
     vals['subject'] = ', '.join(metadata.get('keywords',''))
@@ -947,6 +947,103 @@ xsi:schemaLocation":"http://www.openarchives.org/OAI/2.0/oai_dc.xsd"})
     r = ET.Element('record') ; r.insert(0,h); r.insert(1,m)
     
     return r
+
+
+def ddi_formatter(record,handler,collection):
+    """
+    see: http://www.ddialliance.org/sites/default/files/dtd/DDI2-1-tree.html
+    """
+    
+    metadata = record['metadata']
+    
+    Element = ET.Element
+    codeBook = Element('codeBook')
+    stdyDscr = add(codeBook,'stdyDscr')
+    
+    citation = add(stdyDscr,'citation')
+    titlStmt = add(citation,'titlStmt')
+    prodStmt = add(citation,'prodStmt')
+    distStmt = add(citation,'distStmt')
+    verStmt = add(citation,'verStmt')
+
+    add(titlStmt,'tltl',metadata['title'])
+    add(titlStmt,'id',record['name'])
+    
+    source = metadata['source']
+    for k in source:
+       attrib = {'type':k}
+       if source[k].has_key('shortName'):
+           attrib['abbr'] = source[k]['sourceName']       
+       add(prodStmt,'producer',value = source[k]['name'],attrib=attrib)
+
+   if metadata.has_key('contactInfo'):
+       add(distStmt,'contact',metadata['contactInfo'])  
+   if metadata.has_key('dateReleased'):
+       add(distStmt,'distDate',metadata['dateReleased'])
+   
+   add(verStmt,'version',str(record['version']))
+   
+   stdyInfo = add(stdyDscr,'stdyInfo')
+   subject = add(stdyInfo,'subject')
+   keyword = add(subject,'keyword', ', '.join(metadata['keywords'])
+   add(stdyInfo,'abstract',metadata['description'])
+   
+   sumDscr = add(stdyInfo,'sumDscr')
+   add(sumDscr,'timePrd',value=metadata['beginDate'],attrib = {'event':'start'})
+   add(sumDscr,'timePrd',value=metadata['endDate'],attrib = {'event':'end'})
+   add(sumDscr,'geogCover',value = loc.phrase(metadata['commonLocation'])
+   for v in metadata['spatialDivisions']:
+       add(sumDscr,'geogUnit',v)
+   
+   method = add(stdyDscr,'method')
+   dataColl = add(method,'dataColl')
+   for k in metadata['dateDivisions']:
+       add(dataColl,'frequenc',k)
+   
+   fileDscr = add(codeBook,'fileDscr')
+   fileTxt = add(fileDscr,'fileTxt')
+   fileStrc = add(fileTxt,'fileStrc')
+   subcollections = record['subcollections']
+   for k in subcollections:
+       if k:
+           scol = subcollections[k]
+           recGrp = add(fileStrc,'recGrp',attrib={'id':k})
+           labl = add(recGrp,'labl',value = scol['title'])
+           dimensns = add(recGrp,'dimensns')
+           add(dimensns,'caseQnty',str(scol['volume']))
+   dimensns = add(fileTxt,'dimensns')
+   add(dimensns,'caseQnty',str(metadata['volume']))
+   add(dimensns,'varQnty',str(len(metadata['columns'])))
+   
+   dataDscr = add(codeBook,'dataDscr')
+   
+   columns = metadata['columns']
+   columnGroups = metadata['columnGroups']
+   columnDescriptions = metadata['columnDescriptions'] 
+   varFormats = metadata['varFormats']
+   
+   for c in columnGroups:
+       varGrp = add(dataDscr,'varGrp',attrib = {'name':c,'var': ', '.join(columnGroups[c])})
+       if columnDescriptions.has_key(c) and columnDescriptions[c].has_key('description'):
+           add(varGrp,'txt',value=columnDescriptions[c]['description'])
+       
+   for c in columns:
+       attrib = {'name':c,'geog':repr(c in columnGroups.get('spaceColumns',[])),'temporal':repr(c in columnGroups.get('timeColumns',[])),'ID':str(columns.index(c))}
+       var = add(dataDscr,'var',attrib=attrib)
+       if columnDescriptions.has_key(c) and columnDescriptions[c].has_key('description'):
+           add(var,'txt',value=columnDescriptions[c]['description'])
+       varFormat = add(var,'varFormat',attrib = {'type':varFormats[c]})
+   
+
+def add(to,name,value=None,attrib = None):
+    elt = Element(name,attrib=attrib)
+    if value:
+        elt.text = value
+    elt.text = value
+    to.append(elt)
+    return elt
+    
+
     
 def list_identifier_formatter(record,handler,collection):
     return header(record)
@@ -965,7 +1062,7 @@ def header(record):
     return elt
     
 
-OAI_FORMATS={'oai_dc':{'metadataPrefix':'oai_dc','keys':DC_KEYS,'formatter':dc_formatter,'schema':'http://www.openarchives.org/OAI/2.0/oai_dc.xsd','metadataNameSpace':'http://www.openarchives.org/OAI/2.0/oai_dc/','limit':10}}
+OAI_FORMATS={'oai_dc':{'metadataPrefix':'oai_dc','keys':DC_KEYS,'formatter':dc_formatter,'schema':'http://www.openarchives.org/OAI/2.0/oai_dc.xsd','metadataNameSpace':'http://www.openarchives.org/OAI/2.0/oai_dc/','limit':10},'ddi':{'metadataPrefix':'ddi','keys':DDI_KEYS,'formatter':ddi_formatter,'schema':'','metadataNameSpace':'','limit':10}}
 
 class OAIHandler(asyncCursorHandler):
 

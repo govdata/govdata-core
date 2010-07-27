@@ -417,10 +417,10 @@ class bls_parser(OG.dataIterator):
         self.metadata[''] = D = {}
         
         M = pickle.load(open(metafile))
-        for x in ['ContactInfo','description','keywords']:
+        for x in ['contactInfo','description','keywords']:
             D[x] = M[x]
-        D['Source'] = [('Agency',{'Name':'Department of Labor','ShortName':'DOL'}),('Subagency',{'Name':'Bureau of Labor Statistics','ShortName':'BLS'}),('Topic',M['Topic']),('Subtopic',M['Subtopic']),('Program',{'Name':M['ProgramName'],'ShortName':M['ProgramAbbr']}),('Dataset',{'Name':M['Dataset'],'ShortName':M['DatasetCode']})]
-        D['DateFormat'] = 'YYYYhqmm'
+        D['Source'] = [('agency',{'name':'Department of Labor','shortName':'DOL'}),('subagency',{'name':'Bureau of Labor Statistics','shortName':'BLS'}),('topic',M['Topic']),('subtopic',M['Subtopic']),('program',{'name':M['ProgramName'],'shortName':M['ProgramAbbr']}),('dataset',{'name':M['Dataset'],'shortName':M['DatasetCode']})]
+        D['dateFormat'] = 'YYYYhqmm'
 
         M = tb.io.getmetadata(seriesfile)[0]
         self.headerlines = M['headerlines']
@@ -432,15 +432,15 @@ class bls_parser(OG.dataIterator):
         self.fipscols = [(j,y) for (j,y) in self.spacecols  if y.startswith('f.')]
         self.nonfipscols = [(j,y) for (j,y) in self.spacecols  if not y.startswith('f.')]
         goodNames = [nameProcessor(x) for x in names]
-        self.NAMES = ['Subcollections', 'Series'] + [goodNames[i] for i in self.getcols] + (['Location'] if self.spacecols else [])
+        self.NAMES = ['subcollections', 'Series'] + [goodNames[i] for i in self.getcols] + (['Location'] if self.spacecols else [])
         
         labelcols = [goodNames[i] for i in self.getcols] + (['Location'] if self.spacecols else [])
 
         self.TIMECOLS = []
-        D['ColumnGroups'] = {'TimeColNames': self.TIMECOLS, 'LabelColumns': labelcols }
+        D['columnGroups'] = {'timeColNames': self.TIMECOLS, 'labelColumns': labelcols }
         if self.spacecols:
-            D['ColumnGroups']['SpaceColumns'] = ['Location']
-        D['UniqueIndexes'] = ['Series']
+            D['columnGroups']['spaceColumns'] = ['Location']
+        D['uniqueIndexes'] = ['Series']
         if sliceCols:
             D['sliceCols'] = sliceCols
         else:
@@ -457,9 +457,9 @@ class bls_parser(OG.dataIterator):
         self.ColNo = ColNo
         FLF = tb.tabarray(SVfile = self.filelistfile)
         Paths = FLF['Path'].tolist()
-        self.metadata[ColNo] = {'Title':FLF['FileName'][Paths.index(file.split('/')[-1])]}
+        self.metadata[ColNo] = {'title':FLF['FileName'][Paths.index(file.split('/')[-1])]}
 
-        print 'Initializing for ', self.metadata[ColNo]['Title']                
+        print 'Initializing for ', self.metadata[ColNo]['title']                
     
         self.G = open(self.seriesfile,'rU')
         for i in range(self.headerlines):

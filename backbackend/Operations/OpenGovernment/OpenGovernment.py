@@ -220,8 +220,8 @@ def get_max_increment_path(download_dir):
     return increment_format(download_dir,get_max_increment(download_dir))
 
 def get_and_check_increments_fromDB(versions):
-    V = versions.find(fields=['__startIncrement__','__endIncrement__']).sort('__versionNumber__',pm.ASCENDING)
-    V = [(v['__startIncrement__'],v['__endIncrement__']) for v in V]
+    V = versions.find(fields=['startIncrement','endIncrement']).sort('versionNumber',pm.ASCENDING)
+    V = [(v['startIncrement'],v['endIncrement']) for v in V]
     (S,E) = zip(*V)
     assert all([S[i] < S[i+1] and E[i] == S[i+1] - 1 for i in range(len(S)-1)]) and all([s <= e for (s,e) in V ]), 'Something\'s wrong with version history increments.'
     
@@ -275,10 +275,10 @@ class csv_parser(dataIterator):
             r = self.Data[self.IND]
             r = pm.son.SON([(self.Data.dtype.names[i],float(xx) if isinstance(xx,float) else int(xx) if isinstance(xx,int) else xx) for (i,xx) in enumerate(r) if xx != ''])
             
-            if 'Subcollections' in r.keys():
-                r['Subcollections'] = r['Subcollections'].split(',')
+            if 'subcollections' in r.keys():
+                r['subcollections'] = r['subcollections'].split(',')
                 
-            for k in self.ColumnGroups.get('TimeColumns',[]) + self.ColumnGroups.get('SpaceColumns',[]):
+            for k in self.ColumnGroups.get('timeColumns',[]) + self.ColumnGroups.get('spaceColumns',[]):
                 if k in r.keys():
                     r[k] = eval(r[k])               
             
@@ -326,25 +326,24 @@ def updateCollection(download_dir,collectionName,parserClass,checkpath,certpath,
     if sources:
         iterator = parserClass(sources[0],*parserArgs,**parserKwargs)
     
-        assert hasattr(iterator,'UniqueIndexes'),  'No unique indexes specified'
-        uniqueIndexes = iterator.UniqueIndexes
-        ColumnGroups = iterator.ColumnGroups
+        assert hasattr(iterator,'uniqueIndexes'),  'No unique indexes specified'
+        uniqueIndexes = iterator.uniqueIndexes
+        ColumnGroups = iterator.columnGroups
         
         sliceColTuples = getSliceColTuples(iterator.sliceCols)
         sliceColTuplesFlat = uniqify([tuple(sorted(uniqify(Flatten(sct)))) for sct in sliceColTuples])
-        print 'SCTF', sliceColTuplesFlat        
-
+      
         sliceColList = uniqify(Flatten(ListUnion(sliceColTuples)))
         ContentCols = set(sliceColList + getContentCols(iterator))
             
-        if hasattr(iterator,'DateFormat'):
-            TimeFormatter = td.mongotimeformatter(iterator.DateFormat)
+        if hasattr(iterator,'dateFormat'):
+            TimeFormatter = td.mongotimeformatter(iterator.dateFormat)
             
     
         if collectionName in db.collection_names():
-            versionNumber = max(versions.distinct('__versionNumber__')) + 1
-            storedAllMetadata = metacollection.find_one({'__name__':'','__versionNumber__':versionNumber-1})
-            totalVariables = storedAllMetadata['totalVariables']
+            versionNumber = max(versions.distinct('versionNumber')) + 1
+            storedAllMetadata = metacollection.find_one({'name':'','versionNumber':versionNumber-1})
+            totalVariables = storedAllMetadata['columns']
             VarMap = dict(zip(totalVariables,[str(x) for x in range(len(totalVariables))]))   
             
             #check things are the same 
@@ -352,7 +351,7 @@ def updateCollection(download_dir,collectionName,parserClass,checkpath,certpath,
             
         else:
             versionNumber = 0
-            IndexCols = uniqify([x for x in ['Subcollections'] + sliceColList + ListUnion([ColGroupsFlatten(ColumnGroups,k) for k in ['IndexColumns','LabelColumns','TimeColumns','SpaceColumns']]) if x not in uniqueIndexes])
+            IndexCols = uniqify([x for x in ['subcollections'] + sliceColList + ListUnion([ColGroupsFlatten(ColumnGroups,k) for k in ['indexColumns','labelColumns','timeColumns','spaceColumns']]) if x not in uniqueIndexes])
             
             totalVariables = SPECIAL_KEYS + uniqueIndexes + IndexCols
             
@@ -374,26 +373,24 @@ def updateCollection(download_dir,collectionName,parserClass,checkpath,certpath,
         
         specialKeyInds = [VarMap[k] for k in SPECIAL_KEYS]
     
-        if 'TimeColumns' in iterator.ColumnGroups.keys():
-            tcs = iterator.ColumnGroups['TimeColumns']
+        if 'timeColumns' in iterator.ColumnGroups.keys():
+            tcs = iterator.columnGroups['timeColumns']
         else:
             tcs = []
         
-        if 'SpaceColumns' in iterator.ColumnGroups.keys():
-            spcs = iterator.ColumnGroups['SpaceColumns']
+        if 'spaceColumns' in iterator.ColumnGroups.keys():
+            spcs = iterator.columnGroups['spaceColumns']
         else:
             spcs = []
                   
         toParse = ListUnion([RecursiveFileList(source + '__PARSE__') for source in sources])
-    
-        completeSpace = False
-        
+            
         oldc = None
         SpaceCache = {}    
         for file in toParse:
             iterator.refresh(file) 
-            tcs = iterator.ColumnGroups.get('TimeColumns',[])
-            spcs = iterator.ColumnGroups.get('SpaceColumns',[])
+            tcs = iterator.columnGroups.get('timeColumns',[])
+            spcs = iterator.columnGroups.get('spaceColumns',[])
             index = 0
             for c in iterator: 
                 newVars = [x for x in c.keys() if not x in totalVariables]
@@ -424,7 +421,7 @@ def updateCollection(download_dir,collectionName,parserClass,checkpath,certpath,
             collection.update({vNInd:versionNumber - 1, retInd : {'$exists':False}}, {'$set':{vNInd:versionNumber}})                    
             sliceDB.update({},{'$set':{'version':versionNumber}})
     
-        updateMetacollection(iterator, metacollection,incremental,versionNumber,totalVariables,tcs,spcs)
+        updateMetacollection(iterator, collection, metacollection,incremental,versionNumber,totalVariables,tcs,spcs)
         
         updateAssociatedFiles(sources,collection)
         
@@ -432,6 +429,7 @@ def updateCollection(download_dir,collectionName,parserClass,checkpath,certpath,
     
     connection.disconnect()
     createCertificate(certpath,'Collection ' + collectionName + ' written to DB.')
+
 
 def processSct(sct,oldc,c):
     if oldc == None:
@@ -479,9 +477,9 @@ def updateVersionHistory(versionNumber, versions,startInc,endInc):
 
     ts = td.Now()
     if startInc != None and endInc != None:
-        newVersion = {'__versionNumber__': versionNumber, '__timeStamp__':ts, '__startIncrement__':startInc, '__endIncrement__':endInc}
+        newVersion = {'versionNumber': versionNumber, 'timeStamp':ts, 'startIncrement':startInc, 'endIncrement':endInc}
     else:
-        newVersion = {'__versionNumber__': versionNumber, '__timeStamp__':ts}
+        newVersion = {'versionNumber': versionNumber, 'timeStamp':ts}
     versions.insert(newVersion)
                     
 
@@ -496,30 +494,36 @@ def updateAssociatedFiles(sources,collection):
                 G.put(S,filename = file)   
                 
 
-def updateMetacollection(iterator, metacollection,incremental,versionNumber,totalVariables,tcs,spcs):
+def updateMetacollection(iterator, collection, metacollection,incremental,versionNumber,totalVariables,tcs,spcs):
     
     metadata = iterator.metadata
     
-    metadata['']['totalVariables'] = totalVariables
-    metadata['']['Source'] = pm.son.SON(metadata['']['Source'])
+    metadata['']['columns'] = totalVariables
+    metadata['']['source'] = pm.son.SON(metadata['']['source'])
     
-    value_processors = metadata[''].get('value_processors',{})
-    if metadata['']['ColumnGroups'].get('TimeColumns',None):
-        value_processors['TimeColumns'] = 'return require("timedate").phrase(value);'
-    if metadata['']['ColumnGroups'].get('SpaceColumns',None):
-        value_processors['SpaceColumns'] =  'return require("location").phrase(value);'
-    metadata['']['value_processors'] = value_processors    
+    metadata['']['title'] = metadata['']['source']['dataset']['name']
+     metadata['']['shortTitle'] = metadata['']['source']['dataset']['shortName']
     
-    name_processors = metadata[''].get('name_processors',{})
-    if metadata['']['ColumnGroups'].get('TimeColNames',None):
-        dateFormat = metadata['']['DateFormat']
-        name_processors['TimeColNames'] = 'return require("timedate").phrase(require("timedate").stringtomongo(value,"' + dateFormat + '"));'
-    metadata['']['name_processors'] = name_processors  
+    value_processors = metadata[''].get('valueProcessors',{})
+    if metadata['']['columnGroups'].get('timeColumns',None):
+        value_processors['timeColumns'] = 'return require("timedate").phrase(value);'
+    if metadata['']['columnGroups'].get('spaceColumns',None):
+        value_processors['spaceColumns'] =  'return require("location").phrase(value);'
+    metadata['']['valueProcessors'] = value_processors    
+    
+    name_processors = metadata[''].get('nameProcessors',{})
+    if metadata['']['columnGroups'].get('timeColNames',None):
+        dateFormat = metadata['']['dateFormat']
+        name_processors['timeColNames'] = 'return require("timedate").phrase(require("timedate").stringtomongo(value,"' + dateFormat + '"));'
+    metadata['']['nameProcessors'] = name_processors  
 
-    metacollection.ensure_index([('__name__',pm.DESCENDING),('__versionNumber__',pm.DESCENDING)], unique=True)   
+    metacollection.ensure_index([('name',pm.DESCENDING),('versionNumber',pm.DESCENDING)], unique=True)   
+    
+    #times 
+    getCommonDatesLocations(metadata,iterator,collection,totalVariables.versionNumber)
     
     if incremental:
-        previousMetadata = dict([(p["__name__"],p) for  p in metacollection.find({'__versionNumber__':versionNumber - 1})])
+        previousMetadata = dict([(p["name"],p) for  p in metacollection.find({'versionNumber':versionNumber - 1})])
         if previousMetadata:
             for x in previousMetadata.values():
                 x.pop('_id')
@@ -532,20 +536,48 @@ def updateMetacollection(iterator, metacollection,incremental,versionNumber,tota
                 if k not in metadata[''].keys():
                     metadata[''][k] = previousMetadata[''][k]
             
-            for k in previousMetadata['']['ColumnGroups'].keys():
-                if k not in metadata['']['ColumnGroups'].keys():
-                    metadata['']['ColumnGroups'][k] = previousMetadata['']['ColumnGroups'][k]
+            for k in previousMetadata['']['columnGroups'].keys():
+                if k not in metadata['']['columnGroups'].keys():
+                    metadata['']['columnGroups'][k] = previousMetadata['']['columnGroups'][k]
                 else:
-                    metadata['']['ColumnGroups'][k] += previousMetadata['']['ColumnGroups'][k] 
+                    metadata['']['columnGroups'][k] += previousMetadata['']['columnGroups'][k] 
                                 
 
     for k in metadata.keys():
 
         x = metadata[k]
-        x['__name__'] = k
-        x['__versionNumber__'] = versionNumber
+        x['name'] = k
+        x['versionNumber'] = versionNumber
         id = metacollection.insert(x,safe=True)
             
+
+def getCommonDatesLocations(iterator,collection,totalVariables,versionNumber):
+    vNInd = '0'
+    overallDateFormat = iterator.overallDateFormat if hasattr(iterator,'overallDateFormat') else ''
+    dateFormat = iterator.dateFormat if hasattr(iterator,'dateFormat') else ''
+    overallDate = iterator.overallDate if hasattr(iterator,'overallDate') else ''
+    if overallDateFormat or dateFormat:
+		DF = overallDateFormat + dateFormat
+
+		F = td.mongotimeformatter(DF)
+		T1 = [F(overallDate + x for x) in iterator.columnGroups['timeColNames']]
+		T2 = ListUnion([[x for x in collection.find({vNInd:versionNumber}).distinct(totalVariables.index(c))] for c in tcs])
+        if overallDateFormat:
+            reverseF = td.reverse(dateFormat)
+            T2 = [F(overallDate + y) for y in map(reverseF,T2)]
+		mindate = min(T1 + T2)
+		maxdate = max(T1 + T2)
+		divisions = uniqify(ListUnion([td.getLowest(t) for t in T1 + T2]))
+		metadata['']['beginDate'] = mindate
+		metadata['']['endDate'] = maxdate
+		metadata['']['dateDivisions'] = divisions
+    #locations
+    if spcs:
+        locs = ListUnion([[x for x in collection.find({vNInd:versionNumber}).distinct(totalVariables.index(c))] for c in spcs])
+        locs = dictUniqify([loc.integrate(interator.overallLocation,l) for l in locs])
+        metadata['']['spatialDivisions'] = uniqify(ListUnion([loc.divisions((x) for x in in locs]))
+        metadata['']['commonLocation'] = reduce(loc.intersect,locs)
+       
 
 def processRecord(c,collection,VarMap,totalVariables,uniqueIndexes,versionNumber,specialKeyInds,incremental,sliceDB,sliceColTuples,ContentCols):
     """Function which adds a given record to a collection, handling the incremental version properly.  
@@ -662,13 +694,13 @@ def updateSourceDBFromCollections(collectionNames = None):
         if old_version_number != new_version_number:
             vCollectionName = '__' + collectionName + '__VERSIONS__'
             vCollection = db[vCollectionName]
-            tstamp = vCollection.find_one({'__versionNumber__':new_version_number},fields=[ '__timeStamp__'])['__timeStamp__']
+            tstamp = vCollection.find_one({'versionNumber':new_version_number},fields=[ 'timeStamp'])['timeStamp']
             
-            rec = {'name':collectionName,'version':new_version_number,'version_offset':-1,'subcollections':subcollections,'metadata':collection.metadata[''],'source':collection.Source,'iscollection':True,'timeStamp':tstamp}
+            rec = {'name':collectionName,'version':new_version_number,'versionOffset':-1,'subcollections':subcollections,'metadata':collection.metadata[''],'source':collection.Source,'isCollection':True,'timeStamp':tstamp}
             sCollection.insert(rec,safe=True)
-            sCollection.update({'name':collectionName},{'$inc':{'version_offset':1}})
+            sCollection.update({'name':collectionName},{'$inc':{'versionOffset':1}})
         else:
-            rec = {'subcollections':subcollections,'metadata':collection.metadata[''],'source':collection.Source,'iscollection':True}
+            rec = {'subcollections':subcollections,'metadata':collection.metadata[''],'source':collection.Source,'isCollection':True}
             sCollection.update({'name':collectionName,'version':new_version_number},{'$set':rec},upsert=True)
         
 
@@ -683,7 +715,7 @@ def updateSourceDBByHand(data):
     if sName not in db.collection_names():
         sCollection.ensure_index([('name',pm.ASCENDING),('version',pm.DESCENDING)],unique=True,dropDups=True)
         
-    data_collections = sCollection.find({'iscollection':True}).distinct('name')
+    data_collections = sCollection.find({'isCollection':True}).distinct('name')
     
     for rec in data:
         assert hasattr(rec,'keys') and rec.keys() == ['name','metadata','source']
@@ -700,13 +732,13 @@ def updateSourceDBByHand(data):
             new_version_number = 0
             new = True
             
-        rec['iscollection'] = False
+        rec['isCollection'] = False
         rec['version'] = new_version_number
-        rec['version_offset'] = -1
+        rec['versionOffset'] = -1
         rec['timeStamp'] = td.Now()
  
         if new:
             sCollection.insert(rec,safe=True)
-            sCollection.update({'name':name},{'$inc':{'version_offset':1}})
+            sCollection.update({'name':name},{'$inc':{'versionOffset':1}})
    
     

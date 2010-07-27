@@ -111,12 +111,12 @@ def makeHierarchy(V,E):
         
 def divisions(l):
     """Converts space object (dict) into the levels auto expands FIPS codes"""
-    return [SPACE_DIVISIONS[x] for x in l.keys() if x != 'f' and SPACE_DIVISIONS.has_key(x)] + ([SPACE_DIVISIONS[x] +  ' FIPS' for x in l['f'] if SPACE_DIVISIONS.has_key(x)] if 'f' in l.keys() else [])
-    
+    return [SPACE_DIVISIONS[x] for x in getLowest(l.keys()) if x != 'f' and SPACE_DIVISIONS.has_key(x)] + ([SPACE_DIVISIONS[x] +  ' FIPS' for x in getLowest(l['f']) if SPACE_DIVISIONS.has_key(x)] if 'f' in l.keys() else [])
+
     
 def divisions2(l):
     """Converts space object (dict) into the levels auto expands FIPS codes"""
-    return [SPACE_DIVISIONS[x] for x in l.keys() if x != 'f' and SPACE_DIVISIONS.has_key(x)] + ([SPACE_DIVISIONS[x]  for x in l['f'] if x not in l.keys() and SPACE_DIVISIONS.has_key(x)] if 'f' in l.keys() else [])
+    return [SPACE_DIVISIONS[x] for x in getLowest(l.keys()) if x != 'f' and SPACE_DIVISIONS.has_key(x)] + ([SPACE_DIVISIONS[x]  for x in getLowest(l['f']) if x not in l.keys() and SPACE_DIVISIONS.has_key(x)] if 'f' in l.keys() else [])
     
 def phrase(l):
     """Human readable phrase"""
