@@ -322,7 +322,6 @@ def updateCollection(download_dir,collectionName,parserClass,checkpath,certpath,
     if parserKwargs == None:
         parserKwargs = {}
         
-        
     if sources:
         iterator = parserClass(sources[0],*parserArgs,**parserKwargs)
     
@@ -387,6 +386,11 @@ def updateCollection(download_dir,collectionName,parserClass,checkpath,certpath,
             
         oldc = None
         SpaceCache = {}    
+        volumes = {'':0} 
+        dimensions = {'':[]}
+        times = {'':[]}
+        locations = {'':[]}
+        varFormats = {}
         for file in toParse:
             iterator.refresh(file) 
             tcs = iterator.columnGroups.get('timeColumns',[])
@@ -415,13 +419,33 @@ def updateCollection(download_dir,collectionName,parserClass,checkpath,certpath,
                 index += 1
                 sctf = processSct(sliceColTuplesFlat,oldc,c)
                 processRecord(c,collection,VarMap,totalVariables,uniqueIndexes,versionNumber,specialKeyInds,incremental,sliceDB,sctf,ContentCols)
+                incrementThings(c,volumes,dimensions,times,locations,varFormats)
+                
                 oldc = c
                 
+        any_deleted = False                
         if incremental:
-            collection.update({vNInd:versionNumber - 1, retInd : {'$exists':False}}, {'$set':{vNInd:versionNumber}})                    
-            sliceDB.update({},{'$set':{'version':versionNumber}})
-    
-        updateMetacollection(iterator, collection, metacollection,incremental,versionNumber,totalVariables,tcs,spcs)
+            collection.update({vNInd:{'$lte': versionNumber - 1}}, {'$set':{vNInd:versionNumber}})                    
+            sliceDB.update({},{'$set':{'version':versionNumber}})  
+   
+        else:
+            deleted = collection.find({vNInd:versionNumber - 1, retInd : {'$exists':False}})
+            for d in deleted:
+                any_deleted = True
+                sliceDelete(d,collection,sliceColTuples,VarMap,sliceDB,version)
+                
+                     
+        if any_deleted:
+            subColInd = str(totalVariables.index('Subcollections'))
+            subcols = [''] + uniqify(ListUnion(collection.distinct(subColInd)))
+			for sc in subcols:
+				volumes[sc] = collection.find({subColInd:sc}).count()
+				dimensions[sc] = [k for k in totalVariables if collection.find_one({subColInd:sc,{'$exists':str(totalVariables.index(k))}})]
+				times[sc] = ListUnion([collection.find({subColInd:sc}).distinct(t) for t in tcs])
+				locations[sc] = ListUnion([collection.find({subColInd:sc}).distinct(t) for t in spcs])
+				
+               
+        updateMetacollection(iterator,metacollection,incremental,versionNumber,totalVariables,tcs,spcs,volumes,dimensions,times,locations,varFormats)
         
         updateAssociatedFiles(sources,collection)
         
@@ -431,6 +455,36 @@ def updateCollection(download_dir,collectionName,parserClass,checkpath,certpath,
     createCertificate(certpath,'Collection ' + collectionName + ' written to DB.')
 
 
+def incrementThings(c,volumes,dimensions,times,locations,varFormats,tcs,spcs):
+    for sc in c['Subcollections'] + ['']:
+        volumes[sc] += 1
+        dimensions[sc] = reduce(add_unique,c.keys(),dimensions.get(sc,[]))
+        times[sc] = reduce(add_unique, [c.get(k) for k in tcs] , times.get(sc,[]))
+        locations[sc] = reduce(add_unique, [c.get(k) for k in spcs] , locations.get(sc,[]))
+       
+    for k in c.keys():
+        varFormats[k] = test_format(c[k],varFormats.get(k))
+ 
+ 
+def test_format(val,format):
+    if format == 'numeric' and not is_num_like(val):
+        if is_string_like(val):
+            return 'string'
+        else:
+            return 'other'
+   elif format == 'string' and not is_string_like(val):
+       return 'other'
+
+    return format
+       
+            
+    
+def add_unique(L,x):
+    if x not in L:
+        L.append(x)
+    return L
+    
+      
 def processSct(sct,oldc,c):
     if oldc == None:
         return sct
@@ -494,7 +548,7 @@ def updateAssociatedFiles(sources,collection):
                 G.put(S,filename = file)   
                 
 
-def updateMetacollection(iterator, collection, metacollection,incremental,versionNumber,totalVariables,tcs,spcs):
+def updateMetacollection(iterator, metacollection,incremental,versionNumber,totalVariables,tcs,spcs,volumes,dimensions,times,locations,varFormats):
     
     metadata = iterator.metadata
     
@@ -519,9 +573,12 @@ def updateMetacollection(iterator, collection, metacollection,incremental,versio
 
     metacollection.ensure_index([('name',pm.DESCENDING),('versionNumber',pm.DESCENDING)], unique=True)   
     
-    #times 
-    getCommonDatesLocations(metadata,iterator,collection,totalVariables.versionNumber)
-    
+    metadata['']['varFormats'] = varFormats
+    for k in metadata.keys():
+        metadata[k]['volume'] = volumes[k]
+        metadata[k]['dimensions'] = dimensions[k]
+    	getCommonDatesLocations(metadata,times,locations,dimensions,k)    
+                    
     if incremental:
         previousMetadata = dict([(p["name"],p) for  p in metacollection.find({'versionNumber':versionNumber - 1})])
         if previousMetadata:
@@ -551,32 +608,31 @@ def updateMetacollection(iterator, collection, metacollection,incremental,versio
         id = metacollection.insert(x,safe=True)
             
 
-def getCommonDatesLocations(iterator,collection,totalVariables,versionNumber):
+def getCommonDatesLocations(metadata,times,locations,dimensions,k):
     vNInd = '0'
     overallDateFormat = iterator.overallDateFormat if hasattr(iterator,'overallDateFormat') else ''
     dateFormat = iterator.dateFormat if hasattr(iterator,'dateFormat') else ''
     overallDate = iterator.overallDate if hasattr(iterator,'overallDate') else ''
     if overallDateFormat or dateFormat:
 		DF = overallDateFormat + dateFormat
-
 		F = td.mongotimeformatter(DF)
-		T1 = [F(overallDate + x for x) in iterator.columnGroups['timeColNames']]
-		T2 = ListUnion([[x for x in collection.find({vNInd:versionNumber}).distinct(totalVariables.index(c))] for c in tcs])
+		T1 = [F(overallDate + x for x) in iterator.columnGroups['timeColNames'] if x in dimensions[k]]
         if overallDateFormat:
             reverseF = td.reverse(dateFormat)
-            T2 = [F(overallDate + y) for y in map(reverseF,T2)]
+            T2 = [F(overallDate + y) for y in map(reverseF,times[k])]
+        else:
+            T2 = times
 		mindate = min(T1 + T2)
 		maxdate = max(T1 + T2)
 		divisions = uniqify(ListUnion([td.getLowest(t) for t in T1 + T2]))
-		metadata['']['beginDate'] = mindate
-		metadata['']['endDate'] = maxdate
-		metadata['']['dateDivisions'] = divisions
+		metadata[k]['beginDate'] = mindate
+		metadata[k]['endDate'] = maxdate
+		metadata[k]['dateDivisions'] = divisions
     #locations
     if spcs:
-        locs = ListUnion([[x for x in collection.find({vNInd:versionNumber}).distinct(totalVariables.index(c))] for c in spcs])
-        locs = dictUniqify([loc.integrate(interator.overallLocation,l) for l in locs])
-        metadata['']['spatialDivisions'] = uniqify(ListUnion([loc.divisions((x) for x in in locs]))
-        metadata['']['commonLocation'] = reduce(loc.intersect,locs)
+        locs = dictUniqify([loc.integrate(interator.overallLocation,l) for l in locations[k]])
+        metadata[k]['spatialDivisions'] = uniqify(ListUnion([loc.divisions((x) for x in in locs]))
+        metadata[k]['commonLocation'] = reduce(loc.intersect,locs)
        
 
 def processRecord(c,collection,VarMap,totalVariables,uniqueIndexes,versionNumber,specialKeyInds,incremental,sliceDB,sliceColTuples,ContentCols):
@@ -649,11 +705,12 @@ def processRecord(c,collection,VarMap,totalVariables,uniqueIndexes,versionNumber
         DIFF = True
             
     id = collection.insert(c) 
-    sliceInsert(c,collection,sliceColTuples,VarMap,sliceDB,DIFF,versionNumber)
+    if DIFF:
+        sliceInsert(c,collection,sliceColTuples,VarMap,sliceDB,versionNumber)
     
-    return id
+    return id, c
     
-def sliceInsert(c,collection,sliceColTuples,VarMap,sliceDB,DIFF,version):      
+def sliceInsert(c,collection,sliceColTuples,VarMap,sliceDB,version):      
     
     dontcheck = []
     for sct in sliceColTuples:
@@ -664,10 +721,18 @@ def sliceInsert(c,collection,sliceColTuples,VarMap,sliceDB,DIFF,version):
                 if not dc:
                     SCT = set(sct)
                     dontcheck = uniqify(dontcheck + [ss for ss in sliceColTuples if SCT <= set(ss)])
-                if DIFF:
-                    sliceDB.update({'slice':slice},{'$set':{'version':version,'original':version}},upsert=True)
-                else:
-                    sliceDB.update({'slice':slice},{'$set':{'version':version}})
+                sliceDB.update({'slice':slice},{'$set':{'version':version,'original':version}},upsert=True)
+                
+                
+def sliceDelete(c,collection,sliceColTuples,VarMap,sliceDB,version):      
+    
+    for sct in sliceColTuples:
+        if all([VarMap[k] in c.keys() for k in sct]):
+            slice = pm.son.SON([(k,c[VarMap[k]]) for k in sct if VarMap[k] in c.keys()])
+            slice[vNInd] = version
+            if not collection.find_one(slice):
+                sliceDB.update({'slice':slice,'version':version})
+
 
 def updateSourceDBFromCollections(collectionNames = None):
 
