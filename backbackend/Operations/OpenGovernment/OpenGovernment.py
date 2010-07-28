@@ -325,7 +325,6 @@ def updateCollection(download_dir,collectionName,parserClass,checkpath,certpath,
     if sources:
         iterator = parserClass(sources[0],*parserArgs,**parserKwargs)
     
-        assert hasattr(iterator,'uniqueIndexes'),  'No unique indexes specified'
         uniqueIndexes = iterator.uniqueIndexes
         ColumnGroups = iterator.columnGroups
         
@@ -365,8 +364,7 @@ def updateCollection(download_dir,collectionName,parserClass,checkpath,certpath,
                 collection.ensure_index(VarMap[col])
             
             sliceDB.ensure_index('slice',unique=True,dropDups=True)
-                
-                
+                            
         vNInd = VarMap['__versionNumber__']
         retInd = VarMap['__retained__']
         
@@ -392,7 +390,8 @@ def updateCollection(download_dir,collectionName,parserClass,checkpath,certpath,
         locations = {'':[]}
         varFormats = {}
         for file in toParse:
-            iterator.refresh(file) 
+            iterator.refresh(file)
+            checkMetadata(iterator)
             tcs = iterator.columnGroups.get('timeColumns',[])
             spcs = iterator.columnGroups.get('spaceColumns',[])
             index = 0
@@ -547,8 +546,45 @@ def updateAssociatedFiles(sources,collection):
                 os.environ['PROTECTION'] = 'ON'
                 G.put(S,filename = file)   
                 
+                
+def checkMetadata(iterator):
+    assert hasattr(iterator,'metadata'), 'Has no metadata attribute.'
+    
+    metadata = iterator.metadata
+    
+    assert isinstance(metadata,dict), 'Metadata isnt a dictionary.'
+    assert all(map(is_string_like,metadata.keys())), 'Metadata keys must be strings'
+    assert '' in metadata.keys(), 'Metadata must contain "" key.'
+    assert all(map(lambda x : isinstance(x,dict),metadata.values())), 'Metadata values must be dictionaries.'
+    assert all(map(lambda x : all(map(is_string_like,x.keys())),metadata.values())), 'metadata values\' keys must be strings.'
+   
+    assert all(['title' in metadata[k].keys() for k in metadata.keys() if k]), 'All subcollections must have title metadata.'
+   
+    M = metadata['']
+
+    assert isinstance(M.get('keywords'),list) and all(map(is_string_like,M['keywords'])), 'Metadata must contain keywords.'
+    assert is_string_like(M.get('description')), 'Metadata must contain description.'
+    
+    S = M.get('source') 
+    assert isinstance(S,dict), 'Metadata must contain source dictionary.'
+    required = ['agency','subagency','dataset']
+    assert all([r in S.keys() for r in required]), 'Source dictionary must contain agency, subagency, and dataset keys.'
+    assert all(map(lambda x : isinstance(x,dict),S.values())), 'All source dictionary keys must be dictionaries containing "name" and possibly "shortName" keys.'
+    assert all(map(lambda x : all(map(lambda y : 'name' in y,x.keys())),S.values()))
+    assert all(['shortName' in S[r].keys() for r in required]), 'shortName entry required for agency, subagency, and dataset source.'
+    p = re.compile('[\w]*')
+    assert all([p.match(y.get('shortName','')) for y in S.values()]), 'shortName entry can only contain alphanumeric and "_" characters.'
+    
+    SC = M.get('sliceCols')
+    assert isinstance(SC,list) and all([isinstance(x,list) and all([is_string_like(y) or isinstance(y,tuple) for y in x]) for x in SC]), 'sliceCol metadata not present or improperly formed.'
+       
+    CG = M.get('columnGroups')
+    assert isinstance(GC,dict) and 'labelColumns' in CG.keys(), 'columnGroup metadata not present or improperly formed.'
+
 
 def updateMetacollection(iterator, metacollection,incremental,versionNumber,totalVariables,tcs,spcs,volumes,dimensions,times,locations,varFormats):
+    
+    checkMetadata(iterator)
     
     metadata = iterator.metadata
     
