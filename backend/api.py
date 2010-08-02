@@ -923,6 +923,7 @@ ADMIN_EMAIL = 'govdata@lists.hmdc.harvard.edu'
 import xml.etree.ElementTree as ET
 
 DC_KEYS = ['source','description','keywords','URL']
+DDI_KEYS = []
 
 def dc_formatter(record,handler,collection):
     metadata = record['metadata']
@@ -976,64 +977,65 @@ def ddi_formatter(record,handler,collection):
            attrib['abbr'] = source[k]['sourceName']       
        add(prodStmt,'producer',value = source[k]['name'],attrib=attrib)
 
-   if metadata.has_key('contactInfo'):
-       add(distStmt,'contact',metadata['contactInfo'])  
-   if metadata.has_key('dateReleased'):
-       add(distStmt,'distDate',metadata['dateReleased'])
+    if metadata.has_key('contactInfo'):
+        add(distStmt,'contact',metadata['contactInfo'])  
+    if metadata.has_key('dateReleased'):
+        add(distStmt,'distDate',metadata['dateReleased'])
    
-   add(verStmt,'version',str(record['version']))
+    add(verStmt,'version',str(record['version']))
    
-   stdyInfo = add(stdyDscr,'stdyInfo')
-   subject = add(stdyInfo,'subject')
-   keyword = add(subject,'keyword', ', '.join(metadata['keywords'])
-   add(stdyInfo,'abstract',metadata['description'])
+    stdyInfo = add(stdyDscr,'stdyInfo')
+    subject = add(stdyInfo,'subject')
+    keyword = add(subject,'keyword', ', '.join(metadata['keywords']))
+    add(stdyInfo,'abstract',metadata['description'])
+     
+    sumDscr = add(stdyInfo,'sumDscr')
+    add(sumDscr,'timePrd',value=metadata['beginDate'],attrib = {'event':'start'})
+    add(sumDscr,'timePrd',value=metadata['endDate'],attrib = {'event':'end'})
+    add(sumDscr,'geogCover',value = loc.phrase(metadata['commonLocation']))
+    for v in metadata['spatialDivisions']:
+        add(sumDscr,'geogUnit',v)
    
-   sumDscr = add(stdyInfo,'sumDscr')
-   add(sumDscr,'timePrd',value=metadata['beginDate'],attrib = {'event':'start'})
-   add(sumDscr,'timePrd',value=metadata['endDate'],attrib = {'event':'end'})
-   add(sumDscr,'geogCover',value = loc.phrase(metadata['commonLocation'])
-   for v in metadata['spatialDivisions']:
-       add(sumDscr,'geogUnit',v)
+    method = add(stdyDscr,'method')
+    dataColl = add(method,'dataColl')
+    for k in metadata['dateDivisions']:
+        add(dataColl,'frequenc',k)
    
-   method = add(stdyDscr,'method')
-   dataColl = add(method,'dataColl')
-   for k in metadata['dateDivisions']:
-       add(dataColl,'frequenc',k)
+    fileDscr = add(codeBook,'fileDscr')
+    fileTxt = add(fileDscr,'fileTxt')
+    fileStrc = add(fileTxt,'fileStrc')
+    subcollections = record['subcollections']
+    for k in subcollections:
+        if k:
+            scol = subcollections[k]
+            recGrp = add(fileStrc,'recGrp',attrib={'id':k})
+            labl = add(recGrp,'labl',value = scol['title'])
+            dimensns = add(recGrp,'dimensns')
+            add(dimensns,'caseQnty',str(scol['volume']))
+    dimensns = add(fileTxt,'dimensns')
+    add(dimensns,'caseQnty',str(metadata['volume']))
+    add(dimensns,'varQnty',str(len(metadata['columns'])))
+    
+    dataDscr = add(codeBook,'dataDscr')
    
-   fileDscr = add(codeBook,'fileDscr')
-   fileTxt = add(fileDscr,'fileTxt')
-   fileStrc = add(fileTxt,'fileStrc')
-   subcollections = record['subcollections']
-   for k in subcollections:
-       if k:
-           scol = subcollections[k]
-           recGrp = add(fileStrc,'recGrp',attrib={'id':k})
-           labl = add(recGrp,'labl',value = scol['title'])
-           dimensns = add(recGrp,'dimensns')
-           add(dimensns,'caseQnty',str(scol['volume']))
-   dimensns = add(fileTxt,'dimensns')
-   add(dimensns,'caseQnty',str(metadata['volume']))
-   add(dimensns,'varQnty',str(len(metadata['columns'])))
+    columns = metadata['columns']
+    columnGroups = metadata['columnGroups']
+    columnDescriptions = metadata['columnDescriptions'] 
+    varFormats = metadata['varFormats']
    
-   dataDscr = add(codeBook,'dataDscr')
-   
-   columns = metadata['columns']
-   columnGroups = metadata['columnGroups']
-   columnDescriptions = metadata['columnDescriptions'] 
-   varFormats = metadata['varFormats']
-   
-   for c in columnGroups:
-       varGrp = add(dataDscr,'varGrp',attrib = {'name':c,'var': ', '.join(columnGroups[c])})
-       if columnDescriptions.has_key(c) and columnDescriptions[c].has_key('description'):
-           add(varGrp,'txt',value=columnDescriptions[c]['description'])
+    for c in columnGroups:
+        varGrp = add(dataDscr,'varGrp',attrib = {'name':c,'var': ', '.join(columnGroups[c])})
+        if columnDescriptions.has_key(c) and columnDescriptions[c].has_key('description'):
+            add(varGrp,'txt',value=columnDescriptions[c]['description'])
        
-   for c in columns:
-       attrib = {'name':c,'geog':repr(c in columnGroups.get('spaceColumns',[])),'temporal':repr(c in columnGroups.get('timeColumns',[])),'ID':str(columns.index(c))}
-       var = add(dataDscr,'var',attrib=attrib)
-       if columnDescriptions.has_key(c) and columnDescriptions[c].has_key('description'):
-           add(var,'txt',value=columnDescriptions[c]['description'])
-       varFormat = add(var,'varFormat',attrib = {'type':varFormats[c]})
-   
+    for c in columns:
+        attrib = {'name':c,'geog':repr(c in columnGroups.get('spaceColumns',[])),'temporal':repr(c in columnGroups.get('timeColumns',[])),'ID':str(columns.index(c))}
+        var = add(dataDscr,'var',attrib=attrib)
+        if columnDescriptions.has_key(c) and columnDescriptions[c].has_key('description'):
+            add(var,'txt',value=columnDescriptions[c]['description'])
+        varFormat = add(var,'varFormat',attrib = {'type':varFormats[c]})
+
+    return codeBook
 
 def add(to,name,value=None,attrib = None):
     elt = Element(name,attrib=attrib)
