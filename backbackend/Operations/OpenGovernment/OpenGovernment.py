@@ -12,7 +12,7 @@ import pymongo as pm
 import gridfs as gfs
 import cPickle as pickle
 import tabular as tb
-from common.utils import IsFile, listdir, is_string_like, ListUnion,createCertificate, uniqify, IsDir, Flatten
+from common.utils import IsFile, listdir, is_string_like, ListUnion,createCertificate, uniqify, IsDir, Flatten, dictListUniqify
 from common.mongo import cleanCollection, SPECIAL_KEYS, Collection
 import common.timedate as td
 import common.location as loc
@@ -290,7 +290,7 @@ class csv_parser(dataIterator):
             raise StopIteration
     
     
-
+COMPLETE_SPACE = False
 @activate(lambda x :  (x[0] + '/',x[3]),lambda x : x[4])
 def updateCollection(download_dir,collectionName,parserClass,checkpath,certpath,parserArgs=None,parserKwargs=None,incremental=False):
     
@@ -370,12 +370,12 @@ def updateCollection(download_dir,collectionName,parserClass,checkpath,certpath,
         
         specialKeyInds = [VarMap[k] for k in SPECIAL_KEYS]
     
-        if 'timeColumns' in iterator.ColumnGroups.keys():
+        if 'timeColumns' in iterator.columnGroups.keys():
             tcs = iterator.columnGroups['timeColumns']
         else:
             tcs = []
         
-        if 'spaceColumns' in iterator.ColumnGroups.keys():
+        if 'spaceColumns' in iterator.columnGroups.keys():
             spcs = iterator.columnGroups['spaceColumns']
         else:
             spcs = []
@@ -404,7 +404,7 @@ def updateCollection(download_dir,collectionName,parserClass,checkpath,certpath,
                 for tc in tcs:   #time handling 
                     if tc in c.keys():
                         c[tc] = TimeFormatter(c[tc])
-                if completeSpace:        
+                if COMPLETE_SPACE:        
                     for spc in spcs:
                         if spc in c.keys():   #space
                             t = getT(c[spc])
@@ -418,7 +418,7 @@ def updateCollection(download_dir,collectionName,parserClass,checkpath,certpath,
                 index += 1
                 sctf = processSct(sliceColTuplesFlat,oldc,c)
                 processRecord(c,collection,VarMap,totalVariables,uniqueIndexes,versionNumber,specialKeyInds,incremental,sliceDB,sctf,ContentCols)
-                incrementThings(c,volumes,dimensions,times,locations,varFormats)
+                incrementThings(c,volumes,dimensions,times,locations,varFormats,tcs,spcs)
                 
                 oldc = c
                 
@@ -432,16 +432,15 @@ def updateCollection(download_dir,collectionName,parserClass,checkpath,certpath,
             for d in deleted:
                 any_deleted = True
                 sliceDelete(d,collection,sliceColTuples,VarMap,sliceDB,version)
-                
-                     
+                                   
         if any_deleted:
             subColInd = str(totalVariables.index('Subcollections'))
             subcols = [''] + uniqify(ListUnion(collection.distinct(subColInd)))
-			for sc in subcols:
-				volumes[sc] = collection.find({subColInd:sc}).count()
-				dimensions[sc] = [k for k in totalVariables if collection.find_one({subColInd:sc,{'$exists':str(totalVariables.index(k))}})]
-				times[sc] = ListUnion([collection.find({subColInd:sc}).distinct(t) for t in tcs])
-				locations[sc] = ListUnion([collection.find({subColInd:sc}).distinct(t) for t in spcs])
+            for sc in subcols:
+                volumes[sc] = collection.find({subColInd:sc}).count()
+                dimensions[sc] = [k for k in totalVariables if collection.find_one({subColInd:sc,str(totalVariables.index(k)):{'$exists':True}})]
+                times[sc] = ListUnion([collection.find({subColInd:sc}).distinct(t) for t in tcs])
+                locations[sc] = ListUnion([collection.find({subColInd:sc}).distinct(t) for t in spcs])
 				
                
         updateMetacollection(iterator,metacollection,incremental,versionNumber,totalVariables,tcs,spcs,volumes,dimensions,times,locations,varFormats)
@@ -455,8 +454,8 @@ def updateCollection(download_dir,collectionName,parserClass,checkpath,certpath,
 
 
 def incrementThings(c,volumes,dimensions,times,locations,varFormats,tcs,spcs):
-    for sc in c['Subcollections'] + ['']:
-        volumes[sc] += 1
+    for sc in c['subcollections'] + ['']:
+        volumes[sc] = volumes.get(sc,0) + 1
         dimensions[sc] = reduce(add_unique,c.keys(),dimensions.get(sc,[]))
         times[sc] = reduce(add_unique, [c.get(k) for k in tcs] , times.get(sc,[]))
         locations[sc] = reduce(add_unique, [c.get(k) for k in spcs] , locations.get(sc,[]))
@@ -471,8 +470,8 @@ def test_format(val,format):
             return 'string'
         else:
             return 'other'
-   elif format == 'string' and not is_string_like(val):
-       return 'other'
+    elif format == 'string' and not is_string_like(val):
+        return 'other'
 
     return format
        
@@ -566,11 +565,18 @@ def checkMetadata(iterator):
     assert is_string_like(M.get('description')), 'Metadata must contain description.'
     
     S = M.get('source') 
-    assert isinstance(S,dict), 'Metadata must contain source dictionary.'
+    assert isinstance(S,list), 'Metadata must contain source list.'
+    try:
+        S = pm.son.SON(S)
+    except:
+        print 'Metadata source list in wrong format for making SON object.'
+    else:
+        pass
     required = ['agency','subagency','dataset']
     assert all([r in S.keys() for r in required]), 'Source dictionary must contain agency, subagency, and dataset keys.'
     assert all(map(lambda x : isinstance(x,dict),S.values())), 'All source dictionary keys must be dictionaries containing "name" and possibly "shortName" keys.'
-    assert all(map(lambda x : all(map(lambda y : 'name' in y,x.keys())),S.values()))
+
+    assert all(map(lambda x : 'name' in x.keys(),S.values()))
     assert all(['shortName' in S[r].keys() for r in required]), 'shortName entry required for agency, subagency, and dataset source.'
     p = re.compile('[\w]*')
     assert all([p.match(y.get('shortName','')) for y in S.values()]), 'shortName entry can only contain alphanumeric and "_" characters.'
@@ -579,7 +585,7 @@ def checkMetadata(iterator):
     assert isinstance(SC,list) and all([isinstance(x,list) and all([is_string_like(y) or isinstance(y,tuple) for y in x]) for x in SC]), 'sliceCol metadata not present or improperly formed.'
        
     CG = M.get('columnGroups')
-    assert isinstance(GC,dict) and 'labelColumns' in CG.keys(), 'columnGroup metadata not present or improperly formed.'
+    assert isinstance(CG,dict) and 'labelColumns' in CG.keys(), 'columnGroup metadata not present or improperly formed.'
 
 
 def updateMetacollection(iterator, metacollection,incremental,versionNumber,totalVariables,tcs,spcs,volumes,dimensions,times,locations,varFormats):
@@ -592,7 +598,7 @@ def updateMetacollection(iterator, metacollection,incremental,versionNumber,tota
     metadata['']['source'] = pm.son.SON(metadata['']['source'])
     
     metadata['']['title'] = metadata['']['source']['dataset']['name']
-     metadata['']['shortTitle'] = metadata['']['source']['dataset']['shortName']
+    metadata['']['shortTitle'] = metadata['']['source']['dataset']['shortName']
     
     value_processors = metadata[''].get('valueProcessors',{})
     if metadata['']['columnGroups'].get('timeColumns',None):
@@ -613,7 +619,7 @@ def updateMetacollection(iterator, metacollection,incremental,versionNumber,tota
     for k in metadata.keys():
         metadata[k]['volume'] = volumes[k]
         metadata[k]['dimensions'] = dimensions[k]
-    	getCommonDatesLocations(metadata,times,locations,dimensions,k)    
+    	getCommonDatesLocations(iterator,metadata,times,locations,dimensions,k)    
                     
     if incremental:
         previousMetadata = dict([(p["name"],p) for  p in metacollection.find({'versionNumber':versionNumber - 1})])
@@ -644,30 +650,34 @@ def updateMetacollection(iterator, metacollection,incremental,versionNumber,tota
         id = metacollection.insert(x,safe=True)
             
 
-def getCommonDatesLocations(metadata,times,locations,dimensions,k):
+def getCommonDatesLocations(iterator,metadata,times,locations,dimensions,k):
     vNInd = '0'
     overallDateFormat = iterator.overallDateFormat if hasattr(iterator,'overallDateFormat') else ''
     dateFormat = iterator.dateFormat if hasattr(iterator,'dateFormat') else ''
     overallDate = iterator.overallDate if hasattr(iterator,'overallDate') else ''
     if overallDateFormat or dateFormat:
-		DF = overallDateFormat + dateFormat
-		F = td.mongotimeformatter(DF)
-		T1 = [F(overallDate + x for x) in iterator.columnGroups['timeColNames'] if x in dimensions[k]]
+        DF = overallDateFormat + dateFormat
+        F = td.mongotimeformatter(DF)
+        T1 = [F(overallDate + x) for x in iterator.columnGroups['timeColNames'] if x in dimensions[k]]
         if overallDateFormat:
             reverseF = td.reverse(dateFormat)
             T2 = [F(overallDate + y) for y in map(reverseF,times[k])]
         else:
-            T2 = times
-		mindate = min(T1 + T2)
-		maxdate = max(T1 + T2)
-		divisions = uniqify(ListUnion([td.getLowest(t) for t in T1 + T2]))
-		metadata[k]['beginDate'] = mindate
-		metadata[k]['endDate'] = maxdate
-		metadata[k]['dateDivisions'] = divisions
+            T2 = times[k]
+        mindate = min(T1 + T2)
+        maxdate = max(T1 + T2)
+        divisions = uniqify(ListUnion([td.getLowest(t) for t in T1 + T2]))
+        metadata[k]['beginDate'] = mindate
+        metadata[k]['endDate'] = maxdate
+        metadata[k]['dateDivisions'] = divisions
     #locations
-    if spcs:
-        locs = dictUniqify([loc.integrate(interator.overallLocation,l) for l in locations[k]])
-        metadata[k]['spatialDivisions'] = uniqify(ListUnion([loc.divisions((x) for x in in locs]))
+    if locations[k]:
+        if hasattr(iterator,'overallLocation'):
+            locs = [loc.integrate(iterator.overallLocation,l) for l in locations[k]]
+        else:
+            locs = locations[k]
+        locs = dictListUniqify(locs)
+        metadata[k]['spatialDivisions'] = uniqify(ListUnion([loc.divisions(x) for x in locs]))
         metadata[k]['commonLocation'] = reduce(loc.intersect,locs)
        
 
@@ -841,5 +851,10 @@ def updateSourceDBByHand(data):
         if new:
             sCollection.insert(rec,safe=True)
             sCollection.update({'name':name},{'$inc':{'versionOffset':1}})
-   
-    
+
+def dropGovCollection(db,name):
+    db.drop_collection(name)
+    db.drop_collection('__' + name + '__')
+    db.drop_collection('__' + name + '__VERSIONS__')
+    db.drop_collection('__' + name + '__SLICES__')
+    #os.system('java -Ddata=args -jar ../../backend/solr-home/post.jar "<delete><query>collectionName:' + name + '</query></delete>"')

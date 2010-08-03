@@ -214,7 +214,7 @@ def convertQS(sq):
     return dict(zip(nFIPS,['']*len(nFIPS)) + ([('f',dict(zip(FIPS,['']*len(FIPS))))] if FIPS else []))
 
 def getLowest(keys):
-    return [k for k in keys if len(keys.intersection(SPACE_HIERARCHY[k])) == 1]
+    return [k for k in keys if len(set(keys).intersection(SPACE_HIERARCHY[k])) == 1]
     
 def SpaceComplete(x):
     """FIPS -> names and upwards when possible"""

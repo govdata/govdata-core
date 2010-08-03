@@ -1,5 +1,5 @@
 import os
-from System.Utils import MakeDir,Contents,listdir,wget,PathExists, strongcopy,uniqify,ListUnion,Rename, delete, MakeDirs
+from System.Utils import MakeDir,Contents,listdir,wget,PathExists, strongcopy,uniqify,ListUnion,Rename, delete, MakeDirs, is_string_like
 import Operations.htools as htools
 from BeautifulSoup import BeautifulSoup,BeautifulStoneSoup
 import tabular as tb
@@ -32,6 +32,7 @@ def BLS_mainparse1(page,x):
     
     
 def WgetMultiple(link, fname, maxtries=10):
+    link = link if is_string_like(link) else link['URL']
     opstring = '--user-agent="Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10.5; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7"'
     time.sleep(5)
     for i in range(maxtries):
@@ -240,7 +241,7 @@ def makemetadata(code,datadir,outfile1,outfile2,depends_on = (root + 'ProcessedM
     else:
         ctext = ''
         
-    Z['ContactInfo'] = ctext
+    Z['contactInfo'] = ctext
     f = open(outfile1,'w')
     pickle.dump(Z,f)
     f.close()
@@ -419,7 +420,7 @@ class bls_parser(OG.dataIterator):
         M = pickle.load(open(metafile))
         for x in ['contactInfo','description','keywords']:
             D[x] = M[x]
-        D['Source'] = [('agency',{'name':'Department of Labor','shortName':'DOL'}),('subagency',{'name':'Bureau of Labor Statistics','shortName':'BLS'}),('topic',M['Topic']),('subtopic',M['Subtopic']),('program',{'name':M['ProgramName'],'shortName':M['ProgramAbbr']}),('dataset',{'name':M['Dataset'],'shortName':M['DatasetCode']})]
+        D['source'] = [('agency',{'name':'Department of Labor','shortName':'DOL'}),('subagency',{'name':'Bureau of Labor Statistics','shortName':'BLS'}),('topic',{'name':M['Topic']}),('subtopic',{'name':M['Subtopic']}),('program',{'name':M['ProgramName'],'shortName':M['ProgramAbbr']}),('dataset',{'name':M['Dataset'],'shortName':M['DatasetCode']})]
         D['dateFormat'] = 'YYYYhqmm'
 
         M = tb.io.getmetadata(seriesfile)[0]
