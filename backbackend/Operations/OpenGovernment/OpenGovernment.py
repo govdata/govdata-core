@@ -852,9 +852,13 @@ def updateSourceDBByHand(data):
             sCollection.insert(rec,safe=True)
             sCollection.update({'name':name},{'$inc':{'versionOffset':1}})
 
-def dropGovCollection(db,name):
-    db.drop_collection(name)
-    db.drop_collection('__' + name + '__')
-    db.drop_collection('__' + name + '__VERSIONS__')
-    db.drop_collection('__' + name + '__SLICES__')
-    #os.system('java -Ddata=args -jar ../../backend/solr-home/post.jar "<delete><query>collectionName:' + name + '</query></delete>"')
+def dropGovCollection(db,name,mode):
+    if mode == 'all':
+        mode = ['col','ind']
+    if 'col' in mode:
+        db.drop_collection(name)
+        db.drop_collection('__' + name + '__')
+        db.drop_collection('__' + name + '__VERSIONS__')
+        db.drop_collection('__' + name + '__SLICES__')
+    if 'ind' in mode:
+        os.system('java -Ddata=args -jar ../../backend/solr-home/post.jar "<delete><query>collectionName:' + name + '</query></delete>"')
