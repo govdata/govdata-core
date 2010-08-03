@@ -756,7 +756,7 @@ def loop(handler,cursor,sock,fd):
 
     collection = handler.collection
     processor = handler.processor
-        
+
     while hasdata:
         try:
             r = cursor.next()

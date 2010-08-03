@@ -10,7 +10,7 @@ import tornado.autoreload
 
 from tornado.options import define, options
 
-define("port", default=8888, help="run on the given port", type=int)
+define("port", default=9999, help="run on the given port", type=int)
 define("processes", default=4, help="number of threads in the pool", type=int)
 
 class GovLove(tornado.web.Application):

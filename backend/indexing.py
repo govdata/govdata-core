@@ -43,12 +43,12 @@ def getQueryList(collection,keys,atVersion,toVersion,slicesCorrespondToIndexes):
         Q2 = api.processArg(dict([(retInd,{'$exists':False}),(vNInd,{'$lt':toVersion,'$gte':atVersion})] + existence),collection)
         Q3 = api.processArg(dict([(retInd,True),(vNInd,{'$lt':toVersion,'$gte':atVersion}),(origInd,{'$lte':atVersion})] + existence),collection)
         colnames = [k for k in keys if k.split('.')[0] in collection.columns]
-        colgroups = [k for k in keys if k in collection.ColumnGroups]
-        T= ListUnion([collection.ColumnGroups[k] for k in colgroups])
+        colgroups = [k for k in keys if k in collection.columnGroups]
+        T= ListUnion([collection.columnGroups[k] for k in colgroups])
         kInds = getStrs(collection,colnames + T)
         R = list(collection.find(Q1,fields = kInds)) + list(collection.find(Q2,fields = kInds)) + (list(collection.find(Q3,fields = kInds)) if not slicesCorrespondToIndexes else [])
         R = [son.SON([(collection.columns[int(k)],r[k]) for k in r.keys() if k.isdigit() and r[k]]) for r in R]
-        R = [[(k,rgetattr(r,k.split('.'))) for k in keys if  rhasattr(r,k.split('.')) if k not in T] + [(g,[r[k] for k in collection.ColumnGroups[g] if k in r.keys() and r[k]]) for g in colgroups ] for r in R]
+        R = [[(k,rgetattr(r,k.split('.'))) for k in keys if  rhasattr(r,k.split('.')) if k not in T] + [(g,[r[k] for k in collection.columnGroups[g] if k in r.keys() and r[k]]) for g in colgroups ] for r in R]
         return uniqify(ListUnion([expand(r) for r in R]))
     else:
         return [()]
@@ -283,10 +283,10 @@ def smallAdd(d,query,collection,contentColNums, timeColInds ,timeColNames , time
     d['dimension'] = len(d['columnNames'])
     #time/date
         
-    if OverallDateFormat:
-        d['dateFormat'] = OverallDateFormat
+    if overallDateFormat:
+        d['dateFormat'] = overallDateFormat
         
-        if 'timeColNames' in collection.ColumnGroups.keys():
+        if 'timeColNames' in collection.columnGroups.keys():
             K = [k for (k,j) in enumerate(timeColNameInds) if str(j) in colnames]
             dateDivisions += uniqify(ListUnion([timeColNameDivisions[k] for k in K]))
             mindate = td.makemin(mindate,min([timeColNames[k] for k in K]))
@@ -306,7 +306,7 @@ def smallAdd(d,query,collection,contentColNums, timeColInds ,timeColNames , time
         
     return d
     
-def largeAdd(d,query,collection,contentColNums, timeColInds ,timeColNames , timeColNameInds ,timeColNameDivisions ,timeColNamePhrases ,OverallDate , OverallDateFormat, timeFormatter ,reverseTimeFormatter ,dateDivisions ,datePhrases ,mindate ,maxdate ,OverallLocation , spaceColNames, spaceColInds, subColInd, valueProcessors):
+def largeAdd(d,query,collection,contentColNums, timeColInds ,timeColNames , timeColNameInds ,timeColNameDivisions ,timeColNamePhrases ,overallDate , overallDateFormat, timeFormatter ,reverseTimeFormatter ,dateDivisions ,datePhrases ,mindate ,maxdate ,overallLocation , spaceColNames, spaceColInds, subColInd, valueProcessors):
 
     print '0'
     exists = []
@@ -328,13 +328,13 @@ def largeAdd(d,query,collection,contentColNums, timeColInds ,timeColNames , time
     d['columnNames'] = colnames
     d['dimension'] = len(d['columnNames'])
        
-    if OverallDateFormat:
-        d['dateFormat'] = OverallDateFormat
+    if overallDateFormat:
+        d['dateFormat'] = overallDateFormat
         
         if timeColInds:
             dateColVals = ListUnion([collection.find(query).distinct(str(t)) for t in timeColInds if t in colnums])
             if OverallDate:
-                dateColVals = [timeFormatter(OverallDate + reverseTimeFormatter(time)) for time in dateColVals]
+                dateColVals = [timeFormatter(overallDate + reverseTimeFormatter(time)) for time in dateColVals]
         
             dateDivisions += uniqify(ListUnion(map(td.getLowest,dateColVals)))
             datePhrases += uniqify(map(td.phrase, dateColVals))
@@ -396,10 +396,10 @@ def initialize_argdict(collection):
     d = {} ; ArgDict = {}
     
     sliceCols = uniqify(Flatten(collection.sliceCols))
-    sliceColList = ListUnion([[x] if x.split('.')[0] in collection.columns else collection.ColumnGroups.get(x,[]) for x in sliceCols])
+    sliceColList = ListUnion([[x] if x.split('.')[0] in collection.columns else collection.columnGroups.get(x,[]) for x in sliceCols])
     
     if hasattr(collection,'contentCols'):
-        contentColList = ListUnion([[x] if x.split('.')[0] in collection.columns else collection.ColumnGroups.get(x,[]) for x in collection.contentCols])
+        contentColList = ListUnion([[x] if x.split('.')[0] in collection.columns else collection.columnGroups.get(x,[]) for x in collection.contentCols])
         contentCols = uniqify(contentColList + sliceColList)
     else:
         contentCols = sliceColList
@@ -407,7 +407,7 @@ def initialize_argdict(collection):
     ArgDict['contentColNums'] = contentColNums
     
     if hasattr(collection,'dateFormat'):
-        DateFormat = collection.DateFormat
+        DateFormat = collection.dateFormat
         ArgDict['overallDateFormat'] = DateFormat
         timeFormatter = td.mongotimeformatter(DateFormat)
         ArgDict['timeFormatter'] = timeFormatter
@@ -436,16 +436,16 @@ def initialize_argdict(collection):
     else:
         od = ''
                     
-    if 'timeColNames' in collection.ColumnGroups.keys():
-        TimeColNamesInd = getNums(collection,collection.ColumnGroups['timeColNames'])
-        tcs = [timeFormatter(od + t) for t in collection.ColumnGroups['timeColNames']]
+    if 'timeColNames' in collection.columnGroups.keys():
+        TimeColNamesInd = getNums(collection,collection.columnGroups['timeColNames'])
+        tcs = [timeFormatter(od + t) for t in collection.columnGroups['timeColNames']]
         ArgDict['timeColNames'] = tcs 
         ArgDict['timeColNameInds'] = TimeColNamesInd
         ArgDict['timeColNameDivisions'] = [[td.TIME_DIVISIONS[x] for x in td.getLowest(tc)] for tc in tcs] 
         ArgDict['timeColNamePhrases'] = [td.phrase(t) for t in tcs]
 
-    if 'timeColumns' in collection.ColumnGroups.keys():
-        ArgDict['timeColInds'] = getNums(collection,collection.ColumnGroups['timeColumns'])
+    if 'timeColumns' in collection.columnGroups.keys():
+        ArgDict['timeColInds'] = getNums(collection,collection.columnGroups['timeColumns'])
             
     #overall location
     if hasattr(collection,'overallLocation'):
@@ -455,15 +455,15 @@ def initialize_argdict(collection):
         ol = None
         
     #get divisions and phrases from OverallLocation and SpaceColNames
-    if 'spaceColNames' in collection.ColumnGroups.keys():
-        spaceColNames = collection.ColumnGroups['spaceColNames']
+    if 'spaceColNames' in collection.columnGroups.keys():
+        spaceColNames = collection.columnGroups['spaceColNames']
         ArgDict['spaceColNames'] = [loc.integrate(ol,x) for x in spaceColNames]
 
         
-    if 'spaceColumns' in collection.ColumnGroups.keys():
-        ArgDict['spaceColInds'] = getNums(collection,collection.ColumnGroups['spaceColumns'])
+    if 'spaceColumns' in collection.columnGroups.keys():
+        ArgDict['spaceColInds'] = getNums(collection,collection.columnGroups['spaceColumns'])
 
-    Source = collection.Source
+    Source = collection.source
     SourceNameDict = son.SON([(k,Source[k]['name'] if isinstance(Source[k],dict) else Source[k]) for k in Source.keys()])
     SourceAbbrevDict = dict([(k,Source[k]['shortName']) for k in Source.keys() if isinstance(Source[k],dict) and 'shortName' in Source[k].keys() ])
     d['sourceSpec'] = json.dumps(SourceNameDict,default=ju.default)
@@ -499,9 +499,9 @@ def get_processors(instruction_set,collection,context,callfunc):
         if instruction_set.has_key(name):
             processors[x] = functools.partial(callfunc,context,name)
             processors_key[name] = processors[x]
-    vpcolgroups = [x for x in instruction_set.keys() if x in collection.ColumnGroups.keys()]
+    vpcolgroups = [x for x in instruction_set.keys() if x in collection.columnGroups.keys()]
     for vpc in vpcolgroups:
-        for name in collection.ColumnGroups[vpc]:
+        for name in collection.columnGroups[vpc]:
             x = str(collection.columns.index(name))
             processors[x] =  functools.partial(callfunc,context,vpc)
             processors_key[name] = processors[x]
@@ -517,7 +517,7 @@ def getSliceColTuples(collection):
     sliceColList = collection.sliceCols
     sliceColU = uniqify(ListUnion(sliceColList))
     sliceColInds = getStrs(collection,sliceColU)
-    OK = dict([(x,x in collection.ColumnGroups.keys() or MoreThanOne(collection,y)) for (y,x) in zip(sliceColInds,sliceColU)])
+    OK = dict([(x,x in collection.columnGroups.keys() or MoreThanOne(collection,y)) for (y,x) in zip(sliceColInds,sliceColU)])
     sliceColList = [tuple([x for x in sliceColU if x in sc and OK[x]]) for sc in sliceColList]
     sliceColTuples = uniqify(ListUnion([subTuples(sc) for sc in sliceColList]))
     
@@ -536,7 +536,7 @@ def getNums(collection,namelist):
         if n in collection.columns:
             numlist.append(collection.columns.index(n))
         else:
-            numlist.append([collection.columns.index(m) for m in collection.ColumnGroups[n]])
+            numlist.append([collection.columns.index(m) for m in collection.columnGroups[n]])
     return numlist
     
 def getStrs(collection,namelist):
@@ -547,7 +547,7 @@ def getStrs(collection,namelist):
         if ns[0] in collection.columns:
             numlist.append(str(collection.columns.index(ns[0])) + dot + '.'.join(n.split('.')[1:]))
         else:
-            numlist.append([str(collection.columns.index(m)) for m in collection.ColumnGroups[n]])
+            numlist.append([str(collection.columns.index(m)) for m in collection.columnGroups[n]])
     return numlist
         
 

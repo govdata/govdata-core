@@ -188,6 +188,7 @@
 
    <!-- standard metadata keys -->
    <field name="subject" type="text" indexed="true" stored="true"/>
+   <field name="title" type="text" indexed="true" stored="true"/>   
    <field name="description" type="text" indexed="true" stored="false"/>
    <field name="author" type="textgen" indexed="true" stored="true"/>
    <field name="keywords" type="multiPhraseLoose" indexed="true" stored="false"/>
@@ -256,6 +257,7 @@
  <copyField source="subject" dest="text"/>
  <copyField source="description" dest="text"/>
  <copyField source="author" dest="text"/>
+ <copyField source="title" dest="text"/>
  <copyField source="keywords" dest="text"/>
  <copyField source="source" dest="text"/>
  <copyField source="*_acronym" dest="text"/>

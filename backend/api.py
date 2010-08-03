@@ -899,8 +899,7 @@ class SourceHandler(asyncCursorHandler):
     
         if querySequence[0][1][0] == () or not (querySequence[0][1][0][0].has_key('versionOffset') or querySequence[0][1][0][0].has_key('version')):
             querySequence[0][1][0] = setArgTuple(querySequence[0][1][0],'versionOffset',0)        
-        
-    
+            
         self.stream = False
         self.returnObj = True
         

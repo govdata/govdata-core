@@ -449,6 +449,7 @@ def updateCollection(download_dir,collectionName,parserClass,checkpath,certpath,
         
         updateVersionHistory(versionNumber,versions,startInc,endInc)
     
+    updateSourceDBFromCollections(collectionNames = [collectionName])
     connection.disconnect()
     createCertificate(certpath,'Collection ' + collectionName + ' written to DB.')
 
@@ -807,11 +808,11 @@ def updateSourceDBFromCollections(collectionNames = None):
             vCollection = db[vCollectionName]
             tstamp = vCollection.find_one({'versionNumber':new_version_number},fields=[ 'timeStamp'])['timeStamp']
             
-            rec = {'name':collectionName,'version':new_version_number,'versionOffset':-1,'subcollections':subcollections,'metadata':collection.metadata[''],'source':collection.Source,'isCollection':True,'timeStamp':tstamp}
+            rec = {'name':collectionName,'version':new_version_number,'versionOffset':-1,'subcollections':subcollections,'metadata':collection.metadata[''],'source':collection.source,'isCollection':True,'timeStamp':tstamp}
             sCollection.insert(rec,safe=True)
             sCollection.update({'name':collectionName},{'$inc':{'versionOffset':1}})
         else:
-            rec = {'subcollections':subcollections,'metadata':collection.metadata[''],'source':collection.Source,'isCollection':True}
+            rec = {'subcollections':subcollections,'metadata':collection.metadata[''],'source':collection.source,'isCollection':True}
             sCollection.update({'name':collectionName,'version':new_version_number},{'$set':rec},upsert=True)
         
 
