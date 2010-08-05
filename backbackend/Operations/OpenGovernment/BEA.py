@@ -475,7 +475,6 @@ def FAT_preparser2(maindir):
             
         SectionNo = X.metadata.pop('SectionNo').split('-')[-1].strip()
         Section = X.metadata.pop('Section')
-
         Table = X.metadata.pop('Table')
         
         for k in X.coloring.keys():
@@ -485,6 +484,7 @@ def FAT_preparser2(maindir):
                 ColGroups[k] = uniqify(X.coloring[k])
         
         Metadict[t] = dict([(k,X.metadata[k]) for k in GoodKeys if k in X.metadata.keys()])
+        Metadict[t]['title'] = Table
         
         X = X.addcols([[t]*len(X),[Table]*len(X),[SectionNo]*len(X),[Section]*len(X),[t]*len(X)],names=['TableNo','Table','SectionNo','Section','subcollections'])
         X.saveSV(filedir + str(i) + '.tsv',metadata=['dialect','names','formats'])
@@ -508,6 +508,7 @@ def FAT_preparser2(maindir):
     AllMeta['columnGroups'] = ColGroups
     AllMeta['dateFormat'] = 'YYYYqmm' 
     AllMeta['sliceCols'] = [['Section','Table'] + [tuple(ColGroups['Topics'][:i]) for i in range(1,len(ColGroups['Topics']) +1)]]
+    AllMeta['keywords'] = ['fixed assets','equipment','software','structures' ,'durable goods']
 
     Subcollections = Metadict
     Subcollections[''] = AllMeta

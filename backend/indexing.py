@@ -333,7 +333,7 @@ def largeAdd(d,query,collection,contentColNums, timeColInds ,timeColNames , time
         
         if timeColInds:
             dateColVals = ListUnion([collection.find(query).distinct(str(t)) for t in timeColInds if t in colnums])
-            if OverallDate:
+            if overallDate:
                 dateColVals = [timeFormatter(overallDate + reverseTimeFormatter(time)) for time in dateColVals]
         
             dateDivisions += uniqify(ListUnion(map(td.getLowest,dateColVals)))
@@ -360,7 +360,7 @@ def largeAdd(d,query,collection,contentColNums, timeColInds ,timeColNames , time
     print '2'    
     if spaceColInds:
         spaceColVals = ListUnion([collection.find(query).distinct(str(t)) for t in spaceColInds if t in colnums])
-        spaceColVals = [loc.integrate(OverallLocation,scv) for scv in spaceColVals]   
+        spaceColVals = [loc.integrate(overallLocation,scv) for scv in spaceColVals]   
     else:
         spaceColVals = []
     spaceVals = spaceColNames + spaceColVals 
@@ -369,7 +369,7 @@ def largeAdd(d,query,collection,contentColNums, timeColInds ,timeColNames , time
         d['spatialDivisionsTight'] = ', '.join(uniqify(ListUnion(map(loc.divisions2,spaceVals))))
         d['spatialPhrases'] = uniqify(map(loc.phrase,spaceVals))
         d['spatialPhrasesTight'] = uniqify(map(loc.phrase2,spaceVals))
-    commonLocation = OverallLocation
+    commonLocation = overallLocation
     for sv in spaceVals:
         commonLocation = loc.intersect(commonLocation,sv)
         if not commonLocation:
@@ -407,40 +407,40 @@ def initialize_argdict(collection):
     ArgDict['contentColNums'] = contentColNums
     
     if hasattr(collection,'dateFormat'):
-        DateFormat = collection.dateFormat
-        ArgDict['overallDateFormat'] = DateFormat
-        timeFormatter = td.mongotimeformatter(DateFormat)
+        dateFormat = collection.dateFormat
+        ArgDict['overallDateFormat'] = dateFormat
+        timeFormatter = td.mongotimeformatter(dateFormat)
         ArgDict['timeFormatter'] = timeFormatter
     else:
-        DateFormat = ''
+        dateFormat = ''
         
     if hasattr(collection,'overallDate'):
-        od = collection.OverallDate['date']
-        odf = collection.OverallDate['format']
+        od = collection.overallDate['date']
+        odf = collection.overallDate['format']
         ArgDict['overallDate'] = od
-        OverallDateFormat = odf + DateFormat
-        ArgDict['overallDateFormat'] = OverallDateFormat
-        timeFormatter = td.mongotimeformatter(OverallDateFormat)
+        overallDateFormat = odf + dateFormat
+        ArgDict['overallDateFormat'] = overallDateFormat
+        timeFormatter = td.mongotimeformatter(overallDateFormat)
         ArgDict['timeFormatter'] = timeFormatter
 
-        OD = timeFormatter(OverallDate +'X'*len(DateFormat))
+        OD = timeFormatter(overallDate +'X'*len(dateFormat))
         ArgDict['dateDivisions'] = td.getLowest(OD)
         ArgDict['datePhrases'] = [td.phrase(OD)]
         ArgDict['mindate'] = OD
         ArgDict['maxdate'] = OD             
         
-        if DateFormat:
-            reverseTimeFormatter = td.reverse(DateFormat)
+        if dateFormat:
+            reverseTimeFormatter = td.reverse(dateFormat)
             ArgDict['reverseTimeFormatter'] = reverseTimeFormatter
             
     else:
         od = ''
                     
     if 'timeColNames' in collection.columnGroups.keys():
-        TimeColNamesInd = getNums(collection,collection.columnGroups['timeColNames'])
+        timeColNamesInd = getNums(collection,collection.columnGroups['timeColNames'])
         tcs = [timeFormatter(od + t) for t in collection.columnGroups['timeColNames']]
         ArgDict['timeColNames'] = tcs 
-        ArgDict['timeColNameInds'] = TimeColNamesInd
+        ArgDict['timeColNameInds'] = timeColNamesInd
         ArgDict['timeColNameDivisions'] = [[td.TIME_DIVISIONS[x] for x in td.getLowest(tc)] for tc in tcs] 
         ArgDict['timeColNamePhrases'] = [td.phrase(t) for t in tcs]
 
@@ -449,7 +449,7 @@ def initialize_argdict(collection):
             
     #overall location
     if hasattr(collection,'overallLocation'):
-        ol = Collection.OverallLocation
+        ol = Collection.overallLocation
         ArgDict['overallLocation'] = ol
     else:
         ol = None

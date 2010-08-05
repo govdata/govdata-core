@@ -92,42 +92,7 @@ def fips(request):
 
 	return HttpResponse(json.dumps(fipsHierarchy(h)))
 
-	
-def fipsGuts(g):
-	"""Not really used (deprecated)"""
-	keys = set([k for k in g])
-	
-	lowest = loc.getLowest(keys)					
-	assert len(lowest) == 1	
-	level_code = lowest[0]
-	
-	D = {'method':'filter'}
-	codes = keys.intersection(loc.SPACE_HIERARCHY_R[level_code])
-	querylist =  [{'field': loc.LEVEL_CODES[code],  'query' : g[code]} for code in codes]
-	D['querylist'] = querylist	
-	D['return'] = ','.join([loc.LEVEL_CODES[code] for code in loc.SPACE_HIERARCHY_R[level_code] if loc.LEVEL_CODES[code]] + [loc.LEVEL_NAMES[level_code]])
-	
-	R = uniqify([tuple(x.items()) for x in geodbGuts(D,level_code)])
-	R = [dict([(k,v) for (k,v) in r if v != 'None']) for r in R]
-	
-	
-	newkeys = set(loc.SPACE_HIERARCHY_R[level_code]).difference([level_code])
-	keydict = dict([(code,loc.LEVEL_CODES[code]) for code in newkeys])
-	
-	if newkeys:
-		for (i,r) in enumerate(R):
-			newg = dict([(k,r[keydict[k]]) for k in newkeys if keydict[k] in r.keys()])			
-			if newg:
-				res = fipsGuts(newg)
-				R[i] = [dict(R[i].items() + rr.items()) for rr in res]
-			else:
-				R[i] = [R[i]]
-
-		R = ListUnion(R)
 		
-	return R
-	
-	
 def fipsHierarchy(g,action = 'contains'):
 	"""Guts function for fips"""
 	if 'action' in g:

@@ -278,7 +278,7 @@ class csv_parser(dataIterator):
             if 'subcollections' in r.keys():
                 r['subcollections'] = r['subcollections'].split(',')
                 
-            for k in self.ColumnGroups.get('timeColumns',[]) + self.ColumnGroups.get('spaceColumns',[]):
+            for k in self.columnGroups.get('timeColumns',[]) + self.columnGroups.get('spaceColumns',[]):
                 if k in r.keys():
                     r[k] = eval(r[k])               
             
@@ -558,7 +558,7 @@ def checkMetadata(iterator):
     assert all(map(lambda x : isinstance(x,dict),metadata.values())), 'Metadata values must be dictionaries.'
     assert all(map(lambda x : all(map(is_string_like,x.keys())),metadata.values())), 'metadata values\' keys must be strings.'
    
-    assert all(['title' in metadata[k].keys() for k in metadata.keys() if k]), 'All subcollections must have title metadata.'
+    assert all(['title' in metadata[k].keys() for k in metadata.keys() if k]), 'The subcollections following have no "title" metadata:' + str([k for k in metadata.keys() if 'title' not in metadata[k].keys() and k]) 
    
     M = metadata['']
 
