@@ -297,6 +297,7 @@ def NEA_preparser2(inpath,filepath,metadatapath,L = None):
                 ColGroups[k] = Z.coloring[k]
         
         Metadict[t] = Z.metadata
+        Metadict[t]['title'] = Table
 
         Z = Z.addcols([[t]*len(Z),[Table]*len(Z),[Section]*len(Z),[t]*len(Z)],names=['TableNo','Table','Section','subcollections'])
         Z.saveSV(filepath + str(j) + '.tsv',metadata=['dialect','formats','names'])
@@ -311,7 +312,7 @@ def NEA_preparser2(inpath,filepath,metadatapath,L = None):
     
     Category = AllMeta.pop('Category')
 
-    AllMeta['source'] = [('agency',{'name':'Department of Commerce','shortName':'DOC'}),('subagency',{'name':'Bureau of Economic Analysis','shortName':'BEA'}),('program',{'shortName':'REA','name':'National Economic Accounts'}), ('dataset',{'shortName':'NIPA','Name':Category})]
+    AllMeta['source'] = [('agency',{'name':'Department of Commerce','shortName':'DOC'}),('subagency',{'name':'Bureau of Economic Analysis','shortName':'BEA'}),('program',{'shortName':'REA','name':'National Economic Accounts'}), ('dataset',{'shortName':'NIPA','name':Category})]
     AllMeta['topicHierarchy'] = ('agency','subagency','program','dataset','Section','Table')
     AllMeta['uniqueIndexes'] = ['TableNo','Line']
     ColGroups['Topics'].sort()
@@ -319,7 +320,7 @@ def NEA_preparser2(inpath,filepath,metadatapath,L = None):
     AllMeta['columnGroups'] = ColGroups
     AllMeta['description'] = 'National Income and Product Accounts (NIPA) data from the <a href="http://www.bea.gov/national/nipaweb/SelectTable.asp?Selected=N">All NIPA Tables</a> data set under the <a href="http://www.bea.gov/national/index.htm">National Economic Accounts</a> section of the <a href="http://www.bea.gov/">Bureau of Economic Accounts (BEA)</a> website.  For additional information on the NIPAs, see: <a href="http://www.bea.gov/scb/pdf/misc/nipaguid.pdf">A Guide to the National Income and Product Accounts of the United States (PDF)</a>, <a href="http://www.bea.gov/scb/pdf/2009/11%20November/1109_nipa_method.pdf">Updated Summary of NIPA Methodologies (PDF)</a>, and <a href="http://www.bea.gov/scb/pdf/2003/08August/0803NIPA-Preview.pdf#page=9">Guide to the Numbering of the NIPA Tables (PDF)</a>.'
     AllMeta['dateFormat'] = 'YYYYqmm'
-    
+    AllMeta['keywords'] = ['NIPA','GDP','income']
     AllMeta['sliceCols'] = [['Section','Table','Topic Level_0','Topic Level_1','Topic Level_2'] + [tuple(ColGroups['Topics'][:i]) for i in range(4,len(ColGroups['Topics']) + 1)]]
     AllMeta['phraseCols'] = ['Section','Table','Topic','Line','TableNo']
 

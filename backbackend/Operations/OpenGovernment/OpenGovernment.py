@@ -502,12 +502,12 @@ def ColGroupsFlatten(ColumnGroups,k):
 def getContentCols(iterator):
 
     if hasattr(iterator,'contentCols'):
-        contentColList = ListUnion([iterator.ColumnGroups.get(x,[x]) for x in iterator.contentCols])
+        contentColList = ListUnion([iterator.columnGroups.get(x,[x]) for x in iterator.contentCols])
     else:
         contentColList =  []
     
     if hasattr(iterator,'phraseCols'):
-        phraseColList = ListUnion([iterator.ColumnGroups.get(x,[x]) for x in iterator.phraseCols])
+        phraseColList = ListUnion([iterator.columnGroups.get(x,[x]) for x in iterator.phraseCols])
     else:
         phraseColList = []
     
@@ -562,7 +562,7 @@ def checkMetadata(iterator):
    
     M = metadata['']
 
-    assert isinstance(M.get('keywords'),list) and all(map(is_string_like,M['keywords'])), 'Metadata must contain keywords.'
+    assert isinstance(M.get('keywords'),list) and all(map(is_string_like,M['keywords'])), 'Metadata must contain "keywords" entry, which must be a python list.'
     assert is_string_like(M.get('description')), 'Metadata must contain description.'
     
     S = M.get('source') 

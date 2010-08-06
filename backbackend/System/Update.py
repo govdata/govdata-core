@@ -352,6 +352,7 @@ def UpdateLinks(ActivatedLinkListSequence, Seed, AU = None, Exceptions = None, S
 					import drmaa
 
 					Session = drmaa.Session()
+                                        Session.initialize()
 					jobids = {}
 					for (i,j) in enumerate(J):
 
