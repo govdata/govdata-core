@@ -11,6 +11,7 @@ except:
 def submitJobs(joblist):
 
     Session = drmaa.Session()
+    Session.initialize()
     jobs = {}
     
     for j in joblist:

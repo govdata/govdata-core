@@ -677,9 +677,20 @@ def getCommonDatesLocations(iterator,metadata,times,locations,dimensions,k):
             locs = [loc.integrate(iterator.overallLocation,l) for l in locations[k]]
         else:
             locs = locations[k]
-        locs = dictListUniqify(locs)
+        locs = locListUniqify(locs)
         metadata[k]['spatialDivisions'] = uniqify(ListUnion([loc.divisions(x) for x in locs]))
         metadata[k]['commonLocation'] = reduce(loc.intersect,locs)
+
+
+def locListUniqify(D):
+    D = [tuple([(y,z) if y != 'f' else (y,tuple(z.items())) for (y,z) in x.items()]) for x in D]
+    D = uniqify(D)
+    D = [dict(d) for d in D]
+    for d in D:
+        if d.has_key('f'):
+            d['f'] = dict(d['f'])
+    return D
+    
        
 
 def processRecord(c,collection,VarMap,totalVariables,uniqueIndexes,versionNumber,specialKeyInds,incremental,sliceDB,sliceColTuples,ContentCols):
