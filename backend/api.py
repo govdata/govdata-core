@@ -162,15 +162,16 @@ def gov_processor(processor,r,handler,collection):
        
 def get_args(collectionName,querySequence,timeQuery=None, spaceQuery = None, versionNumber=None):
     """
-    collectionName : String => collection name e.g. BEA_NIPA
-    querySequence : List[Pair[action,args]] => mongo db action read pymongo docs e.g. 
-        case args switch {
-            tuple => (pymongoargs,) args is a positional args to be sent to action e.g. single element tuple
-            dict => args is the dictionary of keyword arguments
-            two element list => [tuple,dict] first position element Tuple and second is keyword dictionary 
-        }
-        e.g.
-            tuple -> [("find",({"Topic":"Employment"},))]
+    collection : String => collection name e.g. BEA_NIPA
+    query : JSON dictionary or list of dictionaries represnting the mongo query.  Each dictionary has the following keys:
+         "action" : string, the mongo action, e.g. "find", "find_one", "count", etc.
+         "args" : list, the positional arugments to be passed to the action as in pymongo
+         "kargs" : dictionary, keys/values of keyword arguments to be passed to the action as in pymongo
+         When this is a single dictionary, the mongo query consists of the one action, when several, the actions are applied in order.
+         E.g.
+             query={"action" : "find", "args" : [{"Topic":"Employment"}]}    represents   db.find({"Topic":"Employment"})
+             query=[{"action" : "find", "args" :[{"Topic":"Employment"}]},{"action":"limit", "args":[10]}]   represnts   db.find({"Topic":"Employment"}).limit(10)
+
     timeQuery : Dict => {"format": ?, "begin": ?, "end": ?, "on": ?} begin, end, on are dates in "fomat" format
     spaceQuery : Dict => {"s": ?, "c": ?, "f": {"s", "c"}}
                : List => ["s", "c", "f.s"]
