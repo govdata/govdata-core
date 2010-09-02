@@ -157,21 +157,18 @@ var GovLove = {};
     }
         
     GovLove.renderCollapsed = function(docs) {
-        var rendered = ""
+        var rendered = "";
         var toLoad = ['sourceSpec','query'];
-        var toCopy = ['title'];
-        var renderKeys = toCopy.concat(toLoad);
+        var renderKeys = ['dataset','sourceSpec','query']
         var last = {};
-        rendered += "<div class='header'><div>Title</div><div>Source</div><div>Query</div></div>";
+        rendered += "<div class='header'><div>Dataset</div><div>Source</div><div>Query</div></div>";
         _.each(docs, function(doc) {
             rendered += "<div class='collapsed_result'>";
             var current = {};
-            _.each(toLoad, function(key) {
-                current[key] = C.load(doc[key]);
-            });
-            _.each(toCopy, function(key) {
-                current[key] = doc[key];
-            });
+            var sourceSpec = C.load(doc['sourceSpec']);
+            current['dataset'] = sourceSpec.dataset;
+            current['sourceSpec'] = {agency: sourceSpec.agency, subagency: sourceSpec.subagency};
+            current['query'] = C.load(doc['query']);
             var diff = _.difference(last,current);
             if (diff === null) {
                 rendered += "WTF this was the exact same as the last one";
@@ -184,6 +181,8 @@ var GovLove = {};
                             _.each(item, function(value,index) {
                                 rendered += "<tr><td>"+value+"</td></tr>";
                             });
+                        } else if (_.isString(item)) {
+                            rendered += "<tr><td class='value'>"+item+"</td></tr>";
                         } else {
                             _.each(item, function(value,key) {
                                 rendered += "<tr><td class='key'>"+key+"</td><td class='value'>"+value+"</td></tr>";
