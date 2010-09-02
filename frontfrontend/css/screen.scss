@@ -1,0 +1,310 @@
+@import "_reset.sass";
+@import "_base.sass";
+
+@include global-reset;
+
+///////////////////////////////////////////////////
+// General Formatting
+///////////////////////////////////////////////////
+
+html {
+  min-height: 100%;
+  overflow: auto; }
+
+body {
+  margin: 0;
+  padding: 0;
+  background: {
+    color: $bgColor; };
+  font: {
+    size: 100.01%;
+    family: "Cantarell", arial, serif; };
+  color: $fontColor;
+  line-height: 1.2;
+  @include vertical-gradiant($bgColorTop, $bgColor);
+  background-repeat: no-repeat;
+  min-height: 100%;
+  overflow: auto; }
+
+h1, h2, h3, .sitename, .big {
+  font: {
+    family: "Josefin Sans Std Light", arial, serif; }; }
+
+.button, .clickable {
+  @include clickable; }
+
+.small {
+  font: {
+    size: 12px;
+    family: "Cantarell", arial, serif; }; }
+
+.label {
+  text-align: center;
+  font-weight: bold; }
+
+ul {
+  list-style-type: none;
+  padding: 0;
+  margin: 0; }
+
+.ui-dialog {
+  @include round(0, 0, 0, 0);
+  border: 1px solid $shadowColor;
+  //border-left: 3px solid $c_three
+}
+
+///////////////////////////////////////////////////
+// JQuery UI
+///////////////////////////////////////////////////
+
+#feedback {
+  font-size: 1.4em;
+  .ui-selecting {
+    background: #feca40; }
+  .ui-selected {
+    background: #f39814;
+    color: white; } }
+
+.selectable {
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
+  width: 60%;
+  li {
+    margin: 3px;
+    padding: 0.4em;
+    font-size: 1.4em;
+    height: 18px; } }
+
+///////////////////////////////////////////////////
+// Container
+///////////////////////////////////////////////////
+
+#content {
+  width: 960px;
+  margin: auto;
+  min-height: 100%; }
+
+#main, #sidebar {
+  float: left; }
+
+#main {
+  width: 760px;
+  height: 500px; }
+
+#sidebar {
+  width: 200px;
+  height: 500px; }
+
+.module {
+  width: 92%;
+  padding: 2%;
+  margin: 30px auto;
+  text-align: center;
+  background: {
+    color: white; };
+  //border-left: 3px solid $c_five
+  border-right: 1px solid $shadowColor;
+  border-bottom: 1px solid $shadowColor; }
+
+.label {
+  margin: 30px auto -20px auto; }
+
+.search {
+  text-align: center; }
+
+///////////////////////////////////////////////////
+// Header
+///////////////////////////////////////////////////
+
+#header {
+  font-size: 20px;
+  text-align: right;
+  margin-bottom: 20px;
+  ul {
+    @include inline-list;
+    li {
+      margin: 0px;
+      padding: 5px;
+      margin-right: 5px;
+      @include round(0, 0, 5, 5); } } }
+
+///////////////////////////////////////////////////
+// Footer
+///////////////////////////////////////////////////
+
+#footer {
+  clear: both; }
+
+///////////////////////////////////////////////////
+// Find
+///////////////////////////////////////////////////
+
+#filter {
+  margin-top: -20px;
+  .title {
+    font-size: 120%; }
+  .filters {
+    display: none;
+    text-align: left;
+    padding-top: 20px;
+    margin: 0 auto;
+    width: 300px;
+    position: relative;
+    label {
+      display: block;
+      width: 100%;
+      span {
+        float: left;
+        padding: 0 10px;
+        width: 120px;
+        text-align: right; } } } }
+
+#q {
+  width: 99%;
+  font-size: 150%;
+  margin: 0.5em 0; }
+
+//#search_container
+// text-align: right
+
+#numFound {
+  position: absolute;
+  top: 15px;
+  right: 10px;
+  color: $bgColor; }
+
+.result {
+  //border-left: 3px solid $c_two
+  text-align: left;
+  overflow: auto;
+  .result_l, .result_r {
+    float: left;
+    padding: 1%; }
+  .result_l {
+    width: 68%;
+    .title, .dataset, .agency {
+      font-weight: bold; }
+    .title, .dataset {
+      font-size: 120%; }
+    .description, .subagency {
+      font-size: 80%; }
+    .title, .dataset {
+      padding: 0; }
+    .keywords {
+      padding: 5px 0;
+      font-size: 90%; }
+    .querykey {
+      font-size: 80%;
+      font-weight: bold; }
+    .queryvalue {
+      padding: 5px 0 5px 10px; }
+    .description {
+      padding: 15px 0; } }
+  .result_r {
+    width: 28%;
+    .sourceTree {
+      font: {
+        style: italic; };
+      div {
+        padding: 3px 0; } } } }
+
+.volume {
+  height: 1px;
+  position: relative;
+  font-weight: bold;
+  top: 40px;
+  left: 10px;
+  font: {
+    family: "Josefin Sans Std Light", arial, serif;
+    size: 180%; }; }
+
+.vistypes {
+  height: 1px;
+  position: relative;
+  font-weight: bold;
+  top: 25px;
+  text-align: right;
+  ul {
+    @include inline-list;
+    li {
+      float: right; } }
+  .tableicon, .mapicon, .timelineicon {
+    width: 40px;
+    background-color: black;
+    height: 40px;
+    margin: 5px;
+    @include clickable; }
+  .tableicon {
+    background-image: url("../images/table.gif");
+    &:hover {
+      background-image: url("../images/table_i.gif"); } }
+  .mapicon {
+    background-image: url("../images/map.gif");
+    &:hover {
+      background-image: url("../images/map_i.gif"); } }
+  .timelineicon {
+    background-image: url("../images/timeline.gif");
+    &:hover {
+      background-image: url("../images/timeline_i.gif"); } } }
+
+#group_container {
+  text-align: right;
+  width: 100%; }
+
+///////////////////////////////////////////////////
+// Get
+///////////////////////////////////////////////////
+
+///////////////////////////////////////////////////
+// Theme Colors
+///////////////////////////////////////////////////
+
+.c_one {
+  background-color: $c_one;
+  color: white;
+  &:hover {
+    background-color: transparent;
+    color: $c_one; } }
+
+.c_two {
+  background-color: $c_two;
+  color: white;
+  &:hover {
+    background-color: transparent;
+    color: $c_two; } }
+
+.c_three {
+  background-color: $c_three;
+  color: white;
+  &:hover {
+    background-color: transparent;
+    color: $c_three; } }
+
+.c_four {
+  background-color: $c_four;
+  color: white;
+  &:hover {
+    background-color: transparent;
+    color: $c_four; } }
+
+.c_five {
+  background-color: $c_five;
+  color: white;
+  &:hover {
+    background-color: transparent;
+    color: $c_five; } }
+
+///////////////////////////////////////////////////
+// Links
+///////////////////////////////////////////////////
+
+a {
+  text-decoration: none;
+  color: $linkColor;
+  &:visited {
+    color: $linkColor; }
+  &:active {
+    color: $linkColorH; }
+  &:hover {
+    color: $linkColorH; } }

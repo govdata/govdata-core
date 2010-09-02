@@ -1,0 +1,45 @@
+!!! 5
+%html
+    %head
+        %title Gov&#9825;Love
+        %link{:type => "text/css", :rel => "stylesheet", :href => "http://ajax.googleapis.com/ajax/libs/jqueryui/1.7.2/themes/flick/jquery-ui.css"}
+        %link{:type => "text/css", :rel => "stylesheet", :href => "/css/style.css"}
+        %script{:type => "text/javascript", :language => "javascript", :src => "/js/jquery.js"}
+        %script{:type => "text/javascript", :language => "javascript", :src => "http://ajax.googleapis.com/ajax/libs/jqueryui/1.8.4/jquery-ui.min.js"}
+        %script{:type => "text/javascript", :language => "javascript", :src => "/js/underscore.js"}
+        %script{:type => "text/javascript", :language => "javascript", :src => "/js/underscore.strings.js"}
+        %script{:type => "text/javascript", :language => "javascript", :src => "/js/underscore.extended.js"}
+        %script{:type => "text/javascript", :language => "javascript", :src => "/js/jquery.extended.js"}
+        %script{:type => "text/javascript", :language => "javascript", :src => "/js/common.js"}
+        %script{:type => "text/javascript", :language => "javascript", :src => "/js/govlove.js"}
+        %script{:type => "text/javascript", :language => "javascript", :src => "/js/frontend.js"}
+    %body
+        :javascript
+            jQuery(function(){
+                Frontend.run();
+            });
+        %div#options
+        %div#header
+            %h1
+                GovLove
+        %div#content
+            %ul.nav
+                %li.uno
+                    %a
+                        home
+                %li.dos
+                    %a
+                        trends
+                %li.tres
+                    %a
+                        about
+                %li.quatro
+                    %a
+                        howto
+                %li.cinco
+                    %a
+                        api
+            %form#search
+                %input{:type => 'search'}
+            %div#results
+                GovLove: Making government data suck less. This does x. Which is why y. We hope you will z. Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.

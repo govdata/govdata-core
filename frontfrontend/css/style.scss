@@ -1,0 +1,139 @@
+@import "_reset";
+@import "_constants";
+@import "_mixins";
+
+@import url(http://fonts.googleapis.com/css?family=OFL+Sorts+Mill+Goudy+TT:regular,italic);
+@import url(http://fonts.googleapis.com/css?family=Cardo);
+@import url(http://fonts.googleapis.com/css?family=Lobster);
+
+@include global-reset;
+@include background-gradient($bg-color,white);
+
+html {
+  padding-bottom: 100px;
+}
+
+body {
+  color: RGBA(50,50,70,1);
+  font-size: 12pt; }
+
+h1 {
+  font-size: 3em;
+  font-family: 'Cardo', arial, serif;
+}
+
+#header {
+  h1 {
+    font-family: 'Lobster', arial, serif;
+    float: left;
+    font-size: 4em;
+    color: $bg-color - 20; } }
+
+#content {
+  margin: auto;
+  margin-top: 50px;
+  font-family: 'OFL Sorts Mill Goudy TT', Georgia, arial, serif;
+/*  width: 80%; */
+  width: 760px;
+}
+
+#search {
+  input {
+    font-size: 2em;
+    width: 100%; } }
+
+#collapsed_results {
+  .header {
+    div {
+      width: 33%;
+      display: inline-block;
+      text-align: center; } }
+  .collapsed_result {
+    @include clickable;
+    padding: 10px;
+    margin: 20px 0;
+    background-color: RGBA(255, 255, 255, 0.5);
+    @include box-shadow(2px, 2px, 10px, $shadow);
+    @include round-all(10px); 
+    table {
+      display: inline-block;
+      width: 33%;
+      td {
+        padding: 5px;
+      }
+      .key {
+        font-size: 0.7em;
+        text-align: right;
+        border-right: 1px solid #666;
+      }
+      .value {
+        text-align: left;
+      }
+    }
+    &:hover {
+      background-color: white;
+    }
+    .title {
+      font-size: 1.1em;
+    }
+    .sourceSpec {
+    }
+    .query {
+    }}}
+
+#hierarchy_result {
+  ul {
+    background-color: #f6f6e6;
+    border-color: #ccb;
+    border-top-width: 1px;
+    border-left-width: 1px;
+    border-right-width: 2px;
+    border-bottom-width: 2px;
+    border-style: solid;
+    padding: 5px 30px 10px 10px;
+    @include round-all(10px);
+    li { 
+      padding: 5px 0; } } }
+
+.shadow {
+    @include box-shadow(2px,2px,10px,$shadow);
+}
+
+#hierarchy_result ul, .collapsed_result {
+}
+
+#options {
+  background-color: RGBA(105, 193, 52, 0.5);
+  text-align: center;
+  color: white;
+  min-height: 10px;
+  #options_form {
+    text-align: left;
+    padding: 10px;
+  }
+}
+
+input {
+  @include fancy-input;
+}
+
+.clickable, .button, a {
+  @include clickable;
+}
+
+.nav {
+  @include inline-list;
+  float: right;
+}
+
+.uno {
+  color: $uno; }
+.dos {
+  color: $dos; }
+.tres {
+  color: $tres; }
+.quatro {
+  color: $quatro; }
+.cinco {
+  color: $cinco; }
+

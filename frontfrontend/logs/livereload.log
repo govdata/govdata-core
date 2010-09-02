@@ -1,0 +1,7 @@
+
+Version:  1.4  (compatible with browser extension versions 1.4.x)
+Port:     35729
+Watching: /Users/rdf/src/burner/govlove_DVN/frontfrontend
+  - extensions: .html .css .js .png .gif .jpg .php .php5 .py .rb .erb
+  - excluding changes in: */.git/* */.svn/* */.hg/*
+  - with a grace period of 0.05 sec after each change
