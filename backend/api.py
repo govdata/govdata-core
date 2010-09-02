@@ -839,7 +839,7 @@ class FindHandler(tornado.web.RequestHandler):
 
 def find(q, timeQuery = None, spaceQuery = None, hlParams=None,facetParams=None,mltParams = None, **params):
     """
-        query : String => the query to solr
+        q : String => the query to solr
         timeQuery => see get
         spaceQuery => see get
         hlParams => highlighting solr
