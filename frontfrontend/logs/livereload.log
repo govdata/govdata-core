@@ -5,3 +5,11 @@ Watching: /Users/rdf/src/burner/govlove_DVN/frontfrontend
   - extensions: .html .css .js .png .gif .jpg .php .php5 .py .rb .erb
   - excluding changes in: */.git/* */.svn/* */.hg/*
   - with a grace period of 0.05 sec after each change
+
+LiveReload is waiting for browser to connect.
+Browser connected.
+Browser URL: http://localhost:8000/
+Modified: index.html
+Modified: test.html
+Terminating WebSocket Server
+Browser disconnected.
