@@ -2,6 +2,5 @@
 .sass-cache
 *.css
 *.log
-frontfrontend/*/*.html
 *.pyc
 nginx.conf
