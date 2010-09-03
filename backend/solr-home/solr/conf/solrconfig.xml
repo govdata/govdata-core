@@ -801,7 +801,7 @@
 
   <searchComponent name="mltComponent" class="org.apache.solr.handler.component.MoreLikeThisComponent"/>
 
-  <requestHandler name="/mlt" class="org.apache.solr.handler.component.SearchHandler">
+  <requestHandler name="/mlt" class="org.apache.solr.handler.MoreLikeThisHandler">
      <lst name="defaults">
       <bool name="mlt">true</bool>
     </lst>     
