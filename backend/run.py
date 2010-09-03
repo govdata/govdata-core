@@ -16,13 +16,15 @@ define("processes", default=4, help="number of threads in the pool", type=int)
 class GovLove(tornado.web.Application):
     def __init__(self,ioloop):
         handlers = [
-            (r"/", MainHandler),
-            (r"/get", api.GetHandler),
-            (r"/find", api.FindHandler),
-            (r"/sources", api.SourceHandler),
-            (r"/table", api.TableHandler),
-            (r"/timeline", api.TimelineHandler),
-            (r"/oai",api.OAIHandler),
+            (r"/", mainHandler),
+            (r"/get", api.getHandler),
+            (r"/find", api.findHandler),
+            (r"/sources", api.sourceHandler),
+            (r"/table", api.tableHandler),
+            (r"/timeline", api.timelineHandler),
+            (r"/oai",api.oaiHandler),
+            (r"/terms",api.termsHandler),
+            (r"/mlt",api.mltHandler),
         ]
         settings = dict(
             template_path=os.path.join(os.path.dirname(__file__), "templates"),
@@ -32,7 +34,7 @@ class GovLove(tornado.web.Application):
         )
         tornado.web.Application.__init__(self, handlers, **settings)
 
-class MainHandler(tornado.web.RequestHandler):
+class mainHandler(tornado.web.RequestHandler):
     def get(self):
         self.write("hello world!")
 

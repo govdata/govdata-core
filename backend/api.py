@@ -25,7 +25,7 @@ SPECIAL_KEYS = CM.SPECIAL_KEYS
 
 EXPOSED_ACTIONS = ['find','find_one','group','skip','limit','sort','count','distinct']
 
-class GetHandler(asyncCursorHandler):
+class getHandler(asyncCursorHandler):
     @tornado.web.asynchronous
     def get(self):
         
@@ -606,7 +606,7 @@ def table_processor(handler,x,collection):
     return [x.get(id,None) for (id,label) in handler.fields]
 
 
-class TableHandler(GetHandler):
+class tableHandler(GetHandler):
 
     tablemaker = getTable
     
@@ -783,20 +783,38 @@ def getTimelineTable(handler):
     return {'cols':cols,'rows':obj}
 
 
-class TimelineHandler(TableHandler):    
+class timelineHandler(TableHandler):    
 
     tablemaker = getTimelineTable
  
         
-
 
     
 #=-=-=-=-=-=-=-=-=-=-=-=-=-
 #FIND
 #=-=-=-=-=-=-=-=-=-=-=-=-=-
 
+     
+def create_responder(handler,**params):
+    def responder(response):
+        if response.error: raise tornado.web.HTTPError(500)
+        wt = params.get('wt',None)
+        callback = params.get('callback',[None])[0]
+        if callback:
+            handler.write(callback + '(')
+        if wt == 'json':
+            handler.write(response.body)
+        elif wt == 'python':
+            X = ast.literal_eval(response.body)
+            #do stuff to X
+            jsonstr = json.dumps(X,default=pm.json_util.default)
+            handler.write(jsonstr)
+        if callback:
+            handler.write(')')
+        handler.finish()
+    return responder   
                
-class FindHandler(tornado.web.RequestHandler):
+class findHandler(tornado.web.RequestHandler):
     @tornado.web.asynchronous
     def get(self):
         args = self.request.arguments
@@ -805,38 +823,8 @@ class FindHandler(tornado.web.RequestHandler):
         args.pop('q')
         args['wt'] = args.get('wt','json') # set default wt = 'json'
         http = tornado.httpclient.AsyncHTTPClient()
-        http.fetch(find(query,**args),callback=self.async_callback(self.create_responder(**args)))
-    
-    def create_responder(self,**params):
-        def responder(response):
-            if response.error: raise tornado.web.HTTPError(500)
-            wt = params.get('wt',None)
-            callback = params.get('callback',[None])[0]
-            if callback:
-                self.write(callback + '(')
-            if wt == 'json':
-                self.write(response.body)
-            elif wt == 'python':
-                X = ast.literal_eval(response.body)
-                #do stuff to X
-                jsonstr = json.dumps(X,default=pm.json_util.default)
-                self.write(jsonstr)
-            if callback:
-                self.write(')')
-            self.finish()
-        return responder
-    
-    @tornado.web.asynchronous
-    def post(self):
-        args = json.loads(self.request.body)
-        args = dict([(str(x),y) for (x,y) in args.items()])
-        query = args.pop('q')
-        args['wt'] = args.get('wt','json') # set default wt = 'json'
-        http = tornado.httpclient.AsyncHTTPClient()
-        http.fetch(find(query,**args),callback=self.async_callback(self.create_responder(**args)))
-        
-
-
+        http.fetch(find(query,**args),callback=self.async_callback(create_responder(self,**args)))
+            
 def find(q, timeQuery = None, spaceQuery = None, hlParams=None,facetParams=None,mltParams = None, **params):
     """
         q : String => the query to solr
@@ -874,15 +862,33 @@ def find(q, timeQuery = None, spaceQuery = None, hlParams=None,facetParams=None,
             
     if facetParams == None and params.get('facet',None) == None and params.get('facet.field',None) == None:
         facetParams = {'field':['agency','subagency','dataset','dateDivisions']}
-                    
-    return solr.queryUrl(q,hlParams,facetParams,mltParams,**params)
-                
-                
+        
+    paramsets = [('',params),('facet',facetParams),('hl',hlParams),('mlt',mltParams)]
+           
+    return solr.solrURL('select',paramsets, q = q)
+
+class mltHandler(tornado.web.RequestHandler):
+    @tornado.web.asynchronous
+    def get(self):
+        args = self.request.arguments
+        assert 'q' in args.keys() and len(args['q']) == 1
+        query = args['q'][0]       
+        http = tornado.httpclient.AsyncHTTPClient()
+        http.fetch(solr.solrURL('mlt',[('mlt',args)],q=query),callback=self.async_callback(create_responder(self,**args)))
+    
+class termsHandler(tornado.web.RequestHandler):
+    @tornado.web.asynchronous
+    def get(self):
+        args = self.request.arguments
+        http = tornado.httpclient.AsyncHTTPClient()
+        http.fetch(solr.solrURL('terms',[('terms',args)]),callback=self.async_callback(create_responder(self,**args)))
+
+               
 #=-=-=-=-=-=-=-=-=-=-=-=-=-
 #SOURCES
 #=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-class SourceHandler(asyncCursorHandler):
+class sourceHandler(asyncCursorHandler):
 
     @tornado.web.asynchronous
     def get(self):
@@ -1066,7 +1072,7 @@ def header(record):
 
 OAI_FORMATS={'oai_dc':{'metadataPrefix':'oai_dc','keys':DC_KEYS,'formatter':dc_formatter,'schema':'http://www.openarchives.org/OAI/2.0/oai_dc.xsd','metadataNameSpace':'http://www.openarchives.org/OAI/2.0/oai_dc/','limit':10},'ddi':{'metadataPrefix':'ddi','keys':DDI_KEYS,'formatter':ddi_formatter,'schema':'','metadataNameSpace':'','limit':10}}
 
-class OAIHandler(asyncCursorHandler):
+class oaiHandler(asyncCursorHandler):
 
     @tornado.web.asynchronous
     def get(self):
