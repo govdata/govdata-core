@@ -798,8 +798,7 @@ class timelineHandler(tableHandler):
 def create_responder(handler,**params):
     def responder(response):
         if response.error: raise tornado.web.HTTPError(500)
-        params['wt'] = params.get('wt','json')
-        wt = params['wt']
+        wt = params.get('wt',None)
         callback = params.get('callback',[None])[0]
         if callback:
             handler.write(callback + '(')
@@ -822,6 +821,7 @@ class findHandler(tornado.web.RequestHandler):
         assert 'q' in args.keys() and len(args['q']) == 1
         query = args['q'][0]
         args.pop('q')
+        args['wt'] = args.get('wt','json') # set default wt = 'json'
         http = tornado.httpclient.AsyncHTTPClient()
         http.fetch(find(query,**args),callback=self.async_callback(create_responder(self,**args)))
             
@@ -871,6 +871,7 @@ class mltHandler(tornado.web.RequestHandler):
     @tornado.web.asynchronous
     def get(self):
         args = self.request.arguments     
+        args['wt'] = args.get('wt','json') 
         http = tornado.httpclient.AsyncHTTPClient()
         http.fetch(solr.solrURL('mlt',[('',args)]),callback=self.async_callback(create_responder(self,**args)))
     
@@ -878,6 +879,7 @@ class termsHandler(tornado.web.RequestHandler):
     @tornado.web.asynchronous
     def get(self):
         args = self.request.arguments
+        args['wt'] = args.get('wt','json') 
         http = tornado.httpclient.AsyncHTTPClient()
         http.fetch(solr.solrURL('terms',[('',args)]),callback=self.async_callback(create_responder(self,**args)))
 
