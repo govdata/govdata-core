@@ -606,7 +606,7 @@ def table_processor(handler,x,collection):
     return [x.get(id,None) for (id,label) in handler.fields]
 
 
-class tableHandler(GetHandler):
+class tableHandler(getHandler):
 
     tablemaker = getTable
     
@@ -783,7 +783,7 @@ def getTimelineTable(handler):
     return {'cols':cols,'rows':obj}
 
 
-class timelineHandler(TableHandler):    
+class timelineHandler(tableHandler):    
 
     tablemaker = getTimelineTable
  
