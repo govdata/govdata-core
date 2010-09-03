@@ -799,6 +799,16 @@
     </arr>
   </requestHandler>
 
+  <searchComponent name="mltComponent" class="org.apache.solr.handler.component.MoreLikeThisComponent"/>
+
+  <requestHandler name="/mlt" class="org.apache.solr.handler.component.SearchHandler">
+     <lst name="defaults">
+      <bool name="mlt">true</bool>
+    </lst>     
+    <arr name="components">
+      <str>mltComponent</str>
+    </arr>
+  </requestHandler>
 
   <!-- a search component that enables you to configure the top results for
        a given query regardless of the normal lucene scoring.-->
