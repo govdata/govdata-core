@@ -881,6 +881,7 @@ class termsHandler(tornado.web.RequestHandler):
         args = self.request.arguments
         args['wt'] = args.get('wt','json') 
         http = tornado.httpclient.AsyncHTTPClient()
+        print solr.solrURL('terms',[('',args)])
         http.fetch(solr.solrURL('terms',[('',args)]),callback=self.async_callback(create_responder(self,**args)))
 
                
