@@ -34,6 +34,8 @@ def solrURL(component, paramsets, q = None, host = 'localhost', port = '8983'):
     
     URL =  'http://' + host + ':' + port + '/solr/' + component + '?' + qstring + ''.join(paramstrings)
     
+    print 'solrURL=',URL
+    
     return URL
     
            
