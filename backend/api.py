@@ -870,18 +870,16 @@ def find(q, timeQuery = None, spaceQuery = None, hlParams=None,facetParams=None,
 class mltHandler(tornado.web.RequestHandler):
     @tornado.web.asynchronous
     def get(self):
-        args = self.request.arguments
-        assert 'q' in args.keys() and len(args['q']) == 1
-        query = args['q'][0]       
+        args = self.request.arguments     
         http = tornado.httpclient.AsyncHTTPClient()
-        http.fetch(solr.solrURL('mlt',[('mlt',args)],q=query),callback=self.async_callback(create_responder(self,**args)))
+        http.fetch(solr.solrURL('mlt',[('',args)]),callback=self.async_callback(create_responder(self,**args)))
     
 class termsHandler(tornado.web.RequestHandler):
     @tornado.web.asynchronous
     def get(self):
         args = self.request.arguments
         http = tornado.httpclient.AsyncHTTPClient()
-        http.fetch(solr.solrURL('terms',[('terms',args)]),callback=self.async_callback(create_responder(self,**args)))
+        http.fetch(solr.solrURL('terms',[('',args)]),callback=self.async_callback(create_responder(self,**args)))
 
                
 #=-=-=-=-=-=-=-=-=-=-=-=-=-
