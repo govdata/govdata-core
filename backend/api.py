@@ -873,7 +873,6 @@ class mltHandler(tornado.web.RequestHandler):
         args = self.request.arguments     
         args['wt'] = args.get('wt','json') 
         http = tornado.httpclient.AsyncHTTPClient()
-        print solr.solrURL('mlt',[('',args)])
         http.fetch(solr.solrURL('mlt',[('',args)]),callback=self.async_callback(create_responder(self,**args)))
     
 class termsHandler(tornado.web.RequestHandler):
@@ -882,7 +881,6 @@ class termsHandler(tornado.web.RequestHandler):
         args = self.request.arguments
         args['wt'] = args.get('wt','json') 
         http = tornado.httpclient.AsyncHTTPClient()
-
         http.fetch(solr.solrURL('terms',[('',args)]),callback=self.async_callback(create_responder(self,**args)))
 
                
