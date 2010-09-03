@@ -798,7 +798,8 @@ class timelineHandler(tableHandler):
 def create_responder(handler,**params):
     def responder(response):
         if response.error: raise tornado.web.HTTPError(500)
-        wt = params.get('wt','json')
+        params['wt'] = params.get('wt','json')
+        wt = params['wt']
         callback = params.get('callback',[None])[0]
         if callback:
             handler.write(callback + '(')
