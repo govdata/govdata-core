@@ -3,16 +3,16 @@ var Frontend = {};
     var registerSearchBar = function() {
         $("#search").submit(function() {
             var q = $("#search input").val();
-            GovLove.find(q, function(data) {
+            Gov.find(q, function(data) {
                 window.d = data;
-                GovLove.docs = data.response.docs;
+                Gov.docs = data.response.docs;
                 if( C.option('hierarchy') ) {
                     $("#results").html(
-                        GovLove.renderHierarchy(
-                            GovLove.hierarchy(GovLove.docs)));
+                        Gov.renderHierarchy(
+                            Gov.hierarchy(Gov.docs)));
                 } else {
                     $("#results").html(
-                            GovLove.renderCollapsed(GovLove.docs));
+                            Gov.renderCollapsed(Gov.docs));
                 }
                 // TODO: hack to make background gradient continue to work when document height changes
                 $("html").css("height",$(document).height());
@@ -38,7 +38,8 @@ var Frontend = {};
     
     var addOptionsPanel = function() {
         C.apply_template('_options', C._persistent, function(html) {
-            $('#options').html(html).dropDownMenu('&lsaquo;options&rsaquo;', 100);
+            $('html').prepend('<div id="options">'+html+'</div>').find('#options')
+                .dropDownMenu('&lsaquo;options&rsaquo;', 100);
             $('#options_form').change(function() {
                 Frontend.updateOptions();
             });
@@ -53,22 +54,22 @@ var Frontend = {};
     }
     
     Frontend.openDoc = function(doc) {
-        var query = GovLove.getQueryForDoc(doc);
-        GovLove.get(query, function(d) {
+        var query = Gov.getQueryForDoc(doc);
+        Gov.get(query, function(d) {
             C.println(d);
         });
     }
     
     var defaults = {
-        hierarchy: true
+        hierarchy: false
     }
     
     Frontend.run = function() {
-        C._persistent_name = 'govlove_data';
+        C._persistent_name = 'GovData';
         C.loadCookie({options: defaults});
         C.savePersistentData();
         registerSearchBar();
-        addOptionsPanel();
+        // addOptionsPanel();
         registerLiveEvents();
     }
 

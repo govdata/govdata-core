@@ -1,7 +1,7 @@
 !!! 5
 %html
     %head
-        %title Harvard/MIT Government Data Portal
+        %title Harvard MIT Government Data
         %link{:type => "text/css", :rel => "stylesheet", :href => "http://ajax.googleapis.com/ajax/libs/jqueryui/1.7.2/themes/flick/jquery-ui.css"}
         %link{:type => "text/css", :rel => "stylesheet", :href => "/css/style.css"}
         %script{:type => "text/javascript", :language => "javascript", :src => "/js/jquery.js"}
@@ -18,25 +18,7 @@
             jQuery(function(){
                 Frontend.run();
             });
+        %div#options
         %div#header
-            %nav
-                %a
-                    Harvard/MIT Government Data Portal
-        %div#content
-            %div#main
-                %form#search
-                    %input{:type => 'search'}
-                    %div#results
-                        %p#welcome
-                            Welcome to the Harvard/MIT Government Data Portal
-                        %p#instructions
-                            Begin by entering a query such as 
-                            "yearly data for new york"
-                            or "trucking in boston"
-                            or "GDP in alabama in 1980"
-            %div#sidebar
-                Additional info
-            %div.clear
-        %div#footer
-            %img{:src => '/images/harvard_seal.png', :width => '50px'}
-            %img{:src => '/images/mit_seal.png', :width => '50px'}
+            %h1
+                Get

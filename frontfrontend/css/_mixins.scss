@@ -54,6 +54,11 @@
   -moz-box-shadow: $x $y $size $color;
   box-shadow: $x $y $size $color; }
 
+@mixin box-shadow-inset($x, $y, $size, $color) {
+  -webkit-box-shadow: inset $x $y $size $color;
+  -moz-box-shadow: inset $x $y $size $color;
+  box-shadow: inset $x $y $size $color; }
+
 @mixin transform($amount) {
   -webkit-transform: $amount;
   -moz-transform: $amount;
@@ -63,6 +68,12 @@
   &:hover {
     cursor: pointer;
   }
+}
+
+@mixin set-size($width, $margin, $padding) {
+  width: $width - $padding * 2 - $margin * 2;
+  padding: $padding;
+  margin: $margin;
 }
 
 @mixin inline-list {
@@ -82,6 +93,7 @@
   padding: 5px;
   &:focus {
     outline: none;
-    @include box-shadow(2, 2, 25px, #666666);
+    background-color: black;
+    @include box-shadow(2px, 2px, 25px, #666666);
     @include transform(scale(1.05)); 
     } }

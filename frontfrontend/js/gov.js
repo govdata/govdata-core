@@ -1,15 +1,15 @@
-var GovLove = {};
+var Gov = {};
 (function($) {
-    GovLove.api_url = "http://ec2-67-202-31-123.compute-1.amazonaws.com";
+    Gov.api_url = "http://ec2-67-202-31-123.compute-1.amazonaws.com";
     var state = {};    
     
-    GovLove.levels = ['agency','subagency','topic','subtopic','program','dataset'];
+    Gov.levels = ['agency','subagency','topic','subtopic','program','dataset'];
     
-    GovLove.loadState = function(s) {
+    Gov.loadState = function(s) {
         return s;
     };
     
-    GovLove.getState = function() {
+    Gov.getState = function() {
         return state;
     };
 
@@ -21,12 +21,12 @@ var GovLove = {};
       C.println(query);
     };
     
-    GovLove.sources = function() {
-        C.fetchWithCache(GovLove.api_url+"/sources?");
+    Gov.sources = function() {
+        C.fetchWithCache(Gov.api_url+"/sources?");
     };
     
-    GovLove.timeline = function(query, callback) {
-        var timelineurl = GovLove.api_url+'/timeline?';
+    Gov.timeline = function(query, callback) {
+        var timelineurl = Gov.api_url+'/timeline?';
         getData(timelineurl,query,function(response) {
             var data = response.getDataTable();
             window.dd = data;
@@ -44,26 +44,26 @@ var GovLove = {};
         });
     };
     
-    GovLove.find = function(q,callback,options) {
+    Gov.find = function(q,callback,options) {
         var params = {
             "q" : q
         };
         $.extend(params,options);
         $.ajax({
-            url: GovLove.api_url+"/find",
+            url: Gov.api_url+"/find",
             data: params,
             dataType: "jsonp",
             success: callback
         });
     };
     
-    GovLove.get = function(q,callback,options) {
+    Gov.get = function(q,callback,options) {
         var params = {
             "q" : q
         };
         $.extend(params,options);
         $.ajax({
-            url: GovLove.api_url+"/get",
+            url: Gov.api_url+"/get",
             data: params,
             dataType: "jsonp",
             jsonpCallbackString: "C.load",
@@ -76,7 +76,7 @@ var GovLove = {};
         });
     };
     
-    GovLove.getQueryForDoc = function(doc, options) {
+    Gov.getQueryForDoc = function(doc, options) {
         var params = {
             limit : 10
         };
@@ -84,27 +84,27 @@ var GovLove = {};
         var mongoID = doc.mongoID;
         var mongoQuery = eval('('+doc.query[0]+')');
         var collectionName = doc.collectionName[0];
-        var query = GovLove.Query(collectionName).find(mongoQuery).limit(params.limit).toString();
+        var query = Gov.Query(collectionName).find(mongoQuery).limit(params.limit).toString();
         return query;
     };
     
-    GovLove.formatDate = function(dateStr) {
+    Gov.formatDate = function(dateStr) {
         // TODO: converts date value into english readable text
         return dateStr;
     };
     
-    GovLove.locationToText = function() {
+    Gov.locationToText = function() {
         // TODO: converts location value from a query object into english readable text
     };
     
-    GovLove.hierarchy = function(docs) {
+    Gov.hierarchy = function(docs) {
         // hierarcy the docs by agency and subagency
         var hierarchy = {};
-        var lowest_level = _.last(GovLove.levels);
+        var lowest_level = _.last(Gov.levels);
         _.each(docs, function(doc) {
             var source = C.load(doc.sourceSpec);
             var hierarchy_position = hierarchy;
-            _.each(GovLove.levels, function(level) {
+            _.each(Gov.levels, function(level) {
                 var level_value = source[level];
                 if (level_value === undefined || level_value === "") {
                     level_value = undefined;
@@ -125,7 +125,7 @@ var GovLove = {};
         return hierarchy;
     };
     
-    GovLove.renderHierarchy = function(hierarchy) {
+    Gov.renderHierarchy = function(hierarchy) {
         function render_helper(hierarchy) {
             var rendered = ""
             if (_.isArray(hierarchy)) {
@@ -156,7 +156,7 @@ var GovLove = {};
         return "<div id='hierarchy_result'>"+render_helper(hierarchy)+"</div>";
     }
         
-    GovLove.renderCollapsed = function(docs) {
+    Gov.renderCollapsed = function(docs) {
         var rendered = "";
         var toLoad = ['sourceSpec','query'];
         var renderKeys = ['dataset','sourceSpec','query']
@@ -198,7 +198,7 @@ var GovLove = {};
         return "<div id='collapsed_results'>"+rendered+"</div>";
     }
     
-    GovLove.Query = function(collectionName) {
+    Gov.Query = function(collectionName) {
         /*
         collectionName : String => collection name e.g. BEA_NIPA
         query : List[Pair[action,args]] => mongo db action read pymongo docs e.g. 
