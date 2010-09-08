@@ -178,7 +178,6 @@ def queryKeys(q,processors):
 def queryValues(q,processors):
     return [translate(processors[key],decode_obj(value)) for (key,value) in q.items()]
     
-
 def mongoID(q,collectionName):
     queryID = [('collectionName',collectionName),('query',q)]
     return hashlib.sha1(json.dumps(queryID,default=ju.default)).hexdigest()
@@ -241,6 +240,7 @@ def addToIndex(q,d,collection,solr_interface,slicecount,contentColNums = None, t
                 else:
                     d[str(k)] = str(metadata[k])
     
+        print d
         if Return:
             return d
         else:
