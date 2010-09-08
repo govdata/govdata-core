@@ -1,0 +1,59 @@
+@import "_reset";
+@import "_constants";
+@import "_mixins";
+
+@import url(http://fonts.googleapis.com/css?family=OFL+Sorts+Mill+Goudy+TT:regular,italic);
+@import url(http://fonts.googleapis.com/css?family=Cardo);
+@import url(http://fonts.googleapis.com/css?family=Old+Standard+TT:regular,italic,bold);
+
+@include global-reset;
+
+
+body {
+  background-color: $bg-color;
+  color: $steel;
+  line-height: 1.1em;
+  font-family: 'Cardo', Georgia, arial, serif;
+  font-size: 12pt; }
+
+
+.hidden {
+  display: none;
+}
+
+h1, h2, h3, h4, h5 {
+  line-height: normal;
+}
+
+h1 {
+  font-size: 1.5em;
+  font-weight: 800;
+}
+
+h2 {
+  font-size: 1.3em;
+  padding-bottom: 20px;
+  font-weight: 700;
+}
+
+h3 {
+  font-size: 1.2em;
+  padding-bottom: 10px;
+  font-weight: 600;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.clickable, .button, a {
+  @include clickable;
+}
+
+.clear {
+  @include clear;
+}

@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block javascript %}
+  Find.run();
+{% end %}
+
+{% block javascript-include %}
+  <script language='javascript' src='{{ static_url("js/find.js") }}' type='text/javascript'></script>
+{% end %}
+
+{% block content %}
+  <div id='sidebar'>
+    <div class='inner'>
+      {% block sidebar %}
+        The goal of this project is to make finding 
+        and interpreting government data efficient and easy.
+      {% end %}
+    </div>
+    <img src="{{ static_url('images/harvard_seal.png') }}" width='50px' />
+    <img src="{{ static_url('images/mit_seal.png') }}" width='50px' />
+  </div>
+  <div id='search'>
+    <div class='inner'>
+      {% block search %}
+        {{ modules.Search(q) }}
+      {% end %}
+    </div>
+  </div>
+  <div id='main'>
+    <div class='inner'>
+      <div id='results'>
+        {% block results %}
+        <p id='welcome'>
+          Welcome to the Harvard/MIT Government Data Portal
+        </p>
+        <p id='instructions'>
+          Begin by entering a query such as
+          "yearly data for new york"
+          or "trucking in boston"
+          or "GDP in alabama in 1980"
+        </p>
+        {% end %}
+      </div>
+    </div>
+  </div>
+{% end %}

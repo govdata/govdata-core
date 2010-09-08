@@ -1,0 +1,30 @@
+{% extends "welcome.html" %}
+
+{% block javascript %}
+  Find.run();
+  Find.max_offset = {{ response["numFound"] / float(per_page) }};
+  Find.q = "{{ q }}";
+  Find.registerAutoPaginate();
+{% end %}
+
+{% block sidebar %}
+  {{ modules.Facet(facets, q) }}
+  <div class="numFound">{{ response["numFound"] }} Results Found</div>
+{% end %}
+
+{% block results %}
+  <table>
+    <thead>
+      <tr>
+        <td>Dataset</td>
+        <td>Source</td>
+        <td>Query</td>
+        <td>Dimension</td>
+        <td width="75px" ></td>
+      </tr>
+    </thead>
+    <tbody>
+      {{ modules.Find(response["docs"], q) }}
+    </tbody>
+  </table>
+{% end %}

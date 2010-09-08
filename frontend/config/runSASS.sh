@@ -1,1 +1,0 @@
-sass --watch _sass:../site/static/css

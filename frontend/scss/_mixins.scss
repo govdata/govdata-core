@@ -64,24 +64,18 @@
   -moz-transform: $amount;
   transform: $amount; }
 
-@mixin clickable() {
-  &:hover {
-    cursor: pointer;
-  }
-}
-
 @mixin set-size($width, $margin, $padding) {
   width: $width - $padding * 2 - $margin * 2;
   padding: $padding;
   margin: $margin;
 }
 
-@mixin inline-list {
+/*@mixin inline-list {
   list-style-type: none;
   &, & li {
     margin: 0px;
     padding: 0px;
-    display: inline; } }
+    display: inline; } }*/
 
 @mixin fancy-input {
   @include transition;
@@ -97,3 +91,61 @@
     @include box-shadow(2px, 2px, 25px, #666666);
     @include transform(scale(1.05)); 
     } }
+
+@mixin clickable {
+  &:hover {
+    cursor: pointer; } }
+
+@mixin clear {
+  clear: both;
+  overflow: hidden;
+  height: 0; }
+
+/*@mixin round($tl, $tr, $br, $bl) {
+  -moz-border-radius: {
+    topleft: #{$tl}px;
+    topright: #{$tr}px;
+    bottomright: #{$br}px;
+    bottomleft: #{$bl}px; };
+  -webkit-border: {
+    top-left-radius: #{$tl}px;
+    top-right-radius: #{$tr}px;
+    bottom-right-radius: #{$br}px;
+    bottom-left-radius: #{$bl}px; };
+  border: {
+    top-left-radius: #{$tl}px;
+    top-right-radius: #{$tr}px;
+    bottom-right-radius: #{$br}px;
+    bottom-left-radius: #{$bl}px; }; }
+
+@mixin vertical-gradiant($start, $end) {
+  background-image: -webkit-gradient(linear, 0% 10%, 0% 90%, from($start), to($end));
+  background-image: -moz-linear-gradient(0% 100% 90deg, $start, $end); }*/
+
+@mixin opacity($op) {
+  opacity: $op; }
+
+//  filter: alpha(opacity=#{$opacity*100})
+//  -ms-filter: unquote("progid:DXImageTransform.Microsoft.Alpha(Opacity=#{round($opacity * 100)})");
+
+// Make an element completely transparent.
+@mixin transparent {
+  @include opacity(0); }
+
+// Make an element completely opaque.
+@mixin opaque {
+  @include opacity(1); }
+
+@mixin clickable {
+  &:hover {
+    cursor: pointer; } }
+
+@mixin inline-list {
+  list-style-type: none;
+  margin: 0px;
+  padding: 0px;
+  display: inline;
+  li {
+    margin: 0px;
+    padding: 0px;
+    display: inline; } }

@@ -4,42 +4,76 @@
 
 @import url(http://fonts.googleapis.com/css?family=OFL+Sorts+Mill+Goudy+TT:regular,italic);
 @import url(http://fonts.googleapis.com/css?family=Cardo);
-@import url(http://fonts.googleapis.com/css?family=Lobster);
+@import url(http://fonts.googleapis.com/css?family=Old+Standard+TT:regular,italic,bold);
 
 @include global-reset;
-@include background-gradient($bg-color,white);
+/*@include background-gradient(white,$bg_color);*/
 
-html {
+/*html {
   padding-bottom: 100px;
 }
+*/
+
+/*Begin Constants*/
+$bg_color: #fafaf3;
+$shadow: #999999;
+
+$cardinal: #7B2C2B;
+$steel: #535353;
+/*End Constants*/
 
 body {
-  color: RGBA(50,50,70,1);
+  background-color: $bg_color;
+  color: $steel;
+  line-height: 1.1em;
+  font-family: 'Cardo', Georgia, arial, serif;
   font-size: 12pt; }
 
 h1 {
   font-size: 3em;
-  font-family: 'Cardo', arial, serif;
+}
+
+#header, #footer {
+  text-align: center;
 }
 
 #header {
-  h1 {
-    font-family: 'Lobster', arial, serif;
-    float: left;
-    font-size: 4em;
-    color: $bg-color - 20; } }
+  font-size: .8em;
+  @include box-shadow-inset(-2px, -2px, 10px, $shadow);
+  nav {
+    padding: 3px;
+  }
+}
+
+#footer {
+  margin: 20px
+}
 
 #content {
   margin: auto;
   margin-top: 50px;
-  font-family: 'OFL Sorts Mill Goudy TT', Georgia, arial, serif;
-/*  width: 80%; */
   width: 760px;
+  height: 100%;
+}
+
+#main {
+  @include set-size(600px, 5px, 10px);
+  @include box-shadow(2px, 2px, 10px, $shadow);
+  @include round-all(10px);
+  float: left;
+  border-top: 10px solid $cardinal;
+}
+
+#sidebar {
+  @include set-size(160px, 5px, 10px);
+  @include box-shadow(2px, 2px, 10px, $shadow);
+  @include round-all(10px);
+  float: left;
 }
 
 #search {
   input {
-    font-size: 2em;
+    margin-bottom: 20px;
     width: 100%; } }
 
 #collapsed_results {
@@ -113,27 +147,19 @@ h1 {
   }
 }
 
-input {
-  @include fancy-input;
-}
-
 .clickable, .button, a {
   @include clickable;
 }
 
-.nav {
-  @include inline-list;
-  float: right;
+.clear {
+  clear: both;
 }
 
-.uno {
-  color: $uno; }
-.dos {
-  color: $dos; }
-.tres {
-  color: $tres; }
-.quatro {
-  color: $quatro; }
-.cinco {
-  color: $cinco; }
+#welcome {
+  font-size: 1.4em;
+}
 
+#instructions {
+  font-size: 0.9em;
+  margin: 10px 0;
+}
