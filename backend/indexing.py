@@ -173,10 +173,16 @@ def queryToText(q,processors):
     return ', '.join([key + '=' + translate(processors[key],decode_obj(value)) for (key,value) in q.items()])  
 
 def queryKeys(q,processors):
-    return q.keys()
+    if q:
+        return q.keys()
+    else:
+        return ['']
 
 def queryValues(q,processors):
-    return [translate(processors[key],decode_obj(value)) for (key,value) in q.items()]
+    if q:
+        return [translate(processors[key],decode_obj(value)) for (key,value) in q.items()]
+    else:
+        return ['']
     
 def mongoID(q,collectionName):
     queryID = [('collectionName',collectionName),('query',q)]
