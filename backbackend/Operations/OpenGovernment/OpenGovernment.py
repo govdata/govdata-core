@@ -441,7 +441,7 @@ def updateCollection(download_dir,collectionName,parserClass,checkpath,certpath,
                 dimensions[sc] = [k for k in totalVariables if collection.find_one({subColInd:sc,str(totalVariables.index(k)):{'$exists':True}})]
                 times[sc] = ListUnion([collection.find({subColInd:sc}).distinct(t) for t in tcs])
                 locations[sc] = ListUnion([collection.find({subColInd:sc}).distinct(t) for t in spcs])
-				
+                
                
         updateMetacollection(iterator,metacollection,incremental,versionNumber,totalVariables,tcs,spcs,volumes,dimensions,times,locations,varFormats)
         
@@ -620,7 +620,7 @@ def updateMetacollection(iterator, metacollection,incremental,versionNumber,tota
     for k in metadata.keys():
         metadata[k]['volume'] = volumes[k]
         metadata[k]['dimensions'] = dimensions[k]
-    	getCommonDatesLocations(iterator,metadata,times,locations,dimensions,k)    
+        getCommonDatesLocations(iterator,metadata,times,locations,dimensions,k)    
                     
     if incremental:
         previousMetadata = dict([(p["name"],p) for  p in metacollection.find({'versionNumber':versionNumber - 1})])
@@ -868,9 +868,16 @@ def dropGovCollection(db,name,mode):
     if mode == 'all':
         mode = ['col','ind']
     if 'col' in mode:
-        db.drop_collection(name)
-        db.drop_collection('__' + name + '__')
-        db.drop_collection('__' + name + '__VERSIONS__')
-        db.drop_collection('__' + name + '__SLICES__')
+        dropGovCollectionFromMongoDB(name)
     if 'ind' in mode:
-        os.system('java -Ddata=args -jar ../../backend/solr-home/post.jar "<delete><query>collectionName:' + name + '</query></delete>"')
+        dropGovCollectionFromSolr(name)
+        
+
+def dropGovCollectionFromSolr(name):
+    os.system('java -Ddata=args -jar ../../backend/solr-home/post.jar "<delete><query>collectionName:' + name + '</query></delete>"')
+
+def dropGovCollectionFromMongoDB(name):
+    db.drop_collection(name)
+    db.drop_collection('__' + name + '__')
+    db.drop_collection('__' + name + '__VERSIONS__')
+    db.drop_collection('__' + name + '__SLICES__')
