@@ -17,9 +17,8 @@ from System.Storage import *
 import numpy, os, re, traceback, subprocess, time
 isnan = numpy.isnan
 nan = numpy.nan
-import pp
 
-def LinksFromOperations(FileList,Aliases = None, AddImplied = False, AddDummies = False, FilterInternal = True, FilterNEs = True, depends_on = ('../',), creates = ('../System/StoredLinks/',), Recompute=False, Parallel=True):
+def LinksFromOperations(FileList,Aliases = None, AddImplied = False, AddDummies = False, FilterInternal = True, FilterNEs = True, depends_on = ('../',), creates = ('../System/StoredLinks/',), Recompute=False, Parallel=False):
 
     '''
     Analyzes a set of python modules to find data dependency links present in the 
@@ -303,7 +302,7 @@ def GutsComputeLinks(FileList):
 
 
 
-def ParallelComputeLinksFromOperations(FileList,Parallel=True,creates = ('../',)):
+def ParallelComputeLinksFromOperations(FileList,Parallel=False,creates = ('../',)):
     '''
     Parallel wrapper for GutsComputeLinks
     '''
