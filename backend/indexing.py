@@ -246,7 +246,6 @@ def addToIndex(q,d,collection,solr_interface,slicecount,contentColNums = None, t
                 else:
                     d[str(k)] = str(metadata[k])
     
-        print d
         if Return:
             return d
         else:
