@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>{% block title %}Harvard/MIT Government Data Portal{% end %}</title>
+    {% block head %}
+    <link href='http://ajax.googleapis.com/ajax/libs/jqueryui/1.7.2/themes/flick/jquery-ui.css' rel='stylesheet' type='text/css' />
+    <link href='{{ static_url("css/style.css") }}' rel='stylesheet' type='text/css' />
+    {% end %}
+    {% block head-extended %}
+    {% end %}
+  </head>
+  <body>
+    {% block body %}
+    <div id='header'>
+      {% block header %}
+      <nav>
+        <a>
+          {% block title %}Harvard/MIT Government Data Portal{% end %}
+        </a>
+      </nav>
+      {% end %}
+    </div>
+    <div id='content'>
+      {% block content %}
+      {% end %}
+    </div>
+    <div id='footer'>
+      {% block footer %}
+      {% end %}
+    </div>
+    {% end %}
+    <script language='javascript' src='{{ static_url("js/jquery.js") }}' type='text/javascript'></script>
+    <script language='javascript' src='http://ajax.googleapis.com/ajax/libs/jqueryui/1.8.4/jquery-ui.min.js' type='text/javascript'></script>
+    <script language='javascript' src='{{ static_url("js/underscore.js") }}' type='text/javascript'></script>
+    <script language='javascript' src='{{ static_url("js/underscore.strings.js") }}' type='text/javascript'></script>
+    <script language='javascript' src='{{ static_url("js/underscore.extended.js") }}' type='text/javascript'></script>
+    <script language='javascript' src='{{ static_url("js/jquery.extended.js") }}' type='text/javascript'></script>
+    <script language='javascript' src='{{ static_url("js/common.js") }}' type='text/javascript'></script>
+    {% block javascript-include %}
+    {% end %}
+    <script type='text/javascript'>
+      //<![CDATA[
+        jQuery(function(){
+          {% block javascript %}
+          {% end %}
+        });
+      //]]>
+    </script>
+  </body>
+</html>

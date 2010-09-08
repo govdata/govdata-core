@@ -1,0 +1,10 @@
+<form id='options_form'>
+  <% _.keys(options).map(function(key) { %>
+    <span><%= key %>:</span>
+    <input type="checkbox" name="<%= key %>"
+    <% if (options[key]) { %>
+      checked='on';
+    <% } %>
+     />
+  <% }); %>
+</form>

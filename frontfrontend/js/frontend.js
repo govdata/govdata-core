@@ -61,15 +61,15 @@ var Frontend = {};
     }
     
     var defaults = {
-        hierarchy: false
+        levels: 2
     }
     
     Frontend.run = function() {
         C._persistent_name = 'GovData';
         C.loadCookie({options: defaults});
         C.savePersistentData();
-        registerSearchBar();
         // addOptionsPanel();
+        registerSearchBar();
         registerLiveEvents();
     }
 
