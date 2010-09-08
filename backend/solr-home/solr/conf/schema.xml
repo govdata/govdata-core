@@ -220,9 +220,9 @@
    <dynamicField name="ignored_*" type="ignored" multiValued="true"/>
 
 
-   <!-- catchall field, containing all other searchable text fields (implemented via copyField further on in this schema  
+   <!-- catchall field, containing all other searchable text fields (implemented via copyField further on in this schema  -->
    <field name="text" type="text" indexed="true" stored="false" multiValued="true"/>
-   -->
+
     
    <!-- catchall autocomplete field, same as text catchall but with no stemming  -->
    <field name="autocomplete" type="phraseSemiTight" indexed="true" stored="false" multiValued="true"/>
