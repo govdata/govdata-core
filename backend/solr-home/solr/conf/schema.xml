@@ -82,7 +82,7 @@
     <fieldType name="phraseSemiTight" class="solr.TextField" positionIncrementGap="100">
       <analyzer>
         <tokenizer class="solr.KeywordTokenizerFactory" />
-        <filter class="solr.WordDelimiterFilterFactory" generateWordParts="0" preserveOriginal="1" generateNumberParts="0" catenateWords="0" catenateNumbers="0" catenateAll="0" splitOnCaseChange="1"/>
+        <!-- <filter class="solr.WordDelimiterFilterFactory" generateWordParts="0" preserveOriginal="1" generateNumberParts="0" catenateWords="0" catenateNumbers="0" catenateAll="0" splitOnCaseChange="1"/> -->
         <filter class="solr.SynonymFilterFactory" synonyms="synonyms.txt" ignoreCase="true" expand="true"/>
         <filter class="solr.LowerCaseFilterFactory"/>
         <filter class="solr.TrimFilterFactory" />
