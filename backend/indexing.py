@@ -63,7 +63,7 @@ def subTuples(T):
     return [tuple([t for (t,k) in zip(T,I) if k]) for I in ind]
     
 STANDARD_META = ['title','subject','description','author','keywords','content_type','last_modified','dateReleased','links']
-STANDARD_META_FORMATS = {'keywords':'tplist','last_modified':'dt','dateReleased':'dt'}
+STANDARD_META_FORMATS = {'last_modified':'dt','dateReleased':'dt'}
 
 @activate(lambda x : x[1],lambda x : x[2])
 def updateCollectionIndex(collectionName,incertpath,certpath, verbose=False):
@@ -171,8 +171,19 @@ def delete_slices(sliceDB,currentVersion,atVersion):
     
 def queryToText(q,processors):
     return ', '.join([key + '=' + translate(processors[key],decode_obj(value)) for (key,value) in q.items()])  
-    
 
+def queryKeys(q,processors):
+    if q:
+        return q.keys()
+    else:
+        return ['']
+
+def queryValues(q,processors):
+    if q:
+        return [translate(processors[key],decode_obj(value)) for (key,value) in q.items()]
+    else:
+        return ['']
+    
 def mongoID(q,collectionName):
     queryID = [('collectionName',collectionName),('query',q)]
     return hashlib.sha1(json.dumps(queryID,default=ju.default)).hexdigest()
@@ -192,6 +203,10 @@ def addToIndex(q,d,collection,solr_interface,slicecount,contentColNums = None, t
     d['mongoID'] = mongoID(q,collection.name)
     
     d['mongoText'] = queryToText(q,valueProcessorsKey)    
+    
+    d['sliceValues'] = queryValues(q,valueProcessorsKey)
+    
+    d['sliceKeys'] = queryKeys(q,valueProcessorsKey)
 
     d['versionNumber'] = collection.currentVersion
 
@@ -252,8 +267,7 @@ def smallAdd(d,query,collection,contentColNums, timeColInds ,timeColNames , time
             break     
   
     for (i,r) in enumerate(R):
-        if slicecount < 100000:
-            d['sliceContents'].append(' '.join([translate(valueProcessors.get(x,None),decode_obj(rgetattr(r,x.split('.')))) if rhasattr(r,x.split('.')) else '' for x in contentColNums]))
+        d['sliceContents'].append(' '.join([translate(valueProcessors.get(x,None),decode_obj(rgetattr(r,x.split('.')))) if rhasattr(r,x.split('.')) else '' for x in contentColNums]))
                       
         colnames  = uniqify(colnames + r.keys())
         
@@ -276,7 +290,7 @@ def smallAdd(d,query,collection,contentColNums, timeColInds ,timeColNames , time
                     location = loc.integrate(overallLocation,r[str(x)])
                     commonLocation = loc.intersect(commonLocation,r[str(x)]) if commonLocation != None else None
                     spaceVals.append(location)
-                   
+    
     d['sliceContents'] = ' '.join(d['sliceContents'])
     Subcollections = uniqify(Subcollections)
     d['columnNames'] = [collection.columns[int(x)] for x in colnames if x.isdigit()]
@@ -295,12 +309,12 @@ def smallAdd(d,query,collection,contentColNums, timeColInds ,timeColNames , time
         
         d['beginDate'] = td.convertToDT(mindate)
         d['endDate'] = td.convertToDT(maxdate,convertMode='High')
-        d['dateDivisions'] = ' '.join(uniqify(dateDivisions))
-        d['datePhrases'] = ', '.join(datePhrases if d['volume'] < 10000 else uniqify(datePhrases))
+        d['dateDivisions'] = uniqify(dateDivisions)
+        d['datePhrases'] = datePhrases if d['volume'] < 10000 else uniqify(datePhrases)
 
     if spaceVals:
-        d['spatialDivisions'] = ', '.join(uniqify(ListUnion(map(loc.divisions,spaceVals))))
-        d['spatialDivisionsTight'] = ', '.join(uniqify(ListUnion(map(loc.divisions2,spaceVals))))
+        d['spatialDivisions'] = uniqify(ListUnion(map(loc.divisions,spaceVals)))
+        d['spatialDivisionsTight'] = uniqify(ListUnion(map(loc.divisions2,spaceVals)))
         d['spatialPhrases'] = uniqify(map(loc.phrase,spaceVals))
         d['spatialPhrasesTight'] = uniqify(map(loc.phrase2,spaceVals))
         
@@ -354,8 +368,8 @@ def largeAdd(d,query,collection,contentColNums, timeColInds ,timeColNames , time
         
         d['beginDate'] = td.convertToDT(mindate)
         d['endDate'] = td.convertToDT(maxdate,convertMode='High')
-        d['dateDivisions'] = ' '.join(uniqify(dateDivisions))
-        d['datePhrases'] = ', '.join(datePhrases)
+        d['dateDivisions'] = uniqify(dateDivisions)
+        d['datePhrases'] = datePhrases
     
     print '2'    
     if spaceColInds:
@@ -365,8 +379,8 @@ def largeAdd(d,query,collection,contentColNums, timeColInds ,timeColNames , time
         spaceColVals = []
     spaceVals = spaceColNames + spaceColVals 
     if spaceVals:
-        d['spatialDivisions'] = ', '.join(uniqify(ListUnion(map(loc.divisions,spaceVals))))
-        d['spatialDivisionsTight'] = ', '.join(uniqify(ListUnion(map(loc.divisions2,spaceVals))))
+        d['spatialDivisions'] = uniqify(ListUnion(map(loc.divisions,spaceVals)))
+        d['spatialDivisionsTight'] = uniqify(ListUnion(map(loc.divisions2,spaceVals)))
         d['spatialPhrases'] = uniqify(map(loc.phrase,spaceVals))
         d['spatialPhrasesTight'] = uniqify(map(loc.phrase2,spaceVals))
     commonLocation = overallLocation

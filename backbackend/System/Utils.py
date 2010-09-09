@@ -6,7 +6,7 @@ import sys, os, inspect, time, shutil, types, pickle, numpy, re
 from string import Template
 from traceback import print_exc
 from numpy import nan, isnan
-import pp
+
 
 def TypeInfer(column):
 	"""Take a list of strings, and attempt to infer a datatype that fits them all.
