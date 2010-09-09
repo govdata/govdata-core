@@ -1,5 +1,5 @@
 {% for result in results %}
   <tr>
-    {{ modules.Result(result, q) }}
+    {{ modules.Result(result, q=q, filters=filters) }}
   </tr>
 {% end %}

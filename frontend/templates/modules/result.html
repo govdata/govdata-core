@@ -1,18 +1,18 @@
 <td class="dataset {% if result['dataset']['color'] %}eveneven{% else %}evenodd{% end %}">
   <div class="{% if result['dataset']['same'] %}hidden{% end %}">
-    <a href='/?q={{q}} dataset:"{{result['dataset']['data']}}"'>{{result['dataset']['data']}}</a>
+    <a href='{{ linkFn("dataset", result['dataset']['data']) }}'>{{result['dataset']['data']}}</a>
   </div>
 </td>
 <td class="source {% if result['sourceSpec']['color'] %}oddeven{% else %}oddodd{% end %}">
   <div class="{% if result['sourceSpec']['same'] %}hidden{% end %}">
-    <a href='/?q={{q}} agency:"{{result['sourceSpec']['data']['agency']}}"' class="agency">{{result['sourceSpec']['data']['agency']}}</a>
-    <a href='/?q={{q}} subagency:"{{result['sourceSpec']['data']['subagency']}}"' class="subagency">{{result['sourceSpec']['data']['subagency']}}</a>
+    <a href='{{ linkFn("agency", result['sourceSpec']['data']['agency']) }}' class="agency">{{result['sourceSpec']['data']['agency']}}</a>
+    <a href='{{ linkFn("subagency", result['sourceSpec']['data']['subagency']) }}' class="subagency">{{result['sourceSpec']['data']['subagency']}}</a>
   </div>
 </td>
 <td class="query {% if result['query']['color'] %}eveneven{% else %}evenodd{% end %}">
   <div class="{% if result['query']['same'] %}hidden{% end %}">
     {% for k,v in result['query']['data'].iteritems() %}
-      <a href='/?q={{q}} {{k}}:"{{v}}"'><span class="query_key">{{k}}</span> : <span>{{ modules.Value(k,v) }}</span></a>
+      <a href='{{ linkFn(k,v) }}'><span class="query_key">{{k}}</span> : <span>{{ modules.Value(k,v) }}</span></a>
     {% end %}
   </div>
 </td>

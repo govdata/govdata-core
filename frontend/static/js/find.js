@@ -5,6 +5,17 @@ var Find = {};
     Find.buffer = 200;
     Find.max_offset = 1000000;
     Find.q = "";
+    Find.filters = [];
+    
+    Find.addFilter = function(filter) {
+        console.log(filter);
+        Find.filters.push(filter);
+        var results = $('#results tbody');
+        results.html("");
+        getItems(function(data) {
+            results.append(data);
+        });
+    }
     
     var registerAutoComplete = function() {        
     }
@@ -20,18 +31,25 @@ var Find = {};
         // });
     }
     
+    var getItems = function( callback ) {
+        $.get('/', 
+            $.param({
+                q : Find.q,
+                partial : true,
+                page : Find.offset,
+                filter : Find.filters
+            },true),
+            function(data) {
+                callback(data);
+            });
+    }
+    
     var getMoreItems = function( results ) {
         Find.offset += 1;
         if(Find.offset < Find.max_offset) {
-            $.get('/', 
-                {
-                    q : Find.q,
-                    partial : 'true',
-                    page : Find.offset
-                },
-                function(data) {
-                    results.append(data);
-                });
+            getItems(function(data) {
+                results.append(data);
+            });
         }
     }
     
@@ -49,7 +67,7 @@ var Find = {};
     }
     
     var checkContents = function( results ) {
-        if ( moreItemsNeeded(results) ) {
+        if ( results.length !== 0 && moreItemsNeeded(results) ) {
             getMoreItems(results);
         }
     }
