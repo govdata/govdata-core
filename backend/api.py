@@ -861,7 +861,7 @@ def find(q, timeQuery = None, spaceQuery = None, hlParams=None,facetParams=None,
             params['fq'] = Flatten([params['fq'],fq])
             
     if facetParams == None and params.get('facet',None) == None and params.get('facet.field',None) == None:
-        facetParams = {'field':['agency','subagency','dataset','dateDivisions']}
+        facetParams = {'field':['agency','subagency','datasetTight','dateDivisionsTight']}
         
     paramsets = [('',params),('facet',facetParams),('hl',hlParams),('mlt',mltParams)]
            
