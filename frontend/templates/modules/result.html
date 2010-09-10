@@ -1,24 +1,37 @@
 <td class="dataset {% if result['dataset']['color'] %}eveneven{% else %}evenodd{% end %}">
-  <div class="{% if result['dataset']['same'] %}hidden{% end %}">
+  {% if result['dataset']['diff'] %}
+    <div class="diff">
+    {{result['dataset']['diff']}}
+    </div>
+  {% end %}
+  <div class="hidden">
     <a href='{{ linkFn("dataset", result['dataset']['data']) }}'>{{result['dataset']['data']}}</a>
   </div>
 </td>
 <td class="source {% if result['sourceSpec']['color'] %}oddeven{% else %}oddodd{% end %}">
-  <div class="{% if result['sourceSpec']['same'] %}hidden{% end %}">
+  <div class="{% if result['sourceSpec']['diff'] %}visible{% else %}hidden{% end %}">
     <a href='{{ linkFn("agency", result['sourceSpec']['data']['agency']) }}' class="agency">{{result['sourceSpec']['data']['agency']}}</a>
     <a href='{{ linkFn("subagency", result['sourceSpec']['data']['subagency']) }}' class="subagency">{{result['sourceSpec']['data']['subagency']}}</a>
   </div>
 </td>
 <td class="query {% if result['query']['color'] %}eveneven{% else %}evenodd{% end %}">
-  <div class="{% if result['query']['same'] %}hidden{% end %}">
+  {% if result['query']['diff'] %}
+  <div class="diff">
+    {% for k,v in result['query']['diff'].iteritems() %}
+    <div><span class="query_key">{{k}}</span> : <span>{{ modules.Value(k,v) }}</span></div>
+    {% end %}
+  </div>
+  {% end %}
+  <div class="hidden">
     {% for k,v in result['query']['data'].iteritems() %}
       <a href='{{ linkFn(k,v) }}'><span class="query_key">{{k}}</span> : <span>{{ modules.Value(k,v) }}</span></a>
     {% end %}
   </div>
 </td>
-<td class="{% if result['dimension']['color'] %}oddeven{% else %}oddodd{% end %}">
-  <div class="{% if result['dimension']['same'] %}hidden{% end %}">
-    {{result['dimension']['data']}}
+<td class="{% if result['volume']['color'] %}oddeven{% else %}oddodd{% end %}">
+  <!-- <div class="{% if result['volume']['diff'] %}diff{% else %}hidden{% end %}"> -->
+  <div>
+    {{result['volume']['data']}}
   </div>
 </td>
 <td class="">

@@ -35,7 +35,8 @@ class FindHandler(tornado.web.RequestHandler):
             params = {
                 "q" : q+" "+filterstr,
                 "start" : page * options.per_page,
-                "rows" : options.per_page
+                "rows" : options.per_page,
+                # "facet.field" : [""]
             }
             query = urlencode(params)
             http.fetch(options.api_url+"/find?"+query,
@@ -56,6 +57,11 @@ class FindHandler(tornado.web.RequestHandler):
             kwargs['facets'] = data['facet_counts']
             kwargs['per_page'] = options.per_page
             self.render("find.html",**kwargs)
+    def render_with_metadata(self, response, **kwargs):
+        # http://ec2-67-202-31-123.compute-1.amazonaws.com/sources?querySequence=[[%22find%22,[[{%22name%22:{%22$in%22:[%22BLS_bd%22,%22BLS_ap%22]}}],{%22fields%22:[%22metadata.valueProcessors%22]}]]]
+        # http://ec2-67-202-31-123.compute-1.amazonaws.com/sources?querySequence=[[%22find%22,[[{%22name%22:{%22$in%22:[%22BLS_bd%22,%22BLS_ap%22]}}],{%22fields%22:[%22metadata.valueProcessors%22]}]]]
+        
+        pass
 
 class FindPartialHandler(tornado.web.RequestHandler):
     def get(self):

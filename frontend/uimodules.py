@@ -5,6 +5,26 @@ import pymongo.json_util
 import copy
 from utils import *
 
+def difference(obj1,obj2):
+   if hasattr(obj2,"keys"):
+       if hasattr(obj1,"keys"):
+           res = [(k,difference(obj1[k],obj2[k])) if k in obj1.keys() else (k,obj2[k]) for k in obj2]
+           res = dict([(x,y) for (x,y) in res if y])
+       else:
+           res = obj2
+   elif isinstance(obj2,list):
+       if isinstance(obj1,list):
+           diffs = [difference(x,y) for (x,y) in zip(obj1,obj2)] + obj2[len(obj1):]
+           res =  [t for (i,t) in enumerate(diffs) if t != None and t not in diffs[:i]]
+       else:
+           res =  obj2
+   elif obj1 != obj2:
+       res = obj2
+   else:
+       res = None
+   if res != None and res != [] and res != {}:
+       return res
+
 
 def genLinkFn(q,filters):
     def linkFn(k,v):
@@ -46,28 +66,29 @@ class Find(tornado.web.UIModule):
         modresults = []
         last = {}
         for r in results:
-            dimension = r["dimension"][0]
+            volume = r["volume"][0]
             source = json.loads(r["sourceSpec"][0])
             query = json.loads(r["query"][0])
             current = {
-                'dimension' : { 'data' : dimension },
+                'volume' : { 'data' : volume },
                 'sourceSpec' : {
                     'data': {
                         'agency': source['agency'],
                         'subagency': source['subagency'] }},
-                'dataset' : {'data' : source['subagency'] },
+                'dataset' : {'data' : source['dataset'] },
                 'query' : { 'data' : query }
             }
             for k in current.keys():
                 last_value = last.get(k,{})
-                if current.get(k,{}).get('data') == last_value.get('data'):
-                    lastColor = last_value.get("color",True)
+                a = last_value.get('data')
+                b = current.get(k,{}).get('data')
+                diff = difference(a,b)
+                lastColor = last_value.get("color",True)
+                current[k]["diff"] = diff
+                if diff == None:
                     current[k]["color"] = lastColor
-                    current[k]["same"] = True
                 else:
-                    lastColor = last_value.get("color",True)
                     current[k]["color"] = not(lastColor)
-                    current[k]["same"] = False
             current['mongoID'] = r["mongoID"][0]
             current['collectionName'] = r["collectionName"][0]
             modresults.append(current)

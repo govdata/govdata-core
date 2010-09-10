@@ -1,5 +1,5 @@
-{% for k in ["agency", "subagency", "dateDivisions"] %}
-<h3>{{k}}</h3>
+{% for name,k in [("Agency","agency"), ("Subagency","subagency"), ("Date","dateDivisionsTight")] %}
+<h3>{{name}}</h3>
 <table>
   <tbody>
     {% for i in range(0,len(facets[k]),2) %}

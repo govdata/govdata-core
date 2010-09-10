@@ -140,7 +140,10 @@ $search-width: 700px;
       &:hover {
         background-color: $cardinal;
         color: #fff;
-        div {
+        div.diff {
+          display: none;
+        }
+        div.hidden, div.visible {
           display: block;
         }
       }
