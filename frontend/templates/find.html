@@ -2,15 +2,15 @@
 
 {% block javascript %}
   Find.run();
-  Find.max_offset = {{ response["numFound"] / float(per_page) }};
+  Find.max_offset = {{ data["response"]["numFound"] / float(per_page) }};
   Find.q = "{{ q }}";
   Find.filters = {{ jsonfilters }};
   Find.registerAutoPaginate();
 {% end %}
 
 {% block sidebar %}
-  {{ modules.Facet(facets=facets, q=q, filters=filters) }}
-  <div class="numFound">{{ response["numFound"] }} Results Found</div>
+  {{ modules.Facet(facets=data["facet_counts"], q=q, filters=filters) }}
+  <div class="numFound">{{ data["response"]["numFound"] }} Results Found</div>
 {% end %}
 
 {% block results %}
@@ -25,7 +25,7 @@
       </tr>
     </thead>
     <tbody>
-      {{ modules.Find(response["docs"], q=q, filters=filters) }}
+      {{ modules.Find(data["response"]["docs"], q=q, filters=filters, renderer=renderer) }}
     </tbody>
   </table>
 {% end %}

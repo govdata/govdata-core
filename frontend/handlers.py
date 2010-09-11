@@ -3,7 +3,6 @@ import tornado.escape
 import tornado.web
 from tornado.options import define, options
 
-import os
 import re
 import unicodedata
 import pymongo as pm
@@ -13,6 +12,40 @@ from urllib import quote, unquote
 
 from utils import *
 import uimodules
+
+import os
+import sys
+sys.path.append(os.path.join(".."))
+from common.utils import uniqify
+from common import commonjs
+
+
+def make_metadata_dict(metadata):
+    return dict([(m["name"],m["metadata"]) for m in metadata])
+
+def make_metadata_render(metadata_dict):
+    for collectionName,value in metadata_dict.iteritems():
+        vp = value['valueProcessors']
+        cg = value['columnGroups']
+        cgkeys_in_vp = [k for k in cg if k in vp.keys()]
+        ctx = commonjs.pyV8CommonJS()
+        for k in vp:
+            fn = "var %s_%s = function (value){ %s };" % (collectionName,k,vp[k])
+            ctx.eval(str(fn))
+    def render(collectionName,key,value):
+        if key in vp.keys():
+            fname = key
+        else:
+            possibles = [k for k in cgkeys_in_vp if key in cg[k]]
+            if possibles:
+                fname = possibles[0]
+            else:
+                fname = None
+        if fname:
+            return ctx.eval("%s_%s(%s)"%(collectionName,fname,value))
+        else:
+            return str(value)        
+    return render
 
 class GetHandler(tornado.web.RequestHandler):
     def get(self):
@@ -41,7 +74,7 @@ class FindHandler(tornado.web.RequestHandler):
             query = urlencode(params)
             http.fetch(options.api_url+"/find?"+query,
                        callback=self.async_callback(self.on_response, partial=partial, filters=filters, jsonfilters=json.dumps(filters), q=q))
-    def on_response(self, response, partial, **kwargs):
+    def on_response(self, response, **kwargs):
         if response.error: raise tornado.web.HTTPError(500)
         data = {}
         try:
@@ -50,18 +83,20 @@ class FindHandler(tornado.web.RequestHandler):
         except:
             print "error loading data %s"%(response.body)
             raise tornado.web.HTTPError(500)
-        kwargs['response'] = data['response']
+        kwargs['data'] = data
+        collections = uniqify([x['collectionName'][0] for x in data['response']['docs']])
+        querySequence = [["find",[[{"name":{"$in":collections}}],{"fields":["metadata.valueProcessors", "name","metadata.columnGroups"]}]]]
+        http = tornado.httpclient.AsyncHTTPClient()
+        http.fetch(options.api_url+"/sources?querySequence="+quote(json.dumps(querySequence)), callback=self.async_callback(self.render_with_metadata, **kwargs))
+    def render_with_metadata(self, metadata, partial, **kwargs):
+        metadata = json.loads(metadata.body)
+        metadata_dict = make_metadata_dict(metadata)
+        renderer = make_metadata_render(metadata_dict)
         if partial:
-            self.render("_find.html",**kwargs)
+            self.render("_find.html",renderer=renderer,**kwargs)
         else:
-            kwargs['facets'] = data['facet_counts']
             kwargs['per_page'] = options.per_page
-            self.render("find.html",**kwargs)
-    def render_with_metadata(self, response, **kwargs):
-        # http://ec2-67-202-31-123.compute-1.amazonaws.com/sources?querySequence=[[%22find%22,[[{%22name%22:{%22$in%22:[%22BLS_bd%22,%22BLS_ap%22]}}],{%22fields%22:[%22metadata.valueProcessors%22]}]]]
-        # http://ec2-67-202-31-123.compute-1.amazonaws.com/sources?querySequence=[[%22find%22,[[{%22name%22:{%22$in%22:[%22BLS_bd%22,%22BLS_ap%22]}}],{%22fields%22:[%22metadata.valueProcessors%22]}]]]
-        
-        pass
+            self.render("find.html",renderer=renderer,**kwargs)
 
 class FindPartialHandler(tornado.web.RequestHandler):
     def get(self):

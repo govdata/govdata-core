@@ -5,6 +5,7 @@ import pymongo.json_util
 import copy
 from utils import *
 
+
 def difference(obj1,obj2):
    if hasattr(obj2,"keys"):
        if hasattr(obj1,"keys"):
@@ -44,9 +45,9 @@ def cleanFilter(f):
     return f.replace("(","").replace(")","").split(":")
 
 class Result(tornado.web.UIModule):
-    def render(self, result, q="", filters=[]):
+    def render(self, result, q="", filters=[], **kwargs):
         linkFn = genLinkFn(q,filters)
-        return self.render_string("modules/result.html", result=result, linkFn=linkFn)
+        return self.render_string("modules/result.html", result=result, linkFn=linkFn, **kwargs)
 
 class Search(tornado.web.UIModule):
     def render(self, value=""):
@@ -94,16 +95,3 @@ class Find(tornado.web.UIModule):
             modresults.append(current)
             last = current
         return self.render_string("modules/find.html", results=modresults, **kwargs)
-
-class Value(tornado.web.UIModule):
-    def render(self, value_type, value):
-        def renderLocation(v):
-            if type(v) == dict:
-                return v.get("s","")+" "+v.get("X","")
-            else:
-                return v
-        rendered_string = {
-            'Location' : renderLocation(value)
-        }.get(value_type, value)
-        return self.render_string("modules/value.html", value=rendered_string)
-        

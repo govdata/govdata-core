@@ -18,13 +18,13 @@
   {% if result['query']['diff'] %}
   <div class="diff">
     {% for k,v in result['query']['diff'].iteritems() %}
-    <div><span class="query_key">{{k}}</span> : <span>{{ modules.Value(k,v) }}</span></div>
+    <div><span class="query_key">{{k}}</span> : <span>{{ renderer(result['collectionName'],k,v) }}</span></div>
     {% end %}
   </div>
   {% end %}
   <div class="hidden">
     {% for k,v in result['query']['data'].iteritems() %}
-      <a href='{{ linkFn(k,v) }}'><span class="query_key">{{k}}</span> : <span>{{ modules.Value(k,v) }}</span></a>
+      <a href='{{ linkFn(k,v) }}'><span class="query_key">{{k}}</span> : <span>{{ renderer(result['collectionName'],k,v) }}</span></a>
     {% end %}
   </div>
 </td>
