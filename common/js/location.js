@@ -4,25 +4,15 @@ var SPACE_CODE_DIVISIONS = {'A': 'Area Code', 'B': 'Metropolitan Division', 'C':
 
 
 var phrase = function (l){
-
-    var Sarray = new Array();
-
-    for (i in  _.keys(l)){
-        var key = _.keys(l)[i]
-        if (key !== 'f'){
-	    Sarray.push(l[key])
- 	    }
- 	else{
- 	    for (j in _.keys(l[key])){
- 		var k = _.keys(l[key])[j]
- 		Sarray.push(l[key] + " FIPS=" + l[key][k])
-		
- 	    }
- 	}
-
-     }
-
-     return Sarray.join(' ')
+    var rendered = "";
+    _.each(l, function(v,k) {
+        if (k === 'f') {
+            // render fips code
+        } else {
+            rendered += v+", ";
+        }
+    });
+    return rendered.slice(0,-2);
  }
  
 

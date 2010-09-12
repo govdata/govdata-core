@@ -42,7 +42,9 @@ def make_metadata_render(metadata_dict):
             else:
                 fname = None
         if fname:
-            return ctx.eval("%s_%s(%s)"%(collectionName,fname,value))
+            print(json.dumps(value))
+            fn = "%s_%s(%s)"%(collectionName,fname,json.dumps(value))
+            return ctx.eval(str(fn))
         else:
             return str(value)        
     return render
