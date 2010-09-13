@@ -746,7 +746,7 @@ def getTimelineTable(handler):
         
         cG = handler.collection.metadata['']['columnGroups']
         labelcols =  map(str,cG['labelColumns'])
-        labelcols = ListUnion([cG[x] for x in labelcols if x in cG else [x]])
+        labelcols = ListUnion([cG[x]  if x in cG else [x] for x in labelcols])
         print labelcols
         
         assert set(labelcols) <= set(labels) 
