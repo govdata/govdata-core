@@ -20,7 +20,7 @@ var require = function require(filename) {
             f.call(context, require, exports);   // Execute the module
         }
         catch(x) {
-            throw new Error("Can't load module " + origid + ": " + x);
+            throw new Error("Can't load module " + id + ": " + x);
         }
 
     }

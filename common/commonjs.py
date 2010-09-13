@@ -8,11 +8,12 @@ try:
 except:
     pass
 
-COMMONJS_PATH = '../../common/js/'
+import inspect
+COMMONJS_PATH = os.path.abspath(os.path.join(os.path.split(inspect.getfile(inspect.currentframe()))[0],"js"))+"/"
 
 COMMONJS="""
  
-var require = function require(id) {
+var require = function(id) {
      
     var filename = \"""" + COMMONJS_PATH + """\" + id + ".js"; 
     
@@ -30,7 +31,7 @@ var require = function require(id) {
             f.call(context, require, exports);   // Execute the module
         }
         catch(x) {
-            throw new Error("Can't load module " + origid + ": " + x);
+            throw new Error("Can't load module " + id + ": " + x);
         }
 
     }
@@ -69,6 +70,8 @@ class JSReadEnv(PyV8.JSClass):
 class pyV8CommonJS(PyV8.JSContext):
 
     def __init__(self):
+        
+        print(COMMONJS_PATH)
     
         PyV8.JSContext.__init__(self,JSReadEnv())
 
