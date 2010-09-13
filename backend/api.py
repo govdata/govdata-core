@@ -746,11 +746,10 @@ def getTimelineTable(handler):
         
         labelcols =  map(str,handler.collection.metadata['']['columnGroups']['labelColumns'])
         
-        print set(labelcols), set(labels)
-        assert set(labelcols) <= set(labels)
+        assert set(labelcols) <= set(labels) 
         labelcolInds = [labels.index(l) for l in labelcols]
         
-        timevalNames = [name for name in labels if name in handler.collection.ColumnGroups['timeColNames']]
+        timevalNames = [name for name in labels if name in handler.collection.columnGroups['timeColNames']]
         timevalNames.sort()
                   
         timevalInds = [labels.index(x) for x in timevalNames]
