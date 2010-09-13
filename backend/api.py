@@ -712,7 +712,7 @@ class tableHandler(getHandler):
 #=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 def infertimecol(collection):
-    if hasattr(collection,'dateFormat') and 'Y' in collection.DateFormat:
+    if hasattr(collection,'dateFormat') and 'Y' in collection.dateFormat:
         if collection.columnGroups.has_key('timeColNames'):
             return '__keys__'
         elif collection.columnGroups.has_key('timeColumns') and collection.columnGroups['timeColumns']:
@@ -757,8 +757,8 @@ def getTimelineTable(handler):
         timevalNames.sort()
         timevalInds = [labels.index(x) for x in timevalNames]
 
-        formatter1 = td.mongotimeformatter(handler.collection.DateFormat)
-        formatter2 = td.MongoToJSDateFormatter(handler.collection.DateFormat)
+        formatter1 = td.mongotimeformatter(handler.collection.dateFormat)
+        formatter2 = td.MongoToJSDateFormatter(handler.collection.dateFormat)
         timevals = [formatter2(formatter1(x)) for x in timevalNames]
         
         othercols = [', '.join([r[l] for l in labelcolInds if r[l]]) for r in obj]
