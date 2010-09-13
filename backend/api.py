@@ -747,8 +747,7 @@ def getTimelineTable(handler):
         cG = handler.collection.metadata['']['columnGroups']
         labelcols =  map(str,cG['labelColumns'])
         labelcols = ListUnion([cG[x]  if x in cG else [x] for x in labelcols])
-        print labelcols
-        
+    
         assert set(labelcols) <= set(labels) 
         labelcolInds = [labels.index(l) for l in labelcols]
         
@@ -765,6 +764,7 @@ def getTimelineTable(handler):
         formatter2 = td.MongoToJSDateFormatter(handler.collection.dateFormat)
         timevals = [formatter2(formatter1(x)) for x in timevalNames]
         
+        print [r[l] for l in labelcolInds if r[l]]
         othercols = [', '.join([r[l] for l in labelcolInds if r[l]]) for r in obj]
         
         cols = [{'id':'Date','label': timecolname, 'type':'date'}] + [{'id':str(j),'label': o, 'type':'number'} for  (j,o) in enumerate(othercols)]
