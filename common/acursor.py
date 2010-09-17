@@ -774,9 +774,9 @@ def loop(handler,cursor,sock,fd):
                 r = processor(r,handler,collection)
                  
             if handler.stream:
-                handler.write((',' if self.writing else '') + json.dumps(r,default=pm.json_util.default))
-                if not self.writing:
-                    self.writing = True
+                handler.write((',' if handler.writing else '') + json.dumps(r,default=pm.json_util.default))
+                if not handler.writing:
+                    handler.writing = True
             if handler.returnObj:
                 handler.data.append(r)
     
