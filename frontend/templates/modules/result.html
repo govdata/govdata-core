@@ -11,7 +11,15 @@
 <td class="source {% if result['sourceSpec']['color'] %}oddeven{% else %}oddodd{% end %}">
   <div class="{% if result['sourceSpec']['diff'] %}visible{% else %}hidden{% end %}">
   {% for i,(k,v) in zip(range(len(result['sourceSpec']['data'])),result['sourceSpec']['data'].iteritems()) %}
-    <span style="font-size: {{1-i*0.1}}em; {% if result['sourceSpec']['intersection'] and k in result['sourceSpec']['intersection'] %} color:RGBA(83,83,83,0.5);{% end %}"><a href='{{ filterFn("agency", v) }}'>{{v}}</a></span>
+    <span style="font-size: {{1-i*0.1}}em; {% if result['sourceSpec']['intersection'] and k in result['sourceSpec']['intersection'] %} color:RGBA(83,83,83,0.5);{% end %}">
+      <a href=
+      {% if not k in ["agency","subagency","dataset"] %}
+      '{{ filterFn("source_"+k, v) }}'
+      {% else %}
+      '{{ filterFn(k, v) }}'
+      {% end %}
+      >{{v}}</a>
+    </span>
   {% end %}
   </div>
 </td>
@@ -30,7 +38,7 @@
   {% end %}
   <div class="hidden">
     {% for k,v in result['query']['data'].iteritems() %}
-      <a href='{{ filterFn(k,v) }}'><span class="query_key">{{k}}</span> : <span>{{ renderer(result['collectionName'],k,v) }}</span></a>
+      <a href='{{ filterFn(k,v,True) }}'><span class="query_key">{{k}}</span> : <span>{{ renderer(result['collectionName'],k,v) }}</span></a>
     {% end %}
   </div>
 </td>

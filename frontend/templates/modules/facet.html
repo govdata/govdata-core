@@ -3,17 +3,22 @@
 <table>
   <tbody>
     {% for i in range(0,len(facets[k]),2) %}
+    {% if facets[k][i+1] != 0 %}
     <tr><td><a href='{{ filterFn(k, facets[k][i]) }}'>{{ facets[k][i] }}</a></td><td>{{ facets[k][i+1] }}</td></tr>
+    {% end %}
     {% end %}
   </tbody>
 </table>
 {% end %}
-{% if len(filters) > 0 %}
+{% if len(filters) > 0 or len(queries) > 0%}
 <h3>Filters</h3>
-<table>
+<table id="filters">
   <tbody>
     {% for k,v in filters %}
-    <tr><td>{{ k }}</td><td><a href='{{ rmFilterFn(k,v) }}'>{{ v }}</a></td></tr>
+    <tr><td><a href='{{ rmFilterFn(k,v) }}'>{{ k }}</a></td><td><a href='{{ rmFilterFn(k,v) }}'>{{ v }}</a></td></tr>
+    {% end %}
+    {% for k,v in queries %}
+    <tr><td><a href='{{ rmFilterFn(k,v,True) }}'>{{ k }}</a></td><td><a href='{{ rmFilterFn(k,v,True) }}'>{{ v }}</a></td></tr>
     {% end %}
   </tbody>
 </table>

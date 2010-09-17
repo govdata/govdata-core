@@ -64,6 +64,20 @@ $search-width: 700px;
   }
 }
 
+#filters tbody {
+  tr {
+    a:hover {
+      color: white;
+    }
+  }
+  tr:hover {
+    background-color: $cardinal;
+    color: white;
+  }
+  td:first-child {
+    width: 40%;
+  }
+}
 #main {
   padding-left: $sidebar-width + 5px;
   padding-top: $content-top + 60px;
@@ -118,7 +132,7 @@ $search-width: 700px;
     @include sans;
     font-weight: 100;
     font-size: 1.12em;
-    line-height: 1.2em;
+    line-height: 1.3em;
   }
   .c, .d {
     font-weight: 600;
@@ -140,9 +154,9 @@ $search-width: 700px;
 
 #sidebar {
   .logo-name {
-    margin-top: -15px;
+    margin-top: -5px;
     padding-top: 0px;
-    font-size: 1.9em; } }
+    font-size: .95em; } }
 
 .evenodd {
   background-color: RGBA(255,220,220,0.5);
