@@ -891,6 +891,7 @@ class sourceHandler(asyncCursorHandler):
         for k in args:
             args[k] = args[k][0]
         
+        self.jsonPcallback = args.pop('callback',None)
         
         querySequence = json.loads(args.get('querySequence','[]'))
 

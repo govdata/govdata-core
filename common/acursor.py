@@ -588,6 +588,8 @@ class asyncCursorHandler(tornado.web.RequestHandler):
         pass
         
     def begin(self):    
+        if self.jsonPcallback:
+            self.write(self.jsonPcallback + '(')
         if self.stream:
             self.write('{')
         if self.returnObj:
@@ -601,7 +603,10 @@ class asyncCursorHandler(tornado.web.RequestHandler):
         
         if self.returnObj and not self.stream:
             self.write(json.dumps(self.data,default=pm.json_util.default))
-            
+
+        if self.jsonPcallback:
+            self.write(')')
+           
         self.finish()
         
 

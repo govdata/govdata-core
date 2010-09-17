@@ -2,3 +2,28 @@
 
 {% block title %} data name {% end %}
 
+{% block javascript-include %}
+  <script language='javascript' src='{{ static_url("js/show.js") }}' type='text/javascript'></script>
+  <script language='javascript' src='{{ static_url("js/dataTables/media/js/jquery.dataTables.js") }}' type='text/javascript'></script>
+{% end %}
+
+{% block javascript %}
+  $.get(C.api_url+'/sources?querySequence={{q}}&name={{collection}}', function(data) {
+    console.log(data);
+  })
+
+{% end %}
+
+{% block content %}
+  <div id="tabley"></div>
+  {{q}}
+  {{collection}}
+{% end %}
+
+$("#tabley").dataTable( {
+    "bScrollInfinite": true,
+    "bScrollCollapse": true,
+    "sScrollY": "200px",
+    "bProcessing": true,
+    "sAjaxSource": '/table?q={{q}}&collection={{collection}}'
+  } );

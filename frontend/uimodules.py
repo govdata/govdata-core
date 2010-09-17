@@ -3,6 +3,7 @@ import json
 import pymongo as pm
 import pymongo.json_util
 import copy
+from urllib import quote, unquote
 from utils import *
 from collections import OrderedDict
 
@@ -78,8 +79,7 @@ def genRmFilterFn(q,filters,queries):
 def genShow(result):
     def show(result):
         # return ("/show?q=%s" % (result['mongoID'],))
-        query = ("/table?q=%s&collection=%s" % (json.dumps(result['query']['data']),result['collectionName']))
-        print query
+        query = ("/show?q=%s&collection=%s" % (quote(json.dumps(result['query']['data'])),result['collectionName']))
         return query
     return show
 

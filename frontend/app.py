@@ -19,7 +19,6 @@ class Application(tornado.web.Application):
             (r"/", handlers.FindHandler),
             (r"/show", handlers.ShowHandler),
             (r"/table", handlers.TableHandler),
-            (r"/find", handlers.FindPartialHandler)
         ]
         settings = {
             "template_path": os.path.join(os.path.dirname(__file__), "templates"),

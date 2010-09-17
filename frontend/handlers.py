@@ -52,7 +52,9 @@ def make_metadata_value_render(metadata_dict):
 
 class ShowHandler(tornado.web.RequestHandler):
     def get(self):
-        self.render("show.html")
+        q = self.get_argument("q",None)
+        collection = self.get_argument("collection",None)
+        self.render("show.html",q=q,collection=collection)
 
 class TableHandler(tornado.web.RequestHandler):
 
@@ -129,12 +131,10 @@ class TableHandler(tornado.web.RequestHandler):
                     sEcho=sEcho,iTotalRecords=iTotalRecords,iTotalDisplayRecords=iTotalDisplayRecords))
 
     def on_response(self,response,sEcho,iTotalRecords,iTotalDisplayRecords):
-        # X = eval(response.body)
-        # X = json.loads(response.body)
-        print(response.body["data"])
-        X = json.loads(response.body["data"],object_hook=pm.json_util.object_hook, object_pairs_hook=collections.OrderedDict)
+        X = json.loads(response.body,object_hook=pm.json_util.object_hook, object_pairs_hook=collections.OrderedDict)
+        X = X["data"]
         columns = ','.join([a['label'] for a in X['cols']])
-        response_data = {'sEcho': sEcho, 'iTotalRecords': iTotalRecords, 'iTotalDisplayRecords':iTotalDisplayRecords, 'sColumns':columns, 'aaData': X['data']}
+        response_data = {'sEcho': sEcho, 'iTotalRecords': iTotalRecords, 'iTotalDisplayRecords':iTotalDisplayRecords, 'sColumns':columns, 'aaData': X['rows']}
         self.write(json.dumps(response_data))
         self.finish()
 
@@ -184,10 +184,6 @@ class FindHandler(tornado.web.RequestHandler):
             kwargs['per_page'] = options.per_page
             self.render("find.html",renderer=value_renderer,**kwargs)
 
-class FindPartialHandler(tornado.web.RequestHandler):
-    def get(self):
-        self.render
-    pass
 
 class MetadataHandler(tornado.web.RequestHandler):
     """ name = name
