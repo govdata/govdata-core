@@ -5,26 +5,31 @@
     </div>
   {% end %}
   <div class="hidden">
-    <a href='{{ linkFn("dataset", result['dataset']['data']) }}'>{{result['dataset']['data']}}</a>
+    <a href='{{ filterFn("dataset", result['dataset']['data']) }}'>{{result['dataset']['data']}}</a>
   </div>
 </td>
 <td class="source {% if result['sourceSpec']['color'] %}oddeven{% else %}oddodd{% end %}">
   <div class="{% if result['sourceSpec']['diff'] %}visible{% else %}hidden{% end %}">
-    <a href='{{ linkFn("agency", result['sourceSpec']['data']['agency']) }}' class="agency">{{result['sourceSpec']['data']['agency']}}</a>
-    <a href='{{ linkFn("subagency", result['sourceSpec']['data']['subagency']) }}' class="subagency">{{result['sourceSpec']['data']['subagency']}}</a>
+    <a href='{{ filterFn("agency", result['sourceSpec']['data']['agency']) }}' class="agency">{{result['sourceSpec']['data']['agency']}}</a>
+    <a href='{{ filterFn("subagency", result['sourceSpec']['data']['subagency']) }}' class="subagency">{{result['sourceSpec']['data']['subagency']}}</a>
   </div>
 </td>
 <td class="query {% if result['query']['color'] %}eveneven{% else %}evenodd{% end %}">
   {% if result['query']['diff'] %}
   <div class="diff">
+    {% if result['query']['intersection'] %}
+      {% for k,v in result['query']['intersection'].iteritems() %}
+      <div style="color:RGBA(83,83,83,0.5);"><span class="query_key">{{k}}</span> : <span>{{ renderer(result['collectionName'],k,v) }}</span></div>
+      {% end %}
+    {% end %}  
     {% for k,v in result['query']['diff'].iteritems() %}
-    <div><span class="query_key">{{k}}</span> : <span>{{ renderer(result['collectionName'],k,v) }}</span></div>
+    <div style=""><span class="query_key">{{k}}</span> : <span>{{ renderer(result['collectionName'],k,v) }}</span></div>
     {% end %}
   </div>
   {% end %}
   <div class="hidden">
     {% for k,v in result['query']['data'].iteritems() %}
-      <a href='{{ linkFn(k,v) }}'><span class="query_key">{{k}}</span> : <span>{{ renderer(result['collectionName'],k,v) }}</span></a>
+      <a href='{{ filterFn(k,v) }}'><span class="query_key">{{k}}</span> : <span>{{ renderer(result['collectionName'],k,v) }}</span></a>
     {% end %}
   </div>
 </td>
@@ -36,6 +41,6 @@
 </td>
 <td class="">
   <div class="hidden">
-    <a href="/get?q={{ result['mongoID'] }}">view</a>
+    <a href="{{get(result)}}">view</a>
   </div>
 </td>

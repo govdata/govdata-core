@@ -50,9 +50,11 @@ def make_metadata_render(metadata_dict):
     return render
 
 class GetHandler(tornado.web.RequestHandler):
+    @tornado.web.asynchronous
     def get(self):
         q = self.get_argument("q",None)
         self.render("get.html",q=q)
+    
 
 class FindHandler(tornado.web.RequestHandler):
     @tornado.web.asynchronous
@@ -61,7 +63,6 @@ class FindHandler(tornado.web.RequestHandler):
         page = tornado.escape.json_decode(self.get_argument("page","0"))
         partial = tornado.escape.json_decode(self.get_argument("partial","false"))
         filters = self.get_arguments("filter")
-        print("FILTERS %s" % filters)
         filterstr = " ".join(filters)
         if q == None:
             self.render("welcome.html",q="search here")

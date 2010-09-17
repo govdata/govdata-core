@@ -3,7 +3,7 @@
 <table>
   <tbody>
     {% for i in range(0,len(facets[k]),2) %}
-    <tr><td><a href='{{ linkFn(k, facets[k][i]) }}'>{{ facets[k][i] }}</a></td><td>{{ facets[k][i+1] }}</td></tr>
+    <tr><td><a href='{{ filterFn(k, facets[k][i]) }}'>{{ facets[k][i] }}</a></td><td>{{ facets[k][i+1] }}</td></tr>
     {% end %}
   </tbody>
 </table>
@@ -13,7 +13,7 @@
 <table>
   <tbody>
     {% for k,v in filters %}
-    <tr><td>{{ k }}</td><td><a href='{{ rmLinkFn(k,v) }}'>{{ v }}</a></td></tr>
+    <tr><td>{{ k }}</td><td><a href='{{ rmFilterFn(k,v) }}'>{{ v }}</a></td></tr>
     {% end %}
   </tbody>
 </table>

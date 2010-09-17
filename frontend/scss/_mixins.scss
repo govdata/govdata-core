@@ -59,6 +59,9 @@
   -moz-box-shadow: inset $x $y $size $color;
   box-shadow: inset $x $y $size $color; }
 
+@mixin text-shadow($x, $y, $size, $color) {
+  text-shadow: $x $y $size $color; }
+
 @mixin transform($amount) {
   -webkit-transform: $amount;
   -moz-transform: $amount;

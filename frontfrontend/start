@@ -1,3 +1,0 @@
-rake watch > logs/rake.log &
-livereload > logs/livereload.log &
-python -m SimpleHTTPServer > logs/server.log &

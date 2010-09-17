@@ -26,28 +26,54 @@ def difference(obj1,obj2):
    if res != None and res != [] and res != {}:
        return res
 
+def intersection(obj1,obj2):
+  if hasattr(obj2,"keys"):
+      if hasattr(obj1,"keys"):
+          res = [(k,intersection(obj1[k],obj2[k])) for k in obj2 if k in obj1.keys()]
+          res = dict([(x,y) for (x,y) in res if y])
+      else:
+          res = None
+  elif isinstance(obj2,list):
+      if isinstance(obj1,list):
+          intersections = [intersection(x,y) for (x,y) in zip(obj1,obj2)]
+          res =  [t for (i,t) in enumerate(intersections) if t != None and t in intersections[:i]]
+      else:
+          res =  None
+  elif obj1 == obj2:
+      res = obj1
+  else:
+      res = None
+  if res != None and res != [] and res != {}:
+      return res
 
-def genLinkFn(q,filters):
-    def linkFn(k,v):
+
+def genFilterFn(q,filters):
+    def filterFn(k,v):
         filtercopy = copy.deepcopy(filters)
         filtercopy.append("(%s):(%s)"%(k,v))
         return "/?q=%s&%s"%(q,urlencode({"filter":filtercopy}))
-    return linkFn
+    return filterFn
 
-def genRmLinkFn(q,filters):
-    def linkFn(k,v):
+def genRmFilterFn(q,filters):
+    def filterFn(k,v):
         filtercopy = copy.deepcopy(filters)
         filtercopy.remove("(%s):(%s)"%(k,v))
         return "/?q=%s&%s"%(q,urlencode({"filter":filtercopy}))
-    return linkFn
+    return filterFn
+
+def genGet(result):
+    def get(result):
+        return ("/get?q=%s" % (result['mongoID'],))
+    return get
 
 def cleanFilter(f):
     return f.replace("(","").replace(")","").split(":")
 
 class Result(tornado.web.UIModule):
     def render(self, result, q="", filters=[], **kwargs):
-        linkFn = genLinkFn(q,filters)
-        return self.render_string("modules/result.html", result=result, linkFn=linkFn, **kwargs)
+        filterFn = genFilterFn(q,filters)
+        get = genGet(result)
+        return self.render_string("modules/result.html", result=result, filterFn=filterFn, get=get, **kwargs)
 
 class Search(tornado.web.UIModule):
     def render(self, value=""):
@@ -55,12 +81,12 @@ class Search(tornado.web.UIModule):
 
 class Facet(tornado.web.UIModule):
     def render(self, facets={}, q="", filters=[], **kwargs):
-        linkFn = genLinkFn(q,filters)
-        rmLinkFn = genRmLinkFn(q,filters)
+        filterFn = genFilterFn(q,filters)
+        rmFilterFn = genRmFilterFn(q,filters)
         facets = facets.get('facet_fields',None)
         formated_filters = map(cleanFilter, filters)
         assert(facets != None)
-        return self.render_string("modules/facet.html", facets=facets, linkFn=linkFn, rmLinkFn=rmLinkFn, filters=formated_filters, **kwargs)
+        return self.render_string("modules/facet.html", facets=facets, filterFn=filterFn, rmFilterFn=rmFilterFn, filters=formated_filters, **kwargs)
                 
 class Find(tornado.web.UIModule):
     def render(self, results=[], **kwargs):
@@ -84,8 +110,9 @@ class Find(tornado.web.UIModule):
                 a = last_value.get('data')
                 b = current.get(k,{}).get('data')
                 diff = difference(a,b)
-                lastColor = last_value.get("color",True)
                 current[k]["diff"] = diff
+                current[k]["intersection"] = intersection(a,b)
+                lastColor = last_value.get("color",True)
                 if diff == None:
                     current[k]["color"] = lastColor
                 else:

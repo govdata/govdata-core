@@ -28,6 +28,7 @@ $search-width: 700px;
 
 #sidebar {
   @include set-size($sidebar-width, 5px, 10px);
+/*  @include sans;*/
   background-color: $bg-color;
   position: fixed;
   top: $content-top;
@@ -36,7 +37,7 @@ $search-width: 700px;
   padding: 0;
   text-align: center;
   & > .inner {
-    border-top: 10px solid $cardinal;
+    border-top: 5px solid $cardinal;
     text-align: left;
     margin: 5px;
     padding: 10px;
@@ -44,7 +45,7 @@ $search-width: 700px;
     @include round-all(10px);
   }
   table {
-    padding-left: 10px;
+    padding-left: 0px;
     padding-bottom: 25px;
     thead {
       td {
@@ -83,7 +84,7 @@ $search-width: 700px;
   & > .inner {
     position: relative;
     margin-top: $content-top;
-    border-top: 10px solid $cardinal;
+    border-top: 5px solid $cardinal;
     text-align: left;
     margin: 5px;
     padding: 10px;
@@ -130,6 +131,8 @@ $search-width: 700px;
   padding-bottom: 50px;
   table {
     thead {
+      @include sans;
+      font-size: 1.2em;
       td {
         text-align: center;
       }
@@ -174,7 +177,9 @@ $search-width: 700px;
 
 .query_key {
   font-size: 0.9em;
-  font-style: italic;
+/*  font-style: italic;*/
+  @include sans;
+  font-weight: 700;
 }
 
 

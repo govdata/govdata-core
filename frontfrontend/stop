@@ -1,3 +1,0 @@
-kill `ps -A|awk '/rake watch/{print $1}'`
-kill `ps -A|awk '/livereload/{print $1}'`
-kill `ps -A|awk '/SimpleHTTPServer/{print $1}'`

@@ -13,6 +13,7 @@ After Demo
 DOUG
 =========
 BeforeDemo
+  * add typekit
   * keywords
   * dateReleased? (low)
   * spatial data

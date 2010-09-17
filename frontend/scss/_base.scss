@@ -9,11 +9,20 @@
 @include global-reset;
 
 
+@mixin serif {
+  font-family: "calluna-1","calluna-2",serif;
+}
+
+@mixin sans {
+  font-family: "museo-sans-1","museo-sans-2",sans-serif;
+}
+
+
 body {
   background-color: $bg-color;
   color: $steel;
   line-height: 1.1em;
-  font-family: 'Cardo', Georgia, arial, serif;
+  @include serif;
   font-size: 12pt; }
 
 
@@ -22,24 +31,25 @@ body {
 }
 
 h1, h2, h3, h4, h5 {
+  @include sans;
+/*  @include text-shadow(0px, 0px, 10px, $steel);*/
   line-height: normal;
+  color: #ABABA9;
 }
 
 h1 {
-  font-size: 1.5em;
-  font-weight: 800;
+  font-size: 2em;
+  font-weight: 900;
 }
 
 h2 {
-  font-size: 1.3em;
-  padding-bottom: 20px;
+  font-size: 1.85em;
   font-weight: 700;
 }
 
 h3 {
-  font-size: 1.2em;
-  padding-bottom: 10px;
-  font-weight: 600;
+  font-size: 1.7em;
+  font-weight: 700;
 }
 
 a {
