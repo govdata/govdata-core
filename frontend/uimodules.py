@@ -78,7 +78,9 @@ def genRmFilterFn(q,filters,queries):
 def genShow(result):
     def show(result):
         # return ("/show?q=%s" % (result['mongoID'],))
-        return ("/table?q=%s&collection=%s" % (json.dumps(result['query']['data']),result['collection']))
+        query = ("/table?q=%s&collection=%s" % (json.dumps(result['query']['data']),result['collectionName']))
+        print query
+        return query
     return show
 
 def cleanFilter(f):
@@ -117,13 +119,12 @@ class Find(tornado.web.UIModule):
             source = json.loads(r["sourceSpec"][0],object_hook=pm.json_util.object_hook, object_pairs_hook=OrderedDict)
             query = json.loads(r["query"][0],object_hook=pm.json_util.object_hook, object_pairs_hook=OrderedDict)
             dataset = source.pop('dataset')
-            collection = r["collection"][0]
+            collection = r["collectionName"][0]
             current = {
                 'volume' : { 'data' : volume },
                 'sourceSpec' : { 'data': source },
                 'dataset' : {'data' : dataset },
                 'query' : { 'data' : query },
-                'collection' : collection
             }
             for k in current.keys():
                 last_value = last.get(k,{})

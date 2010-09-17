@@ -648,6 +648,8 @@ class asyncCursorHandler(tornado.web.RequestHandler):
         if not hasattr(self,'processor'):
             self.processor = None
         
+        self.writing = False
+        
         self.begin()        
         
         R = collection 
@@ -772,7 +774,9 @@ def loop(handler,cursor,sock,fd):
                 r = processor(r,handler,collection)
                  
             if handler.stream:
-                handler.write(json.dumps(r,default=pm.json_util.default) + ',')
+                handler.write((',' if self.writing else '') + json.dumps(r,default=pm.json_util.default))
+                if not self.writing:
+                    self.writing = True
             if handler.returnObj:
                 handler.data.append(r)
     
