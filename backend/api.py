@@ -712,7 +712,7 @@ class tableHandler(getHandler):
 #=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 def infertimecol(collection):
-    if hasattr(collection,'dateFormat') and 'Y' in collection.DateFormat:
+    if hasattr(collection,'dateFormat') and 'Y' in collection.dateFormat:
         if collection.columnGroups.has_key('timeColNames'):
             return '__keys__'
         elif collection.columnGroups.has_key('timeColumns') and collection.columnGroups['timeColumns']:
@@ -744,11 +744,14 @@ def getTimelineTable(handler):
     
         timecolname = handler.args.get('timecolname','Date')
         
-        labelcols =  handler.collection.metadata['']['columnGroups']['labelColumns']
-        assert set(labelcols) <= set(labels)
+        cG = handler.collection.metadata['']['columnGroups']
+        labelcols =  map(str,cG['labelColumns'])
+        labelcols = ListUnion([cG[x]  if x in cG else [x] for x in labelcols])
+    
+        assert set(labelcols) <= set(labels) 
         labelcolInds = [labels.index(l) for l in labelcols]
         
-        timevalNames = [name for name in labels if name in handler.collection.ColumnGroups['timeColNames']]
+        timevalNames = [name for name in labels if name in handler.collection.columnGroups['timeColNames']]
         timevalNames.sort()
                   
         timevalInds = [labels.index(x) for x in timevalNames]
@@ -757,10 +760,11 @@ def getTimelineTable(handler):
         timevalNames.sort()
         timevalInds = [labels.index(x) for x in timevalNames]
 
-        formatter1 = td.mongotimeformatter(handler.collection.DateFormat)
-        formatter2 = td.MongoToJSDateFormatter(handler.collection.DateFormat)
+        formatter1 = td.mongotimeformatter(handler.collection.dateFormat)
+        formatter2 = td.MongoToJSDateFormatter(handler.collection.dateFormat)
         timevals = [formatter2(formatter1(x)) for x in timevalNames]
         
+        print [r[l] for l in labelcolInds if r[l]]
         othercols = [', '.join([r[l] for l in labelcolInds if r[l]]) for r in obj]
         
         cols = [{'id':'Date','label': timecolname, 'type':'date'}] + [{'id':str(j),'label': o, 'type':'number'} for  (j,o) in enumerate(othercols)]
