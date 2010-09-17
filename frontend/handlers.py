@@ -23,7 +23,7 @@ from common import commonjs
 def make_metadata_dict(metadata):
     return dict([(m["name"],m["metadata"]) for m in metadata])
 
-def make_metadata_render(metadata_dict):
+def make_metadata_value_render(metadata_dict):
     for collectionName,value in metadata_dict.iteritems():
         vp = value['valueProcessors']
         cg = value['columnGroups']
@@ -82,24 +82,23 @@ class FindHandler(tornado.web.RequestHandler):
         data = {}
         try:
             data = json.loads(response.body,object_hook=pm.json_util.object_hook)
-            # data = tornado.escape.json_decode(response.body)
         except:
             print "error loading data %s"%(response.body)
             raise tornado.web.HTTPError(500)
         kwargs['data'] = data
         collections = uniqify([x['collectionName'][0] for x in data['response']['docs']])
-        querySequence = [["find",[[{"name":{"$in":collections}}],{"fields":["metadata.valueProcessors", "name","metadata.columnGroups"]}]]]
+        querySequence = [["find",[[{"name":{"$in":collections}}],{"fields":["metadata.valueProcessors","name","metadata.columnGroups","metadata.source"]}]]]
         http = tornado.httpclient.AsyncHTTPClient()
         http.fetch(options.api_url+"/sources?querySequence="+quote(json.dumps(querySequence)), callback=self.async_callback(self.render_with_metadata, **kwargs))
     def render_with_metadata(self, metadata, partial, **kwargs):
-        metadata = json.loads(metadata.body)
+        metadata = json.loads(metadata.body,object_hook=pm.json_util.object_hook)
         metadata_dict = make_metadata_dict(metadata)
-        renderer = make_metadata_render(metadata_dict)
+        value_renderer = make_metadata_value_render(metadata_dict)
         if partial:
-            self.render("_find.html",renderer=renderer,**kwargs)
+            self.render("_find.html",renderer=value_renderer,**kwargs)
         else:
             kwargs['per_page'] = options.per_page
-            self.render("find.html",renderer=renderer,**kwargs)
+            self.render("find.html",renderer=value_renderer,**kwargs)
 
 class FindPartialHandler(tornado.web.RequestHandler):
     def get(self):

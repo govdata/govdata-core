@@ -94,15 +94,17 @@ class Find(tornado.web.UIModule):
         last = {}
         for r in results:
             volume = r["volume"][0]
-            source = json.loads(r["sourceSpec"][0])
-            query = json.loads(r["query"][0])
+            source = json.loads(r["sourceSpec"][0],object_hook=pm.json_util.object_hook)
+            print r["sourceSpec"][0]
+            print source.__class__
+            for k in source.keys():
+                print k
+            query = json.loads(r["query"][0],object_hook=pm.json_util.object_hook)
+            dataset = source.pop('dataset')
             current = {
                 'volume' : { 'data' : volume },
-                'sourceSpec' : {
-                    'data': {
-                        'agency': source['agency'],
-                        'subagency': source['subagency'] }},
-                'dataset' : {'data' : source['dataset'] },
+                'sourceSpec' : { 'data': source },
+                'dataset' : {'data' : dataset },
                 'query' : { 'data' : query }
             }
             for k in current.keys():
