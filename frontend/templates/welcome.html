@@ -18,6 +18,8 @@
     </div>
     <img src="{{ static_url('images/harvard_seal.png') }}" width='50px' />
     <img src="{{ static_url('images/mit_seal.png') }}" width='50px' />
+    {% block post-sidebar %}
+    {% end %}
   </div>
   <div id='search'>
     <div class='inner'>
@@ -30,15 +32,14 @@
     <div class='inner'>
       <div id='results'>
         {% block results %}
-        <p id='welcome'>
-          Welcome to the Harvard/MIT Government Data Portal
-        </p>
-        <p id='instructions'>
-          Begin by entering a query such as
-          "yearly data for new york"
-          or "trucking in boston"
-          or "GDP in alabama in 1980"
-        </p>
+        <div id='welcome'>
+        <div class='logo-name'>
+          <div class="a">Welcome to the</div>
+          <div class="b">Harvard - MIT</div>
+          <div class="c">Government</div>
+          <div class="d"><span>Data</span> Portal</div>
+        </div>
+        </div>
         {% end %}
       </div>
     </div>

@@ -4,7 +4,7 @@ import pymongo as pm
 import pymongo.json_util
 import copy
 from utils import *
-
+from collections import OrderedDict
 
 def difference(obj1,obj2):
    if hasattr(obj2,"keys"):
@@ -47,18 +47,32 @@ def intersection(obj1,obj2):
       return res
 
 
-def genFilterFn(q,filters):
-    def filterFn(k,v):
-        filtercopy = copy.deepcopy(filters)
-        filtercopy.append("(%s):(%s)"%(k,v))
-        return "/?q=%s&%s"%(q,urlencode({"filter":filtercopy}))
+def genFilterFn(q,filters,queries):
+    def filterFn(k,v,queryFn=False):
+        if queryFn:
+            queriescpy = copy.deepcopy(queries)
+            to_append = "%s=\"%s\""%(k,v)
+            queriescpy.append(to_append)
+            return "/?q=%s&%s&%s"%(q,urlencode({"filter":filters}),urlencode({"filterq":queriescpy}))
+        else:
+            filterscpy = copy.deepcopy(filters)
+            to_append = "%s:\"%s\""%(k,v)
+            filterscpy.append(to_append)
+            return "/?q=%s&%s&%s"%(q,urlencode({"filter":filterscpy}),urlencode({"filterq":queries}))
     return filterFn
 
-def genRmFilterFn(q,filters):
-    def filterFn(k,v):
-        filtercopy = copy.deepcopy(filters)
-        filtercopy.remove("(%s):(%s)"%(k,v))
-        return "/?q=%s&%s"%(q,urlencode({"filter":filtercopy}))
+def genRmFilterFn(q,filters,queries):
+    def filterFn(k,v,queryFn=False):
+        if queryFn:
+            queriescpy = copy.deepcopy(queries)
+            to_remove = "%s=\"%s\""%(k,v)
+            queriescpy.remove(to_remove)
+            return "/?q=%s&%s&%s"%(q,urlencode({"filter":filters}),urlencode({"filterq":queriescpy}))
+        else:
+            filterscpy = copy.deepcopy(filters)
+            to_remove = "%s:\"%s\""%(k,v)
+            filterscpy.remove(to_remove)
+            return "/?q=%s&%s&%s"%(q,urlencode({"filter":filterscpy}),urlencode({"filterq":queries}))
     return filterFn
 
 def genGet(result):
@@ -67,11 +81,14 @@ def genGet(result):
     return get
 
 def cleanFilter(f):
-    return f.replace("(","").replace(")","").split(":")
+    return f.replace("\"","").split(":")
+
+def cleanFilterq(f):
+    return f.replace("\"","").split("=")
 
 class Result(tornado.web.UIModule):
-    def render(self, result, q="", filters=[], **kwargs):
-        filterFn = genFilterFn(q,filters)
+    def render(self, result, q="", filters=[], queries=[], **kwargs):
+        filterFn = genFilterFn(q,filters,queries)
         get = genGet(result)
         return self.render_string("modules/result.html", result=result, filterFn=filterFn, get=get, **kwargs)
 
@@ -80,13 +97,15 @@ class Search(tornado.web.UIModule):
         return self.render_string("modules/search.html", value=value)
 
 class Facet(tornado.web.UIModule):
-    def render(self, facets={}, q="", filters=[], **kwargs):
-        filterFn = genFilterFn(q,filters)
-        rmFilterFn = genRmFilterFn(q,filters)
+    def render(self, facets={}, q="", filters=[], queries=[], **kwargs):
+        filterFn = genFilterFn(q,filters,queries)
+        rmFilterFn = genRmFilterFn(q,filters,queries)
         facets = facets.get('facet_fields',None)
         formated_filters = map(cleanFilter, filters)
+        formated_queries = map(cleanFilterq, queries)
+        print formated_queries
         assert(facets != None)
-        return self.render_string("modules/facet.html", facets=facets, filterFn=filterFn, rmFilterFn=rmFilterFn, filters=formated_filters, **kwargs)
+        return self.render_string("modules/facet.html", facets=facets, filterFn=filterFn, rmFilterFn=rmFilterFn, queries=formated_queries, filters=formated_filters, **kwargs)
                 
 class Find(tornado.web.UIModule):
     def render(self, results=[], **kwargs):
@@ -94,15 +113,13 @@ class Find(tornado.web.UIModule):
         last = {}
         for r in results:
             volume = r["volume"][0]
-            source = json.loads(r["sourceSpec"][0])
-            query = json.loads(r["query"][0])
+            source = json.loads(r["sourceSpec"][0],object_hook=pm.json_util.object_hook, object_pairs_hook=OrderedDict)
+            query = json.loads(r["query"][0],object_hook=pm.json_util.object_hook, object_pairs_hook=OrderedDict)
+            dataset = source.pop('dataset')
             current = {
                 'volume' : { 'data' : volume },
-                'sourceSpec' : {
-                    'data': {
-                        'agency': source['agency'],
-                        'subagency': source['subagency'] }},
-                'dataset' : {'data' : source['dataset'] },
+                'sourceSpec' : { 'data': source },
+                'dataset' : {'data' : dataset },
                 'query' : { 'data' : query }
             }
             for k in current.keys():

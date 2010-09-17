@@ -9,8 +9,16 @@
 {% end %}
 
 {% block sidebar %}
-  {{ modules.Facet(facets=data["facet_counts"], q=q, filters=filters) }}
+  {{ modules.Facet(facets=data["facet_counts"], q=q, filters=filters, queries=queries) }}
   <div class="numFound">{{ data["response"]["numFound"] }} Results Found</div>
+{% end %}
+
+{% block post-sidebar %}
+<div class='logo-name'>
+  <div class="b">Harvard - MIT</div>
+  <div class="c">Government</div>
+  <div class="d"><span>Data</span> Portal</div>
+</div>
 {% end %}
 
 {% block results %}
@@ -25,7 +33,7 @@
       </tr>
     </thead>
     <tbody>
-      {{ modules.Find(data["response"]["docs"], q=q, filters=filters, renderer=renderer) }}
+      {{ modules.Find(data["response"]["docs"], q=q, filters=filters, queries=queries, renderer=renderer) }}
     </tbody>
   </table>
 {% end %}

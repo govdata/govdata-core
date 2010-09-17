@@ -18,12 +18,12 @@ import sys
 sys.path.append(os.path.join(".."))
 from common.utils import uniqify
 from common import commonjs
-
+from collections import OrderedDict
 
 def make_metadata_dict(metadata):
     return dict([(m["name"],m["metadata"]) for m in metadata])
 
-def make_metadata_render(metadata_dict):
+def make_metadata_value_render(metadata_dict):
     for collectionName,value in metadata_dict.iteritems():
         vp = value['valueProcessors']
         cg = value['columnGroups']
@@ -42,7 +42,6 @@ def make_metadata_render(metadata_dict):
             else:
                 fname = None
         if fname:
-            print(json.dumps(value))
             fn = "%s_%s(%s)"%(collectionName,fname,json.dumps(value))
             return ctx.eval(str(fn))
         else:
@@ -131,43 +130,45 @@ class FindHandler(tornado.web.RequestHandler):
         page = tornado.escape.json_decode(self.get_argument("page","0"))
         partial = tornado.escape.json_decode(self.get_argument("partial","false"))
         filters = self.get_arguments("filter")
-        filterstr = " ".join(filters)
+        queries = self.get_arguments("filterq")
+        queries_str = " ".join(queries)
         if q == None:
             self.render("welcome.html",q="search here")
         else:
             http = tornado.httpclient.AsyncHTTPClient()
             params = {
-                "q" : q+" "+filterstr,
+                "q" : "%s %s"%(q,queries_str),
+                "fq" : filters,
                 "start" : page * options.per_page,
                 "rows" : options.per_page,
                 # "facet.field" : [""]
             }
             query = urlencode(params)
             http.fetch(options.api_url+"/find?"+query,
-                       callback=self.async_callback(self.on_response, partial=partial, filters=filters, jsonfilters=json.dumps(filters), q=q))
+                       callback=self.async_callback(self.on_response, partial=partial, 
+                       queries=queries, filters=filters, jsonfilters=json.dumps(filters), q=q))
     def on_response(self, response, **kwargs):
         if response.error: raise tornado.web.HTTPError(500)
         data = {}
         try:
-            data = json.loads(response.body,object_hook=pm.json_util.object_hook)
-            # data = tornado.escape.json_decode(response.body)
+            data = json.loads(response.body,object_hook=pm.json_util.object_hook, object_pairs_hook=OrderedDict)
         except:
             print "error loading data %s"%(response.body)
             raise tornado.web.HTTPError(500)
         kwargs['data'] = data
         collections = uniqify([x['collectionName'][0] for x in data['response']['docs']])
-        querySequence = [["find",[[{"name":{"$in":collections}}],{"fields":["metadata.valueProcessors", "name","metadata.columnGroups"]}]]]
+        querySequence = [["find",[[{"name":{"$in":collections}}],{"fields":["metadata.valueProcessors","name","metadata.columnGroups","metadata.source"]}]]]
         http = tornado.httpclient.AsyncHTTPClient()
         http.fetch(options.api_url+"/sources?querySequence="+quote(json.dumps(querySequence)), callback=self.async_callback(self.render_with_metadata, **kwargs))
     def render_with_metadata(self, metadata, partial, **kwargs):
-        metadata = json.loads(metadata.body)
+        metadata = json.loads(metadata.body,object_hook=pm.json_util.object_hook, object_pairs_hook=OrderedDict)
         metadata_dict = make_metadata_dict(metadata)
-        renderer = make_metadata_render(metadata_dict)
+        value_renderer = make_metadata_value_render(metadata_dict)
         if partial:
-            self.render("_find.html",renderer=renderer,**kwargs)
+            self.render("_find.html",renderer=value_renderer,**kwargs)
         else:
             kwargs['per_page'] = options.per_page
-            self.render("find.html",renderer=renderer,**kwargs)
+            self.render("find.html",renderer=value_renderer,**kwargs)
 
 class FindPartialHandler(tornado.web.RequestHandler):
     def get(self):

@@ -4,9 +4,10 @@ import tornado.web
 import tornado.options
 import tornado.autoreload
 from tornado.options import define, options
+import os
 
 import uimodules
-from handlers import *
+import handlers
 
 define("port", default=8000, help="run on the given port", type=int)
 define("api_url", default="http://ec2-67-202-31-123.compute-1.amazonaws.com", help="use this api url", type=str)
@@ -14,10 +15,10 @@ define("per_page", default=30, help="items per page in solr", type=int)
 
 class Application(tornado.web.Application):
     def __init__(self):
-        handlers = [
-            (r"/", FindHandler),
-            (r"/get", GetHandler),
-            (r"/find", FindPartialHandler)
+        hands = [
+            (r"/", handlers.FindHandler),
+            (r"/get", handlers.GetHandler),
+            (r"/find", handlers.FindPartialHandler)
         ]
         settings = {
             "template_path": os.path.join(os.path.dirname(__file__), "templates"),
@@ -26,7 +27,7 @@ class Application(tornado.web.Application):
             "xsrf_cookies": True,
             "cookie_secret": "13oETzXKQAGaYdkL5gEmGeJJFuYh7EQnp2XdTP1o/Vo=",
         }
-        tornado.web.Application.__init__(self, handlers, **settings)
+        tornado.web.Application.__init__(self, hands, **settings)
 
 def main():
     tornado.options.parse_command_line()
