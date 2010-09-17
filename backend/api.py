@@ -509,21 +509,12 @@ def processArg(arg,collection):
     elif isinstance(arg,dict):
         T = [(processArg(k,collection), v)  for (k,v) in arg.items() if k != '$where' ]
         S = dict([(k,v) for (k,v) in T if not (isinstance(k,list) or isinstance(k,tuple))])
-        CodeStrings = [processJSValue(arg['$where'],collection)] if '$where' in arg.keys() else []
         for (k,v) in T:
             if isinstance(k,list) or isinstance(k,tuple):
-                if not isinstance(v,dict) or not any([key.startswith('$') for key in v.keys()]):
-                    orgroup = '( ' + ' || '.join(['this["' + str(kk) + '"] ' + js_translator('$e',v) for kk in k]) + ' )' 
-                    CodeStrings.append(orgroup)
-                else:
-                    assert all([key in ['$exists','$gt','gte','$lt','$lte','$ne'] for key in v.keys()]), 'Cannot handle this query.'
-                    for key in v.keys():
-                        orgroup =  '( ' + ' || '.join(['this["' + str(kk) + '"] ' + js_translator(key,v[key])  for kk in k]) + ' )' 
-                        CodeStrings.append(orgroup)
-        if CodeStrings:
-            codeString = 'function(){ return '  + ' && '.join(CodeStrings) + ';}'
-            S['$where'] = pm.code.Code(codeString)
-        return S
+                S["$or"] = [{kk:v} for kk in k]
+        if '$where' in arg:
+            S['$where'] = arg['$where']
+
     else:
         return arg
 
@@ -764,7 +755,6 @@ def getTimelineTable(handler):
         formatter2 = td.MongoToJSDateFormatter(handler.collection.dateFormat)
         timevals = [formatter2(formatter1(x)) for x in timevalNames]
         
-        print [r[l] for l in labelcolInds if r[l]]
         othercols = [', '.join([r[l] for l in labelcolInds if r[l]]) for r in obj]
         
         cols = [{'id':'Date','label': timecolname, 'type':'date'}] + [{'id':str(j),'label': o, 'type':'number'} for  (j,o) in enumerate(othercols)]

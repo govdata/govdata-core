@@ -484,7 +484,7 @@ def initialize_argdict(collection):
     d['agency'] = SourceNameDict['agency']
     d['subagency'] = SourceNameDict['subagency']
     d['dataset'] = SourceNameDict['dataset']
-    for k in set(SourceNameDict.keys()).difference(['agency','subagency','dataset']):
+    for k in SourceNameDict.keys():
         d['source_' + str(k).lower()] = SourceNameDict[k]
     for k in SourceAbbrevDict.keys():
         d['source_' + str(k).lower() + '_acronym'] = SourceAbbrevDict[k]
