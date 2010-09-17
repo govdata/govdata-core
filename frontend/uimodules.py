@@ -75,10 +75,11 @@ def genRmFilterFn(q,filters,queries):
             return "/?q=%s&%s&%s"%(q,urlencode({"filter":filterscpy}),urlencode({"filterq":queries}))
     return filterFn
 
-def genGet(result):
-    def get(result):
-        return ("/get?q=%s" % (result['mongoID'],))
-    return get
+def genShow(result):
+    def show(result):
+        # return ("/show?q=%s" % (result['mongoID'],))
+        return ("/table?q=%s&collection=%s" % (json.dumps(result['query']['data']),result['collection']))
+    return show
 
 def cleanFilter(f):
     return f.replace("\"","").split(":")
@@ -89,8 +90,8 @@ def cleanFilterq(f):
 class Result(tornado.web.UIModule):
     def render(self, result, q="", filters=[], queries=[], **kwargs):
         filterFn = genFilterFn(q,filters,queries)
-        get = genGet(result)
-        return self.render_string("modules/result.html", result=result, filterFn=filterFn, get=get, **kwargs)
+        show = genShow(result)
+        return self.render_string("modules/result.html", result=result, filterFn=filterFn, show=show, **kwargs)
 
 class Search(tornado.web.UIModule):
     def render(self, value=""):
@@ -116,11 +117,13 @@ class Find(tornado.web.UIModule):
             source = json.loads(r["sourceSpec"][0],object_hook=pm.json_util.object_hook, object_pairs_hook=OrderedDict)
             query = json.loads(r["query"][0],object_hook=pm.json_util.object_hook, object_pairs_hook=OrderedDict)
             dataset = source.pop('dataset')
+            collection = r["collection"][0]
             current = {
                 'volume' : { 'data' : volume },
                 'sourceSpec' : { 'data': source },
                 'dataset' : {'data' : dataset },
-                'query' : { 'data' : query }
+                'query' : { 'data' : query },
+                'collection' : collection
             }
             for k in current.keys():
                 last_value = last.get(k,{})

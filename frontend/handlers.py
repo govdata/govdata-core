@@ -18,7 +18,7 @@ import sys
 sys.path.append(os.path.join(".."))
 from common.utils import uniqify
 from common import commonjs
-from collections import OrderedDict
+import collections
 
 def make_metadata_dict(metadata):
     return dict([(m["name"],m["metadata"]) for m in metadata])
@@ -49,7 +49,10 @@ def make_metadata_value_render(metadata_dict):
     return render
 
 
-import collections
+class ShowHandler(tornado.web.RequestHandler):
+    def get(self):
+        self.render("show.html")
+
 class TableHandler(tornado.web.RequestHandler):
 
     COUNT_CACHE = {}
@@ -131,13 +134,12 @@ class FindHandler(tornado.web.RequestHandler):
         partial = tornado.escape.json_decode(self.get_argument("partial","false"))
         filters = self.get_arguments("filter")
         queries = self.get_arguments("filterq")
-        queries_str = " ".join(queries)
         if q == None:
             self.render("welcome.html",q="search here")
         else:
             http = tornado.httpclient.AsyncHTTPClient()
             params = {
-                "q" : "%s %s"%(q,queries_str),
+                "q" : "%s %s"%(q," ".join(queries)),
                 "fq" : filters,
                 "start" : page * options.per_page,
                 "rows" : options.per_page,
@@ -151,17 +153,17 @@ class FindHandler(tornado.web.RequestHandler):
         if response.error: raise tornado.web.HTTPError(500)
         data = {}
         try:
-            data = json.loads(response.body,object_hook=pm.json_util.object_hook, object_pairs_hook=OrderedDict)
+            data = json.loads(response.body,object_hook=pm.json_util.object_hook, object_pairs_hook=collections.OrderedDict)
         except:
             print "error loading data %s"%(response.body)
             raise tornado.web.HTTPError(500)
         kwargs['data'] = data
-        collections = uniqify([x['collectionName'][0] for x in data['response']['docs']])
-        querySequence = [["find",[[{"name":{"$in":collections}}],{"fields":["metadata.valueProcessors","name","metadata.columnGroups","metadata.source"]}]]]
+        colls = uniqify([x['collectionName'][0] for x in data['response']['docs']])
+        querySequence = [["find",[[{"name":{"$in":colls}}],{"fields":["metadata.valueProcessors","name","metadata.columnGroups","metadata.source"]}]]]
         http = tornado.httpclient.AsyncHTTPClient()
         http.fetch(options.api_url+"/sources?querySequence="+quote(json.dumps(querySequence)), callback=self.async_callback(self.render_with_metadata, **kwargs))
     def render_with_metadata(self, metadata, partial, **kwargs):
-        metadata = json.loads(metadata.body,object_hook=pm.json_util.object_hook, object_pairs_hook=OrderedDict)
+        metadata = json.loads(metadata.body,object_hook=pm.json_util.object_hook, object_pairs_hook=collections.OrderedDict)
         metadata_dict = make_metadata_dict(metadata)
         value_renderer = make_metadata_value_render(metadata_dict)
         if partial:

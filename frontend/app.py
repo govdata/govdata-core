@@ -17,7 +17,8 @@ class Application(tornado.web.Application):
     def __init__(self):
         hands = [
             (r"/", handlers.FindHandler),
-            (r"/get", handlers.GetHandler),
+            (r"/show", handlers.ShowHandler),
+            (r"/table", handlers.TableHandler),
             (r"/find", handlers.FindPartialHandler)
         ]
         settings = {
