@@ -655,7 +655,7 @@ class tableHandler(getHandler):
             
             D["metadata"] = makemetadata(collection,sci,subcols)
         
-        self.write(json.dumps(D,default=pm.json_util.default) + ');')
+        self.write(json.dumps(D,default=pm.json_util.default))
 
         if self.jsonPcallback:
             self.write(')')

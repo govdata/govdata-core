@@ -124,16 +124,15 @@ class TableHandler(tornado.web.RequestHandler):
         #parse the request from dataTables and make the request 
         http = tornado.httpclient.AsyncHTTPClient()
         
-        backend_request = '/get?q=%s' % (quote(json.dumps({"query":query_seq,"collection":collection})),)
+        backend_request = '/table?q=%s' % (quote(json.dumps({"query":query_seq,"collection":collection})),)
         http.fetch(options.api_url + backend_request, callback = self.async_callback(self.on_response,
                     sEcho=sEcho,iTotalRecords=iTotalRecords,iTotalDisplayRecords=iTotalDisplayRecords))
 
     def on_response(self,response,sEcho,iTotalRecords,iTotalDisplayRecords):
         # X = eval(response.body)
         # X = json.loads(response.body)
-        print(response.body)
-        X = json.loads(response.body,object_hook=pm.json_util.object_hook, object_pairs_hook=collections.OrderedDict)
-        print(X)
+        print(response.body["data"])
+        X = json.loads(response.body["data"],object_hook=pm.json_util.object_hook, object_pairs_hook=collections.OrderedDict)
         columns = ','.join([a['label'] for a in X['cols']])
         response_data = {'sEcho': sEcho, 'iTotalRecords': iTotalRecords, 'iTotalDisplayRecords':iTotalDisplayRecords, 'sColumns':columns, 'aaData': X['data']}
         self.write(json.dumps(response_data))
