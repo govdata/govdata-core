@@ -595,11 +595,10 @@ def getType(handler,i,id):
 
 def table_processor(handler,x,collection):
     def clean(d):
-        #if is_string_like(d):
-        #    return d.replace("\n"," ")
-        #else:
-        #   return d
-        return 'deep'
+        if is_string_like(d):
+            return d.replace("\n"," ")
+        else:
+            return 3
     return [clean(x.get(id,None)) for (id,label) in handler.fields]
 
 
