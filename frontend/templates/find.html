@@ -2,14 +2,14 @@
 
 {% block javascript %}
   Find.run();
-  Find.max_offset = {{ data["response"]["numFound"] / float(per_page) }};
-  Find.q = "{{ q }}";
-  Find.filters = {{ jsonfilters }};
+  Find.max_offset = {{ data["response"]["numFound"] / float(kwargs['per_page']) }};
+  Find.q = "{{ kwargs['q'] }}";
+  Find.filters = {{ kwargs['jsonfilters'] }};
   Find.registerAutoPaginate();
 {% end %}
 
 {% block sidebar %}
-  {{ modules.Facet(facets=data["facet_counts"], q=q, filters=filters, queries=queries) }}
+  {{ modules.Facet(facets=data["facet_counts"], **kwargs) }}
   <div class="numFound">{{ data["response"]["numFound"] }} Results Found</div>
 {% end %}
 
@@ -33,7 +33,7 @@
       </tr>
     </thead>
     <tbody>
-      {{ modules.Find(data["response"]["docs"], q=q, filters=filters, queries=queries, renderer=renderer) }}
+      {{ modules.Find(data["response"]["docs"], **kwargs) }}
     </tbody>
   </table>
 {% end %}

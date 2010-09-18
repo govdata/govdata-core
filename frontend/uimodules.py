@@ -77,11 +77,10 @@ def genRmFilterFn(q,filters,queries):
     return filterFn
 
 def genShow(result):
-    def show(result):
-        # return ("/show?q=%s" % (result['mongoID'],))
-        query = ("/show?q=%s&collection=%s" % (quote(json.dumps(result['query']['data'])),result['collectionName']))
-        return query
-    return show
+    query = ("/show?q=%s&collection=%s" % (quote(json.dumps(result['query']['data'])),
+                                                            result['collectionName']))
+    print(query)
+    return query
 
 def cleanFilter(f):
     return f.replace("\"","").split(":")
@@ -92,8 +91,8 @@ def cleanFilterq(f):
 class Result(tornado.web.UIModule):
     def render(self, result, q="", filters=[], queries=[], **kwargs):
         filterFn = genFilterFn(q,filters,queries)
-        show = genShow(result)
-        return self.render_string("modules/result.html", result=result, filterFn=filterFn, show=show, **kwargs)
+        show_url = genShow(result)
+        return self.render_string("modules/result.html", result=result, filterFn=filterFn, show_url=show_url, **kwargs)
 
 class Search(tornado.web.UIModule):
     def render(self, value=""):
@@ -142,4 +141,4 @@ class Find(tornado.web.UIModule):
             current['collectionName'] = r["collectionName"][0]
             modresults.append(current)
             last = current
-        return self.render_string("modules/find.html", results=modresults, **kwargs)
+        return self.render_string("modules/findh.html", results=modresults, kwargs=kwargs)

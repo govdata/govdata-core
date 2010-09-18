@@ -4,26 +4,47 @@
 
 {% block javascript-include %}
   <script language='javascript' src='{{ static_url("js/show.js") }}' type='text/javascript'></script>
-  <script language='javascript' src='{{ static_url("js/dataTables/media/js/jquery.dataTables.js") }}' type='text/javascript'></script>
+  <script language='javascript' src='{{ static_url("js/datatables/media/js/jquery.dataTables.js") }}' type='text/javascript'></script>
 {% end %}
 
 {% block javascript %}
-  $.get(C.api_url+'/sources?querySequence={{q}}&name={{collection}}', function(data) {
-    console.log(data);
-  })
+  $.ajax({
+    url : C.api_url+'/sources?querySequence={{querySequence}}&collection={{collection}}', 
+    dataType: 'jsonp',
+    success : function(metadata, status, req) {
+      console.log(metadata);
+      console.log('/table?q={{q}}&collection={{collection}}');
+      $.ajax({
+        url : '/table?q={{q}}&collection={{collection}}',
+        dataType: 'json',
+        success : function(data, status, req) {
+          console.log(data);
+          $("#table").dataTable({
+              aoColumns : _.map(_.tail(metadata[0].metadata.columns,3), function(col){ return { sTitle : col}; }),
+              aaData : data.aaData
+          });
+        },
+        error : function(req, status, e) {
+          console.log(e);
+        }
+      });
+    }
+  });
 
 {% end %}
 
 {% block content %}
-  <div id="tabley"></div>
+  <div id="table"></div>
   {{q}}
   {{collection}}
 {% end %}
 
-$("#tabley").dataTable( {
-    "bScrollInfinite": true,
-    "bScrollCollapse": true,
-    "sScrollY": "200px",
-    "bProcessing": true,
-    "sAjaxSource": '/table?q={{q}}&collection={{collection}}'
-  } );
+"bScrollInfinite": true,
+"bScrollCollapse": true,
+"sScrollY": "200px",
+"bProcessing": true,
+"sAjaxSource": '/table?q={{q}}&collection={{collection}}'
+
+
+window.data = first_page;
+

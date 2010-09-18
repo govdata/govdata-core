@@ -54,7 +54,9 @@ class ShowHandler(tornado.web.RequestHandler):
     def get(self):
         q = self.get_argument("q",None)
         collection = self.get_argument("collection",None)
-        self.render("show.html",q=q,collection=collection)
+        querySequence = [["find",[[{"name":collection}],{"fields":["metadata.valueProcessors","metadata.nameProcessors","name","metadata.columnGroups","metadata.source","metadata.columns"]}]]]
+        querySequence = quote(json.dumps(querySequence))
+        self.render("show.html",q=q,collection=collection,querySequence=querySequence)
 
 class TableHandler(tornado.web.RequestHandler):
 
@@ -146,8 +148,9 @@ class FindHandler(tornado.web.RequestHandler):
         partial = tornado.escape.json_decode(self.get_argument("partial","false"))
         filters = self.get_arguments("filter")
         queries = self.get_arguments("filterq")
+        kwargs = {'q':q}
         if q == None:
-            self.render("welcome.html",q="search here")
+            self.render("welcome.html",kwargs=kwargs)
         else:
             http = tornado.httpclient.AsyncHTTPClient()
             params = {
@@ -160,7 +163,7 @@ class FindHandler(tornado.web.RequestHandler):
             query = urlencode(params)
             http.fetch(options.api_url+"/find?"+query,
                        callback=self.async_callback(self.on_response, partial=partial, 
-                       queries=queries, filters=filters, jsonfilters=json.dumps(filters), q=q))
+                       queries=queries, filters=filters, jsonfilters=json.dumps(filters), **kwargs))
     def on_response(self, response, **kwargs):
         if response.error: raise tornado.web.HTTPError(500)
         data = {}
@@ -174,15 +177,16 @@ class FindHandler(tornado.web.RequestHandler):
         querySequence = [["find",[[{"name":{"$in":colls}}],{"fields":["metadata.valueProcessors","name","metadata.columnGroups","metadata.source"]}]]]
         http = tornado.httpclient.AsyncHTTPClient()
         http.fetch(options.api_url+"/sources?querySequence="+quote(json.dumps(querySequence)), callback=self.async_callback(self.render_with_metadata, **kwargs))
-    def render_with_metadata(self, metadata, partial, **kwargs):
+    def render_with_metadata(self, metadata, data, partial, **kwargs):
         metadata = json.loads(metadata.body,object_hook=pm.json_util.object_hook, object_pairs_hook=collections.OrderedDict)
         metadata_dict = make_metadata_dict(metadata)
         value_renderer = make_metadata_value_render(metadata_dict)
+        kwargs['renderer'] = value_renderer
         if partial:
-            self.render("_find.html",renderer=value_renderer,**kwargs)
+            self.render("_find.html",data=data,kwargs=kwargs)
         else:
             kwargs['per_page'] = options.per_page
-            self.render("find.html",renderer=value_renderer,**kwargs)
+            self.render("find.html",data=data,kwargs=kwargs)
 
 
 class MetadataHandler(tornado.web.RequestHandler):

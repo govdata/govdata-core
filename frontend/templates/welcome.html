@@ -24,7 +24,7 @@
   <div id='search'>
     <div class='inner'>
       {% block search %}
-        {{ modules.Search(q) }}
+        {{ modules.Search(kwargs['q']) }}
       {% end %}
     </div>
   </div>

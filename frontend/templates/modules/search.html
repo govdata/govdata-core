@@ -1,3 +1,3 @@
 <form action='/' method='get'>
-  <input type='text' name='q' value='{{value}}' />
+  <input type='text' name='q' value='{% if value %}{{value}}{% else %}search here to begin{% end %}' />
 </form>
