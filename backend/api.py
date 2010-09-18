@@ -594,7 +594,12 @@ def getType(handler,i,id):
         return 'object'
 
 def table_processor(handler,x,collection):
-    return [x.get(id,None) for (id,label) in handler.fields]
+    def clean(d):
+        if type(d) == str:
+            return d.replace("\n","\\\n")
+        else:
+            return d
+    return [clean(x.get(id,None)) for (id,label) in handler.fields]
 
 
 class tableHandler(getHandler):
