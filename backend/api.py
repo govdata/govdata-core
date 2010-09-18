@@ -599,7 +599,7 @@ def table_processor(handler,x,collection):
     def clean(d):
         if is_string_like(d):
             return d.replace("\n","\\\n")
-        elif isnan(d):
+        elif is_num_like(d) and isnan(d):
             return None
         else:
             return d
