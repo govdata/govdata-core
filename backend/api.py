@@ -593,12 +593,16 @@ def getType(handler,i,id):
     else:
         return 'object'
 
+import numpy
+isnan = numpy.isnan
 def table_processor(handler,x,collection):
     def clean(d):
         if is_string_like(d):
             return d.replace("\n","\\\n")
+        elif isnan(d):
+            return None
         else:
-            return 3
+            return d
     return [clean(x.get(id,None)) for (id,label) in handler.fields]
 
 
