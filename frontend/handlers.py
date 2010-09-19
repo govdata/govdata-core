@@ -54,10 +54,9 @@ class ShowHandler(tornado.web.RequestHandler):
     def get(self):
         query = self.get_argument("q",None)
         collectionName = self.get_argument("c",None)
-        volume = json.loads(self.get_argument("v",'0'))
         # querySequence = [["find",[[{"name":collection}],{"fields":["metadata.valueProcessors","metadata.nameProcessors","name","metadata.columnGroups","metadata.source","metadata.columns"]}]]]
         # querySequence = quote(json.dumps(querySequence))
-        self.render("show.html",query=query,collectionName=collectionName,volume=volume)
+        self.render("show.html",query=query,collectionName=collectionName)
 
 class TableHandler(tornado.web.RequestHandler):
 
