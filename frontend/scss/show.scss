@@ -42,13 +42,18 @@ margin-left: 30px;
   position: absolute;
 }
 
+$tdHeight : 30px;
+
 #tableHeader, #tableData {
   table {
     table-layout: fixed;
     td {
       border: 1px solid #ccc;
+      vertical-align:middle;
+      height: $tdHeight;
       div {
-        height: 20px;
+        height: $tdHeight;
+        text-align: center;
         overflow: hidden;
       }
     }
@@ -63,7 +68,7 @@ margin-left: 30px;
 }
 
 #tableData {
-  top: 19px;
+  top: $tdHeight;
   left: 0;
   background-color: white;
   @include transition(all, .3s, ease-out);
@@ -76,7 +81,6 @@ margin-left: 30px;
 }
 
 #tableSpacer {
-  background-color: red;
   top: 0;
   left: 0;
 }

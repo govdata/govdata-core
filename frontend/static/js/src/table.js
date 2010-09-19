@@ -7,7 +7,7 @@ _.extend(iv.Table.prototype,iv.Module.prototype);
 
 iv.Table.prototype.settings = {
     cellWidth: 50,
-    cellHeight: 50
+    cellHeight: 30
 };
 
 /**
