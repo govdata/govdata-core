@@ -1,26 +1,5 @@
-#header {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  background-color: $bg-color;
-  font-size: .8em;
-  @include box-shadow-inset(0px, -2px, 10px, lighten($steel, 20%));
-  nav {
-    padding: 3px;
-  }
-}
-
-$content-left: 20px;
-$content-top: 50px;
-
-#content {
-/*  margin: auto;*/
-  margin-left: $content-left;
-  margin-top: 30px;
-/*  width: 760px;*/
-  height: 100%;
-}
+@import "_constants";
+@import "_mixins";
 
 $sidebar-width: 250px;
 $main-width: 700px;
@@ -30,7 +9,7 @@ $search-width: 700px;
   @include set-size($sidebar-width, 5px, 10px);
   background-color: $bg-color;
   position: fixed;
-  top: $content-top;
+  top: $content-top + 20;
   left: $content-left;
   margin: 0;
   padding: 0;
@@ -44,6 +23,7 @@ $search-width: 700px;
     @include round-all(10px);
   }
   table {
+    table-layout: fixed;
     padding-left: 0px;
     padding-bottom: 25px;
     thead {
@@ -90,7 +70,7 @@ $search-width: 700px;
   padding: 0;
   top: 0;
   left: 0;
-  top: $content-top;
+  top: $content-top + 20;
   left: $sidebar-width + $content-left;
   width: 60%;
   padding-bottom: 50px;
@@ -153,6 +133,15 @@ $search-width: 700px;
 }
 
 #sidebar {
+  .goal {
+    font-style: italic;
+    p {
+      padding: 10px 0;
+    }
+    .mail {
+      font-weight: bold;
+    }
+  }
   .logo-name {
     margin-top: -5px;
     padding-top: 0px;

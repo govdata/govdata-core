@@ -9,21 +9,12 @@
 @include global-reset;
 
 
-@mixin serif {
-  font-family: "calluna-1","calluna-2",serif;
-}
-
-@mixin sans {
-  font-family: "museo-sans-1","museo-sans-2",sans-serif;
-}
-
 body {
   background-color: $bg-color;
   color: $steel;
   line-height: 1.1em;
   @include serif;
   font-size: 12pt; }
-
 
 .hidden {
   display: none;
@@ -63,4 +54,27 @@ a {
 
 .clear {
   @include clear;
+}
+
+#header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  background-color: $bg-color;
+  font-size: .8em;
+  height: 20px;
+  @include box-shadow-inset(0px, -2px, 10px, lighten($steel, 20%));
+  nav {
+    padding: 3px;
+  }
+}
+
+
+#content {
+/*  margin: auto;*/
+  margin-left: $content-left;
+  margin-top: $content-top;
+/*  width: 760px;*/
+  height: 500px;
 }

@@ -1,5 +1,9 @@
 {% extends "base.html" %}
 
+{% block head-extended %}
+<link href='{{ static_url("css/find.css") }}' rel='stylesheet' type='text/css' />
+{% end %}
+
 {% block javascript %}
   Find.run();
 {% end %}
@@ -12,8 +16,11 @@
   <div id='sidebar'>
     <div class='inner'>
       {% block sidebar %}
-        The goal of this project is to make finding 
-        and interpreting government data efficient and easy.
+        <div class="goal">
+        <p>The goal of this project is to make finding 
+        and interpreting government data efficient and easy.</p>
+        <p>Feel free to send feedback to <span class="mail">govdata&nbsp;at&nbsp;media.mit.edu</span></p>
+        </div>
       {% end %}
     </div>
     <img src="{{ static_url('images/harvard_seal.png') }}" width='50px' />

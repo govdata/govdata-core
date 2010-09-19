@@ -1,6 +1,5 @@
 var C = {};
 
-
 (function($) {
     
     C.api_url = "http://ec2-67-202-31-123.compute-1.amazonaws.com";

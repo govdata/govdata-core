@@ -77,9 +77,9 @@ def genRmFilterFn(q,filters,queries):
     return filterFn
 
 def genShow(result):
-    query = ("/show?q=%s&collection=%s" % (quote(json.dumps(result['query']['data'])),
-                                                            result['collectionName']))
-    print(query)
+    query = ("/show?q=%s&c=%s&v=%s" % (quote(json.dumps(result['query']['data'])),
+                                                    result['collectionName'],
+                                                    result['volume']['data']))
     return query
 
 def cleanFilter(f):
@@ -114,7 +114,7 @@ class Find(tornado.web.UIModule):
         modresults = []
         last = {}
         for r in results:
-            volume = r["volume"][0]
+            volume = r["dimension"][0]
             source = json.loads(r["sourceSpec"][0],object_hook=pm.json_util.object_hook, object_pairs_hook=OrderedDict)
             query = json.loads(r["query"][0],object_hook=pm.json_util.object_hook, object_pairs_hook=OrderedDict)
             dataset = source.pop('dataset')

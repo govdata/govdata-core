@@ -52,11 +52,12 @@ def make_metadata_value_render(metadata_dict):
 
 class ShowHandler(tornado.web.RequestHandler):
     def get(self):
-        q = self.get_argument("q",None)
-        collection = self.get_argument("collection",None)
-        querySequence = [["find",[[{"name":collection}],{"fields":["metadata.valueProcessors","metadata.nameProcessors","name","metadata.columnGroups","metadata.source","metadata.columns"]}]]]
-        querySequence = quote(json.dumps(querySequence))
-        self.render("show.html",q=q,collection=collection,querySequence=querySequence)
+        query = self.get_argument("q",None)
+        collectionName = self.get_argument("c",None)
+        volume = json.loads(self.get_argument("v",'0'))
+        # querySequence = [["find",[[{"name":collection}],{"fields":["metadata.valueProcessors","metadata.nameProcessors","name","metadata.columnGroups","metadata.source","metadata.columns"]}]]]
+        # querySequence = quote(json.dumps(querySequence))
+        self.render("show.html",query=query,collectionName=collectionName,volume=volume)
 
 class TableHandler(tornado.web.RequestHandler):
 
