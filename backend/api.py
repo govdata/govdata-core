@@ -318,7 +318,6 @@ def get_args(collectionName,querySequence,timeQuery=None, spaceQuery = None, ver
                         
                 querySequence[i] = (action,[posargs,kwargs])                    
     
-    print querySequence
     if querySequence:
     
         [Actions, Args] = zip(*querySequence)
@@ -334,8 +333,10 @@ def get_args(collectionName,querySequence,timeQuery=None, spaceQuery = None, ver
             if needsVersioning and  'fields' in kwargs.keys() and  action in ['find','find_one']:
                 kwargs['fields'] += ['__versionNumber__'] + uniqueIndexes
           
+            print posargs
             posargs = tuple([processArg(arg,collection) for arg in posargs])
             kwargs = dict([(argname,processArg(arg,collection)) for (argname,arg) in kwargs.items()])
+            print posargs
             
 
             posArgs.append(posargs)
