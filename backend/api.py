@@ -69,9 +69,9 @@ class getHandler(asyncCursorHandler):
        
         passed_args = dict([(key,args.get(key,None)) for key in ['timeQuery','spaceQuery','versionNumber']]) 
  
+        print querySequence
+ 
         A,collection,needsVersioning,versionNumber,uniqueIndexes,vars = get_args(collectionName,querySequence,**passed_args)
-
-        print A
                
         self.needsVersioning = needsVersioning
         self.versionNumber = versionNumber
