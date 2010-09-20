@@ -333,11 +333,8 @@ def get_args(collectionName,querySequence,timeQuery=None, spaceQuery = None, ver
             if needsVersioning and  'fields' in kwargs.keys() and  action in ['find','find_one']:
                 kwargs['fields'] += ['__versionNumber__'] + uniqueIndexes
           
-            print posargs
             posargs = tuple([processArg(arg,collection) for arg in posargs])
             kwargs = dict([(argname,processArg(arg,collection)) for (argname,arg) in kwargs.items()])
-            print posargs
-            
 
             posArgs.append(posargs)
             kwArgs.append(kwargs)
@@ -515,7 +512,7 @@ def processArg(arg,collection):
                 S["$or"] = [{kk:v} for kk in k]
         if '$where' in arg:
             S['$where'] = arg['$where']
-
+        return S
     else:
         return arg
 
