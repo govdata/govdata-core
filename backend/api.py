@@ -505,6 +505,7 @@ def processArg(arg,collection):
     elif isinstance(arg,tuple):
         return tuple(processArg(list(arg),collection))
     elif isinstance(arg,dict):
+        print arg
         T = [(processArg(k,collection), v)  for (k,v) in arg.items() if k != '$where' ]
         S = dict([(k,v) for (k,v) in T if not (isinstance(k,list) or isinstance(k,tuple))])
         for (k,v) in T:
@@ -512,6 +513,7 @@ def processArg(arg,collection):
                 S["$or"] = [{kk:v} for kk in k]
         if '$where' in arg:
             S['$where'] = arg['$where']
+        print S
         return S
     else:
         return arg
