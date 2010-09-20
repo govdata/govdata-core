@@ -71,6 +71,7 @@ class getHandler(asyncCursorHandler):
  
         A,collection,needsVersioning,versionNumber,uniqueIndexes,vars = get_args(collectionName,querySequence,**passed_args)
 
+        print A
                
         self.needsVersioning = needsVersioning
         self.versionNumber = versionNumber
