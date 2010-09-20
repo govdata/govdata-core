@@ -11,7 +11,6 @@ var Show = {};
             $(Show.table.container).css({width: width*1, height: height*0.5},100);
         }
         Show.table.render();
-        Show.timeline.render();
         $('#floatedArea').masonry({ 
             columnWidth: 200,
             resizeable: false, // handle resizing ourselves
@@ -42,7 +41,12 @@ var Show = {};
         
         var apiUrl = "http://ec2-67-202-31-123.compute-1.amazonaws.com";
         var baseQuery = JSON.parse(query);
-        var querySequence = [["find",[[{"name":collectionName}],{"fields":["metadata.valueProcessors","metadata.nameProcessors","name","metadata.columnGroups","metadata.source","metadata.columns"]}]]];
+        var querySequence = [["find",[[{"name":collectionName}],{"fields":[
+        "metadata.valueProcessors","metadata.nameProcessors","metadata.columnGroups",
+        "metadata.source","metadata.columns","metadata.startDate","metadata.endDate",
+        "metadata.contactInfo","metadata.keywords","metadata.dateFormat",
+        "metadata.spatialDivisions","metadata.dateDivisions","metadata.description",
+        "metadata.volume","metadata.shortTitle","metadata.title","metadata.sliceCols"]}]]];
 
         var queryTranslator = function(opts, callback) {
             var q = [{ action: 'find', args: [baseQuery]}];
@@ -89,38 +93,55 @@ var Show = {};
             itemSelector: '.module' });
         
         // Initial load with metadata
-        countCalculator({},function(numRows){
-            console.log(numRows);
-            $.ajax({
-                url : apiUrl+'/sources',
-                data : { querySequence : JSON.stringify(querySequence) },
-                dataType : 'jsonp',
-                success : function(data) {
-                    var m = data[0].metadata;
-                    var metadata = _({}).extend( m, {
-                                numCols : m.columns.length,
-                                numRows : numRows
-                    });
+        $.ajax({
+            url : apiUrl+'/sources',
+            data : { querySequence : JSON.stringify(querySequence) },
+            dataType : 'jsonp',
+            success : function(data) {
+                var m = data[0].metadata;
+                // remove unwanted columns
+                console.log(m.columns);
+                m.columns = _.reject(m.columns,function(col){return _.startsWith(col,"__")});
+                
+                // functionize name and value processors
+                var nameProcessors = {};
+                _.each(m.nameProcessors, function(v,k) {
+                    nameProcessors[k] = eval("(function(value){ " + v + " })");
+                });
+                m.nameProcessors = nameProcessors;
 
-                    Show.collection = new iv.Collection({
-                      metadata : metadata,
-                      queryTranslator : queryTranslator,
-                      countCalculator : countCalculator
-                    });
+                var valueProcessors = {};
+                _.each(m.valueProcessors, function(v,k) {
+                    valueProcessors[k] = eval("(function(value){ " + v + " })");
+                });
+                m.valueProcessors = valueProcessors;
+                
+                var metadata = _({}).extend( m, {
+                            numCols : m.columns.length,
+                            numRows : m.volume
+                });
+                Show.collection = new iv.Collection({
+                  metadata : metadata,
+                  queryTranslator : queryTranslator,
+                  countCalculator : countCalculator
+                });
 
-                    Show.table = new iv.Table({
-                      container : document.getElementById('table'), 
-                      collection : Show.collection 
-                    });
+                Show.table = new iv.Table({
+                  container : document.getElementById('table'), 
+                  collection : Show.collection 
+                });
 
-                    Show.timeline = new iv.Timeline({
-                      container : document.getElementById('timeline'), 
-                      collection : Show.collection 
-                    });
+                $("#floatedArea").append('<div id="timeline" class="module col4"></div>')
 
-                    Show.updateSizes();
-                }
-            });
+                Show.timeline = new iv.Timeline({
+                  container : document.getElementById('timeline'), 
+                  collection : Show.collection 
+                });
+                
+                Show.timeline.render();
+
+                Show.updateSizes();
+            }
         });
         
         

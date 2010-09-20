@@ -1,137 +1,110 @@
 iv.Timeline = function(opts) {
     iv.Module.call(this,opts);
-    console.log("WTF");
-    console.log(this.container);
-    console.log("WTF!");
-    this.renderer = this.generator();
-    console.log(this.renderer);
+    var timeline = this;
+    this.collection.fetch({},function(data){
+        console.log(data);
+        var dateGroups = timeline.transform(data[0])
+        console.log(dateGroups);
+        timeline.data = dateGroups[timeline.metadata.dateDivisions[0]];
+        timeline.update();
+        timeline.render();
+        Show.updateSizes();
+    })
 }
 _.extend(iv.Timeline.prototype,iv.Module.prototype);
 
-iv.Timeline.prototype.generator = function() {
-    
-    var start = new Date(1990, 0, 1);
-      var year = 1000 * 60 * 60 * 24 * 365;
-      var data = pv.range(0, 20, .02).map(function(x) {
-          return {x: new Date(start.getTime() + year * x),
-                  y: (1 + .1 * (Math.sin(x * 2 * Math.PI))
-                      + Math.random() * .1) * Math.pow(1.18, x)
-                      + Math.random() * .1};
+iv.Timeline.prototype.transform = function(row) {
+    var timeCols = this.metadata.columnGroups.timeColNames;
+    if(timeCols) {
+        var dateFormat = this.metadata.dateFormat;
+        var dateDivisions = this.metadata.dateDivisions;
+        var dateFormatTesters = _.map(dateDivisions, function(dateCode) {
+            var idx = dateFormat.indexOf(dateCode);
+            return (function(dateObj) {
+                return dateObj[idx] !== 'X';
+            });
         });
-      var end = data[data.length - 1].x;
-      
-      var w = 720,
-          h1 = 300,
-          h2 = 30,
-          x = pv.Scale.linear(start, end).range(0, w),
-          y = pv.Scale.linear(0, pv.max(data, function(d){ return d.y; })).range(0, h2);
-     
-      /* Interaction state. Focus scales will have domain set on-render. */
-      var i = {x:200, dx:100},
-          fx = pv.Scale.linear().range(0, w),
-          fy = pv.Scale.linear().range(0, h1);
-     
-      /* Root panel. */
-      var vis = new pv.Panel().canvas(this.container)
-          .width(w)
-          .height(h1 + 20 + h2)
-          .bottom(20)
-          .left(30)
-          .right(20)
-          .top(5);
-     
-      /* Focus panel (zoomed in). */
-      var focus = vis.add(pv.Panel)
-          .def("init", function() {
-              var d1 = x.invert(i.x),
-                  d2 = x.invert(i.x + i.dx),
-                  dd = data.slice(
-                      Math.max(0, pv.search.index(data, d1, function(d){ return d.x; }) - 1),
-                      pv.search.index(data, d2, function(d){ return d.x; }) + 1);
-              fx.domain(d1, d2);
-              fy.domain([0, pv.max(dd, function(d){ return d.y; })]);
-              // fy.domain(scale.checked ? [0, pv.max(dd, function(d){ return d.y; })] : y.domain());
-              return dd;
-            })
-          .top(0)
-          .height(h1);
-           
-      /* X-axis ticks. */
-      focus.add(pv.Rule)
-          .data(function(){ return fx.ticks();})
-          .left(fx)
-          .strokeStyle("#eee")
-        .anchor("bottom").add(pv.Label)
-          .text(fx.tickFormat);
-           
-      /* Y-axis ticks. */
-      focus.add(pv.Rule)
-          .data(function(){ return fy.ticks(7);})
-          .bottom(fy)
-          .strokeStyle(function(d){ return (d ? "#aaa" : "#000"); })
-        .anchor("left").add(pv.Label)
-          .text(fy.tickFormat);
-           
-      /* Focus area chart. */
-      focus.add(pv.Panel)
-          .overflow("hidden")
-        .add(pv.Line)
-          .data(function(){ return focus.init(); })
-          .left(function(d){ return fx(d.x); })
-          .bottom(1)
-          .height(function(d){ return fy(d.y);})
-          .fillStyle("lightsteelblue")
-        .anchor("top").add(pv.Line)
-          .fillStyle(null)
-          .strokeStyle("steelblue")
-          .lineWidth(3);
-           
-      /* Context panel (zoomed out). */
-      var context = vis.add(pv.Panel)
-          .bottom(0)
-          .height(h2);
-           
-      /* X-axis ticks. */
-      context.add(pv.Rule)
-          .data(x.ticks())
-          .left(x)
-          .strokeStyle("#eee")
-        .anchor("bottom").add(pv.Label)
-          .text(x.tickFormat);
-           
-      /* Y-axis ticks. */
-      context.add(pv.Rule)
-          .bottom(0);
-           
-      /* Context area chart. */
-      context.add(pv.Line)
-          .data(data)
-          .left(function(d){ return x(d.x);})
-          .bottom(1)
-          .height(function(d){ return y(d.y);})
-          .fillStyle("lightsteelblue")
-        .anchor("top").add(pv.Line)
-          .strokeStyle("steelblue")
-          .lineWidth(2);
-           
-      /* The selectable, draggable focus region. */
-      context.add(pv.Panel)
-          .data([i])
-          .cursor("crosshair")
-          .events("all")
-          .event("mousedown", pv.Behavior.select())
-          .event("select", focus)
-        .add(pv.Bar)
-          .left(function(d){ return d.x;})
-          .width(function(d){ return d.dx;})
-          .fillStyle("rgba(255, 128, 128, .4)")
-          .cursor("move")
-          .event("mousedown", pv.Behavior.drag())
-          .event("drag", focus);
-      return vis;
+        var toDateStr = this.metadata.nameProcessors.timeColNames;
+        var toDate = function(d) { return new Date(toDateStr(d));};
+        var dateGroups = {};
+        _.each(this.metadata.columns, function(col,i) {
+            if(_.include(timeCols, col)) {
+                _.each(dateFormatTesters, function(dateTest,j) {
+                    if(dateTest(col)) {
+                        var dd = dateDivisions[j];
+                        if(dateGroups[dd] === undefined) dateGroups[dd] = [];
+                        var d = toDate(col);
+                        var v = row[i];
+                        if(_.isNumber(v)) {
+                            dateGroups[dd].push({x: d, y: v});
+                        }
+                        _.breakLoop();
+                    }
+                });
+            }
+        });
+        return dateGroups;
+    } else {
+        return null;
+    }
+}
+
+iv.Timeline.prototype.update = function() {
+    if (this.data === undefined) {
+        return;
+    }
+    var start = this.data[0].x;
+    var end = this.data[this.data.length-1].x;
+    /* Sizing and scales. */
+    var w = 720,
+    h = 300,
+    x = pv.Scale.linear(start, end).range(0, w),
+    y = pv.Scale.linear(0, pv.max(this.data, function(d){ return d.y; })).range(0, h);
+
+    /* The root panel. */
+    var vis = new pv.Panel()
+      .canvas(this.container)
+      .width(w)
+      .height(h)
+      .bottom(20)
+      .left(20)
+      .right(10)
+      .top(5);
+
+    /* X-axis ticks. */
+    vis.add(pv.Rule)
+      .data(x.ticks())
+      .visible(function(d){ return d > 0; })
+      .left(x)
+      .strokeStyle("#eee")
+    .add(pv.Rule)
+      .bottom(-5)
+      .height(5)
+      .strokeStyle("#000")
+    .anchor("bottom").add(pv.Label)
+      .text(x.tickFormat);
+
+    /* Y-axis ticks. */
+    vis.add(pv.Rule)
+      .data(y.ticks(5))
+      .bottom(y)
+      .strokeStyle(function(d){ return (d ? "#eee" : "#000");})
+    .anchor("left").add(pv.Label)
+      .text(y.tickFormat);
+
+    /* The line. */
+    vis.add(pv.Line)
+      .data(this.data)
+      .interpolate("step-after")
+      .left(function(d){ return x(d.x);})
+      .bottom(function(d){ return y(d.y);})
+      .lineWidth(3);
+
+    this.renderer = vis;
 }
 
 iv.Timeline.prototype.render = function() {
-    this.renderer.render();
-    console.log(document.getElementById('map'));
+    if(this.renderer) {
+        this.renderer.render();
+    }
 }

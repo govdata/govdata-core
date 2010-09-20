@@ -18,7 +18,7 @@ iv.Collection.prototype.clear = function() {
     this._cacheInsertOrder = [];
 }
 
-iv.Collection.prototype.get = function(opts, callback) {
+iv.Collection.prototype.fetch = function(opts, callback) {
     // see if you have the data in cache first
     // else get the data dynamically (view on screen area plus buffer]]]])
     this.queryTranslator(opts, function(data) {

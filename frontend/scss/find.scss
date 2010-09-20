@@ -5,6 +5,7 @@ $sidebar-width: 250px;
 $main-width: 700px;
 $search-width: 700px;
 
+
 #sidebar {
   @include set-size($sidebar-width, 5px, 10px);
   background-color: $bg-color;
@@ -35,7 +36,7 @@ $search-width: 700px;
     }
     width: 100%;
     td:first-child {
-        width: 85%;
+        width: 80%;
     }
   }
   .numFound {
@@ -171,6 +172,7 @@ $search-width: 700px;
       @include sans;
       font-size: 1.2em;
       td {
+        border-left: 1px solid #ddd;
         text-align: center;
       }
     }
@@ -194,6 +196,7 @@ $search-width: 700px;
         }
       }
       td {
+        border-left: 1px solid #ddd;
         text-align: center;
         &.query, &.source {
           text-align: left;
