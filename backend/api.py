@@ -89,7 +89,7 @@ class getHandler(asyncCursorHandler):
         self.timeprint(3)
         self.add_async_cursor(collection,A)
         
-    def timeprint(n):
+    def timeprint(self,n):
         print n, time.time() - self.TIMER
         self.TIMER = time.time()
         
