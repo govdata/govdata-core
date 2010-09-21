@@ -578,7 +578,12 @@ def getTable(handler):
         handler.status = 'warning'
         handler.warnings = [{'reason':'other','message':'No results.'}]
         
-    return {'cols':cols,'rows':handler.data}
+    returnCols = handler.args.get("returnCols",True) 
+    if returnCols:
+        return {'cols':cols,'rows':handler.data}
+    else:
+        return {"rows":handler.data}
+    
 
 def getType(handler,i,id):
 
