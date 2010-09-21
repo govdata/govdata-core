@@ -64,6 +64,7 @@ class Collection(pm.collection.Collection):
         else:
             self.metadata = dict([(l['name'],l) for l in self.metaCollection.find()])
         
+        T.timeprint(5)
         self.valueProcessors = self.metadata[''].get('valueProcessors',{})
         self.nameProcessors = self.metadata[''].get('nameProcessors',{})
         
