@@ -35,32 +35,30 @@ class Collection(pm.collection.Collection):
     def __init__(self,name,connection = None,versionNumber=None):
         T = Timer()
         
-        T.timeprint(-1)
         if connection == None:
             connection = pm.Connection(document_class=pm.son.SON)
         assert 'govdata' in connection.database_names(), 'govdata collection not found.'
         db = connection['govdata']
-        T.timeprint(0)
         assert name in db.collection_names(), 'collection ' + name + ' not found in govdata database.'
-        T.timeprint(1)
         pm.collection.Collection.__init__(self,db,name)
-        T.timeprint(2)
         metaname = '__' + name + '__'
-        assert metaname in db.collection_names(), 'No metadata collection associated with ' + name + ' found.'
-        T.timeprint(3)
-        self.metaCollection = db[metaname]      
-        T.timeprint(4)
-        
+        assert metaname in db.collection_names(), 'No metadata collection associated with ' + name + ' found.')
+        self.metaCollection = db[metaname]              
                     
+        T.timeprint(0)            
         versionsname = '__' + name + '__VERSIONS__'
         if versionsname in db.collection_names() and versionNumber != 'ALL':
+            T.timeprint('here')
             self.versions = db[versionsname]
             currentVersion = max(self.versions.distinct('versionNumber'))
+            T.timeprint('here2')
             self.currentVersion = currentVersion
             if versionNumber == None:
                 versionNumber = currentVersion
+            T.timeprint('her3')
             self.versionNumber = versionNumber
             self.metadata = dict([(l['name'],l) for l in self.metaCollection.find({'versionNumber':versionNumber})])
+            T.timeprint('here4')
         else:
             self.metadata = dict([(l['name'],l) for l in self.metaCollection.find()])
         
