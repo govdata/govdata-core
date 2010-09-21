@@ -69,7 +69,7 @@ class getHandler(asyncCursorHandler):
                 
         self.processor = functools.partial(gov_processor,args.pop('processor',None))
        
-        passed_args = dict([(key,args.get(key,None)) for key in ['timeQuery','spaceQuery','versionNumber']]) 
+        passed_args = dict([(key,args.get(key,None)) for key in ['timeQuery','spaceQuery','versionNumber','returnMetadata']]) 
  
         A,collection,needsVersioning,versionNumber,uniqueIndexes,vars = get_args(collectionName,querySequence,**passed_args)
                        
@@ -161,7 +161,7 @@ def gov_processor(processor,r,handler,collection):
     return r
 
        
-def get_args(collectionName,querySequence,timeQuery=None, spaceQuery = None, versionNumber=None):
+def get_args(collectionName,querySequence,timeQuery=None, spaceQuery = None, versionNumber=None, returnMetadata=False):
     """
     collection : String => collection name e.g. BEA_NIPA
     query : JSON dictionary or list of dictionaries represnting the mongo query.  Each dictionary has the following keys:
@@ -193,10 +193,7 @@ def get_args(collectionName,querySequence,timeQuery=None, spaceQuery = None, ver
 
     """
 
-    if versionNumber != 'ALL':
-        collection = CM.Collection(collectionName,versionNumber=versionNumber)
-    else:
-        collection =  CM.Collection(collectionName)
+    collection = CM.Collection(collectionName,versionNumber=versionNumber,attachMetadata=returnMetadata)
         
     versionNumber = collection.versionNumber
     currentVersion = collection.currentVersion

@@ -32,8 +32,7 @@ class Collection(pm.collection.Collection):
           
     """
     
-    def __init__(self,name,connection = None,versionNumber=None):
-        T = Timer()
+    def __init__(self,name,connection = None,versionNumber=None,attachMetadata = False):
         
         if connection == None:
             connection = pm.Connection(document_class=pm.son.SON)
@@ -44,27 +43,22 @@ class Collection(pm.collection.Collection):
         metaname = '__' + name + '__'
         assert metaname in db.collection_names(), 'No metadata collection associated with ' + name + ' found.'
         self.metaCollection = db[metaname]              
-                    
-        T.timeprint(0)            
+                                
         versionsname = '__' + name + '__VERSIONS__'
-        if versionsname in db.collection_names() and versionNumber != 'ALL':
-            T.timeprint('here')
-            self.versions = db[versionsname]
-            currentVersion = max(self.versions.distinct('versionNumber'))
-            T.timeprint('here2')
-            self.currentVersion = currentVersion
-            if versionNumber == None:
-                versionNumber = currentVersion
-            T.timeprint('her3')
-            self.versionNumber = versionNumber
-            self.metadata = dict([(l['name'],l) for l in self.metaCollection.find({'versionNumber':versionNumber})])
-            T.timeprint('here4')
-        else:
-            self.metadata = dict([(l['name'],l) for l in self.metaCollection.find()])
-        
-        T.timeprint(5)
-        self.valueProcessors = self.metadata[''].get('valueProcessors',{})
-        self.nameProcessors = self.metadata[''].get('nameProcessors',{})
+        assert versionsname in db.collection_names()
+        self.versions = db[versionsname]
+        self.currentVersion = max(self.versions.distinct('versionNumber'))
+        if versionNumber == None:
+            versionNumber = self.currentVersion
+        self.versionNumber = versionNumber
+       
+        if attachMetadata: 
+            if self.versionNumber != 'ALL':
+                self.metadata = dict([(l['name'],l) for l in self.metaCollection.find({'versionNumber':versionNumber})])
+            else:
+                self.metadata = dict([(l['name'],l) for l in self.metaCollection.find()])
+            self.valueProcessors = self.metadata[''].get('valueProcessors',{})
+            self.nameProcessors = self.metadata[''].get('nameProcessors',{})
         
         slicesname =  '__' + name + '__SLICES__'
         if slicesname in db.collection_names():
