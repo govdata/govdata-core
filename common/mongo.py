@@ -52,13 +52,17 @@ class Collection(pm.collection.Collection):
             versionNumber = self.currentVersion
         self.versionNumber = versionNumber
        
+        
         if attachMetadata: 
             if self.versionNumber != 'ALL':
                 self.metadata = dict([(l['name'],l) for l in self.metaCollection.find({'versionNumber':versionNumber})])
             else:
                 self.metadata = dict([(l['name'],l) for l in self.metaCollection.find()])
-            self.valueProcessors = self.metadata[''].get('valueProcessors',{})
-            self.nameProcessors = self.metadata[''].get('nameProcessors',{})
+        else:
+            self.metadata = dict([(l['name'],l) for l in self.metaCollection.find({'versionNumber':versionNumber,"name":""})])
+                
+        self.valueProcessors = self.metadata[''].get('valueProcessors',{})
+        self.nameProcessors = self.metadata[''].get('nameProcessors',{})
         
         slicesname =  '__' + name + '__SLICES__'
         if slicesname in db.collection_names():
