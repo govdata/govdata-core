@@ -194,6 +194,7 @@ def get_args(collectionName,querySequence,timeQuery=None, spaceQuery = None, ver
     """
     T = Timer()
     
+    T.timeprint(0)
     if versionNumber != 'ALL':
         collection = CM.Collection(collectionName,versionNumber=versionNumber)
     else:
