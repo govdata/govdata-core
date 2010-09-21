@@ -52,14 +52,10 @@ class Collection(pm.collection.Collection):
             versionNumber = self.currentVersion
         self.versionNumber = versionNumber
        
-        
-        if attachMetadata: 
-            if self.versionNumber != 'ALL':
-                self.metadata = dict([(l['name'],l) for l in self.metaCollection.find({'versionNumber':versionNumber})])
-            else:
-                self.metadata = dict([(l['name'],l) for l in self.metaCollection.find()])
-        else:
-            self.metadata = dict([(l['name'],l) for l in self.metaCollection.find({'versionNumber':versionNumber,"name":""})])
+        vQuery = {"versionNumber":versionNumber} if self.versionNumber != 'ALL' else {}
+        if not attachMetadata:
+            vQuery["name"] = "" 
+        self.metadata = dict([(l['name'],l) for l in self.metaCollection.find(vQuery)])
                 
         self.valueProcessors = self.metadata[''].get('valueProcessors',{})
         self.nameProcessors = self.metadata[''].get('nameProcessors',{})
