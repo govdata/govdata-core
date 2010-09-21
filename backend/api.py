@@ -192,16 +192,12 @@ def get_args(collectionName,querySequence,timeQuery=None, spaceQuery = None, ver
                         find all correponding records with __retained__ = true and __versionNumber__ < V' and for each  one, apply diffs, eading version history in backwards order.
 
     """
-    T = Timer()
-    
-    T.timeprint(0)
+
     if versionNumber != 'ALL':
         collection = CM.Collection(collectionName,versionNumber=versionNumber)
     else:
         collection =  CM.Collection(collectionName)
-
-    T.timeprint(1)
-   
+        
     versionNumber = collection.versionNumber
     currentVersion = collection.currentVersion
     
@@ -211,7 +207,6 @@ def get_args(collectionName,querySequence,timeQuery=None, spaceQuery = None, ver
     
     ColumnGroups = collection.columnGroups
 
-    T.timeprint(3)
     if versionNumber != 'ALL':  
         insertions = []
         for (i,(action,args)) in enumerate(querySequence):
@@ -230,8 +225,7 @@ def get_args(collectionName,querySequence,timeQuery=None, spaceQuery = None, ver
             
         for (i,v) in insertions:
             querySequence.insert(i,v)
-    
-    T.timeprint(4)
+
     if timeQuery:
         if hasattr(collection,'overallDate'):
             OK = td.checkQuery(timeQuery, collection.overallDate)
@@ -271,7 +265,6 @@ def get_args(collectionName,querySequence,timeQuery=None, spaceQuery = None, ver
         tQ = None
         TimeColNamesToReturn = 'ALL'
     
-    T.timeprint(5)
     if querySequence and spaceQuery:
         if hasattr(collection,'overallLocation'):
             OK = loc.checkQuery(spaceQuery, collection.overallLocation)
@@ -296,7 +289,6 @@ def get_args(collectionName,querySequence,timeQuery=None, spaceQuery = None, ver
         sQ = None
         SpaceColNamesToReturn = 'ALL'
         
-    T.timeprint(6)
     if querySequence and (sQ or tQ):
         for (i,(action,args)) in enumerate(querySequence):
             if action in ['find','find_one']:
@@ -329,7 +321,7 @@ def get_args(collectionName,querySequence,timeQuery=None, spaceQuery = None, ver
                         
                 querySequence[i] = (action,[posargs,kwargs])                    
     
-    T.timeprint(7)
+
     if querySequence:
     
         [Actions, Args] = zip(*querySequence)
@@ -351,7 +343,6 @@ def get_args(collectionName,querySequence,timeQuery=None, spaceQuery = None, ver
             posArgs.append(posargs)
             kwArgs.append(kwargs)
         
-        T.timeprint(8)
         return zip(Actions,zip(posArgs,kwArgs)),collection,needsVersioning,versionNumber,uniqueIndexes,vars
 
 
@@ -1385,12 +1376,3 @@ def SourceSpec_to_setSpec(Spec):
 
 def SourceSpec_to_setName(Spec):
     return Spec[Spec.keys()[-1]]['Name']
-    
-    
-class Timer():
-    def __init__(self):
-        self.TIMER = time.time()
-    
-    def timeprint(self,msg):
-        print msg, time.time() - self.TIMER
-        self.TIMER = time.time()

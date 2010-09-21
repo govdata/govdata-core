@@ -4,7 +4,7 @@ utilities for working with govdata in mongoDB format
 """
    
 import pymongo as pm
-    
+from common.utils import Timer    
 
 SPECIAL_KEYS =  ['__versionNumber__','__retained__','__addedKeys__','__originalVersion__']  
 
@@ -33,15 +33,20 @@ class Collection(pm.collection.Collection):
     """
     
     def __init__(self,name,connection = None,versionNumber=None):
+        T = Timer()
+        
         if connection == None:
             connection = pm.Connection(document_class=pm.son.SON)
         assert 'govdata' in connection.database_names(), 'govdata collection not found.'
         db = connection['govdata']
+        T.timeprint(0)
         assert name in db.collection_names(), 'collection ' + name + ' not found in govdata database.'
         pm.collection.Collection.__init__(self,db,name)
         metaname = '__' + name + '__'
         assert metaname in db.collection_names(), 'No metadata collection associated with ' + name + ' found.'
         self.metaCollection = db[metaname]      
+        
+        T.timeprint(1)
                     
         versionsname = '__' + name + '__VERSIONS__'
         if versionsname in db.collection_names() and versionNumber != 'ALL':
@@ -54,11 +59,14 @@ class Collection(pm.collection.Collection):
             self.metadata = dict([(l['name'],l) for l in self.metaCollection.find({'versionNumber':versionNumber})])
         else:
             self.metadata = dict([(l['name'],l) for l in self.metaCollection.find()])
+        
+        T.timeprint(2)
             
         self.valueProcessors = self.metadata[''].get('valueProcessors',{})
         self.nameProcessors = self.metadata[''].get('nameProcessors',{})
-
-
+ 
+        T.timeprint(3)
+        
         slicesname =  '__' + name + '__SLICES__'
         if slicesname in db.collection_names():
             self.slices = db[slicesname]

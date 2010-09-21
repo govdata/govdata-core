@@ -1,5 +1,14 @@
 import os
 import shutil
+import time
+
+class Timer():
+    def __init__(self):
+        self.TIMER = time.time()
+    
+    def timeprint(self,msg):
+        print msg, time.time() - self.TIMER
+        self.TIMER = time.time()
 
 def MakeDir(DirName,creates = ()):
     '''
