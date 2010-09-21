@@ -14,6 +14,7 @@ import common.location as loc
 import common.solr as solr
 import functools
 from common.acursor import asyncCursorHandler
+import time
 
 SPECIAL_KEYS = CM.SPECIAL_KEYS
 
@@ -29,6 +30,7 @@ class getHandler(asyncCursorHandler):
     @tornado.web.asynchronous
     def get(self):
         
+        self.TIMER = time.time()
         args = self.request.arguments
         for k in args.keys():
             args[k] = args[k][0]
@@ -69,7 +71,11 @@ class getHandler(asyncCursorHandler):
        
         passed_args = dict([(key,args.get(key,None)) for key in ['timeQuery','spaceQuery','versionNumber']]) 
  
+        self.timeprint(1)
+        
         A,collection,needsVersioning,versionNumber,uniqueIndexes,vars = get_args(collectionName,querySequence,**passed_args)
+        
+        self.timeprint(2)
                
         self.needsVersioning = needsVersioning
         self.versionNumber = versionNumber
@@ -80,9 +86,13 @@ class getHandler(asyncCursorHandler):
         self.vNInd =  self.VarMap['__versionNumber__']
         self.retInd = self.VarMap['__retained__']
         
+        self.timeprint(3)
         self.add_async_cursor(collection,A)
         
-
+    def timeprint(n):
+        print n, time.time() - self.TIMER
+        self.TIMER = time.time()
+        
     def begin(self):
         if self.jsonPcallback:
             self.write(self.jsonPcallback + '(')
@@ -94,6 +104,7 @@ class getHandler(asyncCursorHandler):
                               
     def end(self):        
 
+        self.timeprint(4)
         if self.returnObj:
             returnedObj = {'data':self.data}
             
@@ -112,7 +123,9 @@ class getHandler(asyncCursorHandler):
                 returnedObj["metadata"] = metadata
                 
         if self.stream:
-            self.write('}')  
+            self.write('}')
+            
+        self.timeprint(5)    
                    
         if self.returnObj and not self.stream:
             self.write(json.dumps(returnedObj,default=pm.json_util.default))
@@ -120,7 +133,7 @@ class getHandler(asyncCursorHandler):
         if self.jsonPcallback:
             self.write(')')
             
-       
+        self.timeprint(6)
         self.finish()
           
 
