@@ -74,9 +74,7 @@ class getHandler(asyncCursorHandler):
         self.timeprint(1)
         
         A,collection,needsVersioning,versionNumber,uniqueIndexes,vars = get_args(collectionName,querySequence,**passed_args)
-        
-        self.timeprint(2)
-               
+                       
         self.needsVersioning = needsVersioning
         self.versionNumber = versionNumber
         self.uniqueIndexes = uniqueIndexes
@@ -86,7 +84,6 @@ class getHandler(asyncCursorHandler):
         self.vNInd =  self.VarMap['__versionNumber__']
         self.retInd = self.VarMap['__retained__']
         
-        self.timeprint(3)
         self.add_async_cursor(collection,A)
         
     def timeprint(self,n):
@@ -104,7 +101,6 @@ class getHandler(asyncCursorHandler):
                               
     def end(self):        
 
-        self.timeprint(4)
         if self.returnObj:
             returnedObj = {'data':self.data}
             
@@ -125,15 +121,12 @@ class getHandler(asyncCursorHandler):
         if self.stream:
             self.write('}')
             
-        self.timeprint(5)    
-                   
         if self.returnObj and not self.stream:
             self.write(json.dumps(returnedObj,default=pm.json_util.default))
             
         if self.jsonPcallback:
             self.write(')')
-            
-        self.timeprint(6)
+
         self.finish()
           
 
@@ -207,6 +200,8 @@ def get_args(collectionName,querySequence,timeQuery=None, spaceQuery = None, ver
         collection = CM.Collection(collectionName,versionNumber=versionNumber)
     else:
         collection =  CM.Collection(collectionName)
+
+    self.timeprint(2)
    
     versionNumber = collection.versionNumber
     currentVersion = collection.currentVersion
@@ -217,6 +212,7 @@ def get_args(collectionName,querySequence,timeQuery=None, spaceQuery = None, ver
     
     ColumnGroups = collection.columnGroups
 
+    self.timeprint(3)
     if versionNumber != 'ALL':  
         insertions = []
         for (i,(action,args)) in enumerate(querySequence):
@@ -235,7 +231,8 @@ def get_args(collectionName,querySequence,timeQuery=None, spaceQuery = None, ver
             
         for (i,v) in insertions:
             querySequence.insert(i,v)
-                
+    
+    self.timeprint(4)
     if timeQuery:
         if hasattr(collection,'overallDate'):
             OK = td.checkQuery(timeQuery, collection.overallDate)
@@ -275,6 +272,7 @@ def get_args(collectionName,querySequence,timeQuery=None, spaceQuery = None, ver
         tQ = None
         TimeColNamesToReturn = 'ALL'
     
+    self.timeprint(5)
     if querySequence and spaceQuery:
         if hasattr(collection,'overallLocation'):
             OK = loc.checkQuery(spaceQuery, collection.overallLocation)
@@ -298,7 +296,8 @@ def get_args(collectionName,querySequence,timeQuery=None, spaceQuery = None, ver
     else:
         sQ = None
         SpaceColNamesToReturn = 'ALL'
-
+        
+    self.timeprint(6)
     if querySequence and (sQ or tQ):
         for (i,(action,args)) in enumerate(querySequence):
             if action in ['find','find_one']:
@@ -331,6 +330,7 @@ def get_args(collectionName,querySequence,timeQuery=None, spaceQuery = None, ver
                         
                 querySequence[i] = (action,[posargs,kwargs])                    
     
+    self.timeprint(7)
     if querySequence:
     
         [Actions, Args] = zip(*querySequence)
@@ -352,6 +352,7 @@ def get_args(collectionName,querySequence,timeQuery=None, spaceQuery = None, ver
             posArgs.append(posargs)
             kwArgs.append(kwargs)
         
+        self.timeprint(8)
         return zip(Actions,zip(posArgs,kwArgs)),collection,needsVersioning,versionNumber,uniqueIndexes,vars
 
 
