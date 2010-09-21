@@ -199,7 +199,7 @@ def get_args(collectionName,querySequence,timeQuery=None, spaceQuery = None, ver
     else:
         collection =  CM.Collection(collectionName)
 
-   T.timeprint(1)
+    T.timeprint(1)
    
     versionNumber = collection.versionNumber
     currentVersion = collection.currentVersion
