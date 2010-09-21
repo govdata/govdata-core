@@ -41,12 +41,15 @@ class Collection(pm.collection.Collection):
         db = connection['govdata']
         T.timeprint(0)
         assert name in db.collection_names(), 'collection ' + name + ' not found in govdata database.'
+        T.timeprint(1)
         pm.collection.Collection.__init__(self,db,name)
+        T.timeprint(2)
         metaname = '__' + name + '__'
         assert metaname in db.collection_names(), 'No metadata collection associated with ' + name + ' found.'
+        T.timeprint(3)
         self.metaCollection = db[metaname]      
+        T.timeprint(4)
         
-        T.timeprint(1)
                     
         versionsname = '__' + name + '__VERSIONS__'
         if versionsname in db.collection_names() and versionNumber != 'ALL':
@@ -60,12 +63,8 @@ class Collection(pm.collection.Collection):
         else:
             self.metadata = dict([(l['name'],l) for l in self.metaCollection.find()])
         
-        T.timeprint(2)
-            
         self.valueProcessors = self.metadata[''].get('valueProcessors',{})
         self.nameProcessors = self.metadata[''].get('nameProcessors',{})
- 
-        T.timeprint(3)
         
         slicesname =  '__' + name + '__SLICES__'
         if slicesname in db.collection_names():
