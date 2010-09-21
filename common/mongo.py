@@ -42,7 +42,7 @@ class Collection(pm.collection.Collection):
         assert name in db.collection_names(), 'collection ' + name + ' not found in govdata database.'
         pm.collection.Collection.__init__(self,db,name)
         metaname = '__' + name + '__'
-        assert metaname in db.collection_names(), 'No metadata collection associated with ' + name + ' found.')
+        assert metaname in db.collection_names(), 'No metadata collection associated with ' + name + ' found.'
         self.metaCollection = db[metaname]              
                     
         T.timeprint(0)            
