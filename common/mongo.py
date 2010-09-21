@@ -35,6 +35,7 @@ class Collection(pm.collection.Collection):
     def __init__(self,name,connection = None,versionNumber=None):
         T = Timer()
         
+        T.timeprint(-1)
         if connection == None:
             connection = pm.Connection(document_class=pm.son.SON)
         assert 'govdata' in connection.database_names(), 'govdata collection not found.'
