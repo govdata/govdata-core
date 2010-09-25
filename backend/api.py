@@ -304,7 +304,7 @@ def get_args(collectionName,querySequence,timeQuery=None, spaceQuery = None, ver
                         retainCols = set(vars).difference(set(remove).difference(retain))
                         kwargs['fields'] =  list(retainCols) 
             
-                    #posargs = setArgTuple(posargs,tuple(retain),{'$exists':True})
+                    posargs = setArgTuple(posargs,tuple(retain),{'$exists':True})
                                                 
                 if tQ and TimeColumns:
                     for p in tQ.keys():
