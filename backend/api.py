@@ -239,6 +239,7 @@ def get_args(collectionName,querySequence,timeQuery=None, spaceQuery = None, ver
     
         if querySequence and timeQuery:
             tQ = td.generateQueries(DateFormat,timeQuery)
+            print tQ
             TimeColNames = ColumnGroups['timeColNames'] if 'timeColNames' in ColumnGroups.keys() else []
             TimeColumns = ColumnGroups['timeColumns'] if 'timeColumns' in ColumnGroups.keys() else []
     
@@ -318,7 +319,6 @@ def get_args(collectionName,querySequence,timeQuery=None, spaceQuery = None, ver
                         
                 querySequence[i] = (action,[posargs,kwargs])                 
 
-    print querySequence
     if querySequence:
     
         [Actions, Args] = zip(*querySequence)
