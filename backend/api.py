@@ -317,8 +317,7 @@ def get_args(collectionName,querySequence,timeQuery=None, spaceQuery = None, ver
                             posargs = setArgTuple(posargs,t + '.' + '.'.join(p),sQ[p])
                         
                 querySequence[i] = (action,[posargs,kwargs])                    
-    
-    print querySequence
+
     if querySequence:
     
         [Actions, Args] = zip(*querySequence)

@@ -110,6 +110,8 @@ def generateQueries(DateFormat,timeQuery):
         basePathDict = dict([(m,getPathsTo(m,Hier)) for m in tQHier0])
         belowPathDict = dict([(m,getPathsBelow(m,Hier)) for m in tQHier0])
         
+        print belowPathDict
+        
         Q = {}
         for (k,op) in [('begin','$gte'),('end','$lt')]:
             if k in timeQuery.keys():
