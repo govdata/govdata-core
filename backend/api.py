@@ -318,7 +318,6 @@ def get_args(collectionName,querySequence,timeQuery=None, spaceQuery = None, ver
                         
                 querySequence[i] = (action,[posargs,kwargs])                 
 
-    print querySequence
     if querySequence:
     
         [Actions, Args] = zip(*querySequence)
