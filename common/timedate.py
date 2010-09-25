@@ -109,7 +109,7 @@ def generateQueries(DateFormat,timeQuery):
         Hier0 = [x[0] for x in Hier]
         basePathDict = dict([(m,getPathsTo(m,Hier)) for m in tQHier0])
         belowPathDict = dict([(m,getPathsBelow(m,Hier)) for m in tQHier0])
-        
+                
         Q = {}
         for (k,op) in [('begin','$gte'),('end','$lt')]:
             if k in timeQuery.keys():
@@ -157,14 +157,18 @@ def getPathsTo(m,H):
                 
 def getPathsBelow(m,H):
     """Helper for generateQueries"""
+
     if isinstance(H,list):
         L =  ListUnion([getPathsBelow(m,h) for h in H])
         return [l for l in L if l]
     elif isinstance(H,tuple):
         
         if H[0] == m:
-            F = Flatten(H[1])
-            return ListUnion([[(m,) + y for y in getPathsTo(x,H[1])] for x in F])
+            if H[1:]:
+                F = Flatten(H[1])  
+                return ListUnion([[(m,) + y for y in getPathsTo(x,H[1])] for x in F])
+            else:
+                return []
         else:
             if len(H) == 2:
                 return [(H[0],) + y for y in getPathsBelow(m,H[1])]
