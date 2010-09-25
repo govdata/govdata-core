@@ -239,7 +239,6 @@ def get_args(collectionName,querySequence,timeQuery=None, spaceQuery = None, ver
     
         if querySequence and timeQuery:
             tQ = td.generateQueries(DateFormat,timeQuery)
-            print tQ
             TimeColNames = ColumnGroups['timeColNames'] if 'timeColNames' in ColumnGroups.keys() else []
             TimeColumns = ColumnGroups['timeColumns'] if 'timeColumns' in ColumnGroups.keys() else []
     
@@ -255,6 +254,8 @@ def get_args(collectionName,querySequence,timeQuery=None, spaceQuery = None, ver
                     timeFormatter = td.mongotimeformatter(DateFormat)
                     TimeColSONs = [timeFormatter(a) for a in TimeColNames]
                     TimeColNamesToReturn = [a for (a,b) in zip(TimeColNames,TimeColSONs) if actQueries(tQ,b)]
+                    print TimeColNames
+                    print TimeColNamesToReturn
                     if len(TimeColNamesToReturn) == len(TimeColNames):
                         TimeColNamesToReturn = 'ALL'
                 else:
