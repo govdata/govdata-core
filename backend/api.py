@@ -316,8 +316,9 @@ def get_args(collectionName,querySequence,timeQuery=None, spaceQuery = None, ver
                         for t in SpaceColumns:
                             posargs = setArgTuple(posargs,t + '.' + '.'.join(p),sQ[p])
                         
-                querySequence[i] = (action,[posargs,kwargs])                    
-
+                querySequence[i] = (action,[posargs,kwargs])                 
+                
+    print querySequence
     if querySequence:
     
         [Actions, Args] = zip(*querySequence)
