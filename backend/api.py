@@ -254,8 +254,6 @@ def get_args(collectionName,querySequence,timeQuery=None, spaceQuery = None, ver
                     timeFormatter = td.mongotimeformatter(DateFormat)
                     TimeColSONs = [timeFormatter(a) for a in TimeColNames]
                     TimeColNamesToReturn = [a for (a,b) in zip(TimeColNames,TimeColSONs) if actQueries(tQ,b)]
-                    print TimeColNames
-                    print TimeColNamesToReturn
                     if len(TimeColNamesToReturn) == len(TimeColNames):
                         TimeColNamesToReturn = 'ALL'
                 else:
