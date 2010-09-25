@@ -157,6 +157,8 @@ def getPathsTo(m,H):
                 
 def getPathsBelow(m,H):
     """Helper for generateQueries"""
+    
+    print m, H
     if isinstance(H,list):
         L =  ListUnion([getPathsBelow(m,h) for h in H])
         return [l for l in L if l]
