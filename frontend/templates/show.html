@@ -1,18 +1,16 @@
 {% extends "base.html" %}
 
-{% block title %} data name {% end %}
-
 {% block head-extended %}
 <link href='{{ static_url("css/show.css") }}' rel='stylesheet' type='text/css' />
 {% end %}
 
 {% block javascript-include %}
 <script language='javascript' src='{{ static_url("js/common/common.js") }}' type='text/javascript'></script>
+<script language='javascript' src='{{ static_url("js/external/datatables/media/js/jquery.dataTables.js") }}' type='text/javascript'></script>
   <script language='javascript' src='{{ static_url("js/external/protovis-d3.2.js") }}' type='text/javascript'></script>
   <script language='javascript' src='{{ static_url("js/external/jquery.masonry.js") }}' type='text/javascript'></script>
   <script language='javascript' src='{{ static_url("js/show.js") }}' type='text/javascript'></script>
   <script language='javascript' src='{{ static_url("js/src/intervis.js") }}' type='text/javascript'></script>
-  <script language='javascript' src='{{ static_url("js/src/collection.js") }}' type='text/javascript'></script>
   <script language='javascript' src='{{ static_url("js/src/module.js") }}' type='text/javascript'></script>
   <script language='javascript' src='{{ static_url("js/src/table.js") }}' type='text/javascript'></script>
   <script language='javascript' src='{{ static_url("js/src/timeline.js") }}' type='text/javascript'></script>
@@ -30,9 +28,5 @@
 
 {% block content %}
   <div id="floatedArea" class="wrap">
-  </div>
-  <div class="clear"></div>
-  <div id="rest">
-    <div id="table"></div>
   </div>
 {% end %}

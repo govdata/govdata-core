@@ -1,16 +1,8 @@
 iv.Timeline = function(opts) {
     iv.Module.call(this,opts);
     var timeline = this;
-    this.collection.fetch({},function(data){
-        console.log(data);
-        var dateGroups = timeline.transform(data[0])
-        console.log(dateGroups);
-        timeline.data = dateGroups[timeline.metadata.dateDivisions[0]];
-        timeline.update();
-        timeline.render();
-        Show.updateSizes();
-    })
-}
+};
+
 _.extend(iv.Timeline.prototype,iv.Module.prototype);
 
 iv.Timeline.prototype.transform = function(row) {
@@ -56,8 +48,8 @@ iv.Timeline.prototype.update = function() {
     var start = this.data[0].x;
     var end = this.data[this.data.length-1].x;
     /* Sizing and scales. */
-    var w = 720,
-    h = 300,
+    var w = $(this.container).width() - 20,
+    h = w/3.0,
     x = pv.Scale.linear(start, end).range(0, w),
     y = pv.Scale.linear(0, pv.max(this.data, function(d){ return d.y; })).range(0, h);
 

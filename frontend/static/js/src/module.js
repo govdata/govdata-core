@@ -1,7 +1,5 @@
 iv.Module = function(opts) {
     this.container = opts.container;
-    this.collection = opts.collection;
-    this.metadata = this.collection.metadata;
 };
 
 iv.Module.prototype.render = function() {

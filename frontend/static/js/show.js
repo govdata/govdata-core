@@ -2,43 +2,15 @@ var Show = {};
 
 (function($) {
     
-    Show.updateSizes = function() {
-        var w = $(window);
-        var head = $("#header");
-        var width = w.width();
-        var height = w.height()-head.height();
-        if(Show.table && Show.table.container) {
-            $(Show.table.container).css({width: width*1, height: height*0.5},100);
-        }
-        Show.table.render();
+    Show.updatePositions = function() {
         $('#floatedArea').masonry({ 
             columnWidth: 200,
             resizeable: false, // handle resizing ourselves
-            itemSelector: '.module' });
-                
-        // var floatAreaWidth = _.reduce($("#floatedArea .module"), function(memo,module){ return memo + $(module).outerWidth() + 10;}, 0)
-        // $("#floatedArea").animate({width: Math.min(floatAreaWidth,width)},100)
-        // Double the resize to go full while avoiding the window scrollbar only need when absolute positioning
-        // if(Show.doubleResizeAllTheWay === undefined) {
-        //     Show.resizeTimer = setTimeout(function() {
-        //         Show.doubleResizeAllTheWay = true;
-        //         Show.updateSizes();
-        //         Show.doubleResizeAllTheWay = undefined;
-        //     }, 500);
-        // }
+            itemSelector: '.module' });                
     }
     
     Show.run = function(query, collectionName) {
-
-        Show.example = [];
-        _.each(_.range(100), function(x) {
-            var row = {};
-            _.each(_.range(100), function(y) {
-                row[x+' '+y] = x*y;
-            });
-            Show.example.push(row);
-        });
-        
+                
         var apiUrl = "http://ec2-67-202-31-123.compute-1.amazonaws.com";
         var baseQuery = JSON.parse(query);
         var querySequence = [["find",[[{"name":collectionName}],{"fields":[
@@ -47,15 +19,14 @@ var Show = {};
         "metadata.contactInfo","metadata.keywords","metadata.dateFormat",
         "metadata.spatialDivisions","metadata.dateDivisions","metadata.description",
         "metadata.volume","metadata.shortTitle","metadata.title","metadata.sliceCols"]}]]];
-
-        var queryTranslator = function(opts, callback) {
+                
+        var serverData = function(opts,callback) {
             var q = [{ action: 'find', args: [baseQuery]}];
             var start = opts.start || 0;
             q.push({ action : 'skip', args : [start]});
             var limit = opts.limit || 30;
             q.push({ action : 'limit', args : [limit]});
             var queryString = JSON.stringify({"query":q,"collection":collectionName});
-            console.log(queryString);
             $.ajax({
                 url : apiUrl+'/get',
                 data : { q : queryString },
@@ -64,33 +35,35 @@ var Show = {};
                     callback(data.data);
                 }
             });
-          return apiUrl;
         };
         
-        var countCalculator = function(opts, callback) {
-            var countQuery = [{"action":"find", "args":[baseQuery]},{"action":"count"}];
-            var queryCountString = JSON.stringify({"query":countQuery,"collection":collectionName});
-            console.log(queryCountString);
-            $.ajax({
-                url : apiUrl+'/get',
-                data : { q : queryCountString },
-                dataType : 'jsonp',
-                success : function(data) {
-                    callback(data.data);
-                }
+        var toData = function(data,metadata) {
+            var result = [];
+            _.each(data, function(rowObj) {
+                var row = [];
+                _.each(metadata.columns, function(col,i) {
+                    row[i] = rowObj[i+""] || 0;
+                });
+                result.push(row);
             });
-            // count_query = [{"action":"find", "args":[base_query]},{"action":"count"}]
-            // base_query_count_string = json.dumps({"query":count_query,"collection":collection})
-            // request1 = options.api_url + '/get?q=' + quote(base_query_count_string)
-            // iTotalRecords = json.loads(urllib2.urlopen(request1).read())['data']
-            // self.COUNT_CACHE[(query_string,collection)] = iTotalRecords
-            return apiUrl;
-        };
+            return result;
+        }
         
-        $('#floatedArea').masonry({ 
-            columnWidth: 200,
-            resizeable: false, // handle resizing ourselves
-            itemSelector: '.module' });
+        var onRowClick = function(row) {
+            console.log(row);
+        }
+        
+        var toRotatedData = function(data,metdata) {
+            var result = [];
+            _.each(data, function(rowObj) {
+                var row = [];
+                _.each(metadata.columns, function(col,i) {
+                    row[i] = rowObj[i+""] || 0;
+                });
+                result.push(row);
+            });
+            return result;
+        }
         
         // Initial load with metadata
         $.ajax({
@@ -100,7 +73,6 @@ var Show = {};
             success : function(data) {
                 var m = data[0].metadata;
                 // remove unwanted columns
-                console.log(m.columns);
                 m.columns = _.reject(m.columns,function(col){return _.startsWith(col,"__")});
                 
                 // functionize name and value processors
@@ -120,35 +92,49 @@ var Show = {};
                             numCols : m.columns.length,
                             numRows : m.volume
                 });
-                Show.collection = new iv.Collection({
-                  metadata : metadata,
-                  queryTranslator : queryTranslator,
-                  countCalculator : countCalculator
-                });
-
-                Show.table = new iv.Table({
-                  container : document.getElementById('table'), 
-                  collection : Show.collection 
-                });
-
-                $("#floatedArea").append('<div id="timeline" class="module col4"></div>')
-
+                $("#floatedArea").append('<div class="module col2"><div class="title">'+
+                    metadata.title+" ("+metadata.shortTitle+')</div><div class="keywords">'+
+                    metadata.keywords+'</div></div>');
+                $("#floatedArea").append('<div class="module col1"><div class="description">'+
+                    metadata.description+'</div></div>');
+                if(metadata.contactInfo) {
+                    $("#floatedArea").append('<div class="module col3">'+metadata.contactInfo+'</div>');
+                }
+                $("#floatedArea").append('<div class="module col3"><div id="timeline" ></div></div>')
                 Show.timeline = new iv.Timeline({
-                  container : document.getElementById('timeline'), 
-                  collection : Show.collection 
+                  container : document.getElementById('timeline')
                 });
                 
-                Show.timeline.render();
+                $("#floatedArea").append('<div class="module col4"><div id="table"></div></div>')
+                Show.table = new iv.Table({
+                  container : document.getElementById('table'), 
+                  metadata : metadata,
+                  serverData : serverData,
+                  transformer : toData,
+                  onRowClick : onRowClick
+                });
 
-                Show.updateSizes();
+                $("#floatedArea").append('<div class="module col4"><div id="rotatedTable"></div></div>')
+                Show.rotatedTable = new iv.Table({
+                  container : document.getElementById('rotatedTable'), 
+                  metadata : metadata,
+                  serverData : serverData,
+                  transformer : toData,
+                  onRowClick : onRowClick
+                });
+
+                Show.timeline.render();
+                Show.table.render();
+                Show.rotatedTable.render();
+                
+                _.defer(Show.updatePositions);
             }
         });
-        
-        
+                
         $(window).resize(function() {
             // Use timer method so this event doesn't fire All the time
             clearTimeout(Show.resizeTimer); 
-            Show.resizeTimer = setTimeout(Show.updateSizes, 500);
+            Show.resizeTimer = setTimeout(Show.updatePositions, 500);
         });
         
     };

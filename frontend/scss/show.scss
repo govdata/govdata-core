@@ -24,13 +24,15 @@ margin-left: 30px;
 }
 
 #table {
-  width: 90%;
-  height: 40%;
-  overflow: auto;
-  @include transition(all, .3s, ease-out);
+/*  @include transition(all, .3s, ease-out);*/
 /*  position: absolute;
   top: 50%;
   left: 0;*/
+  overflow: auto;
+  height: 400px;
+}
+
+#tableContainer {
 }
 
 #tableHeader ul, #tableData li {
@@ -118,4 +120,25 @@ $colWidth : 200px - 10;
 
 #floatedArea.masoned, #floatedArea.masoned .module {
   @include transition(all, .3s, ease-out);
+}
+
+//datatables
+.dataTables_empty {
+  display: none;
+}
+
+.title {
+  @include sans;
+  font-size: 2.5em;
+  font-weight: 100;
+  padding: 0 0 30px 0;
+  line-height: 1em;
+}
+
+.keywords {
+  font-style: italic;
+}
+
+.description {
+  
 }
