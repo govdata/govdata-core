@@ -807,7 +807,7 @@ def updateSourceDBFromCollections(collectionNames = None):
     
     for collectionName in collectionNames:
         print 'updating', collectionName , 'metadata in source DB.'
-        collection = Collection(collectionName,connection=connection)
+        collection = Collection(collectionName,connection=connection,attachMetadata=True)
                 
         old_version = sCollection.find_one({'name':collectionName})
         old_version_number = old_version['version'] if old_version else -1

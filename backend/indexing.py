@@ -101,7 +101,7 @@ def updateCollectionIndex(collectionName,incertpath,certpath, verbose=False):
     else:
         atVersion = -1
          
-    collection = Collection(collectionName)
+    collection = Collection(collectionName,attachMetadata=True)
     currentVersion = collection.currentVersion
     sliceDB = collection.slices
     slicecount = sliceDB.find({'original':{'$gt':atVersion},'version':currentVersion}).count()
@@ -110,12 +110,12 @@ def updateCollectionIndex(collectionName,incertpath,certpath, verbose=False):
   
     
     if slicecount < block_size:
-        add_slices(collectionName,currentVersion,atVersion,0,None)
+        add_slices(collection,collectionName,currentVersion,atVersion,0,None)
     else:       
         try:
             import System.grid as grid
         except ImportError:
-            add_slices(collectionName,currentVerison,atVersion,0,None)
+            add_slices(collection,collectionName,currentVerison,atVersion,0,None)
         else:
             num_blocks = int(math.ceil(float(slicecount)/block_size))
             jobdescrs = [{'argstr': "import backend.indexing as I; I.add_slices(" + ", ".join([repr(x) for x in [collectionName, currentVersion,atVersion, block_size*i, block_size]]) + ")",'outfile': certpath + str(i),'name': 'Index' + collectionName + '_' + str(i)} for i in range(num_blocks)]
@@ -126,8 +126,7 @@ def updateCollectionIndex(collectionName,incertpath,certpath, verbose=False):
     createCertificate(certpath + 'final.txt','Collection ' + collectionName + ' indexed.')     
 
   
-def add_slices(collectionName,currentVersion, atVersion,skip,limit,verbose=False): 
-    collection = Collection(collectionName)
+def add_slices(collection,collectionName,currentVersion, atVersion,skip,limit,verbose=False): 
   
     d,ArgDict = initialize_argdict(collection)        
     
@@ -463,7 +462,7 @@ def initialize_argdict(collection):
             
     #overall location
     if hasattr(collection,'overallLocation'):
-        ol = Collection.overallLocation
+        ol = collection.overallLocation
         ArgDict['overallLocation'] = ol
     else:
         ol = None

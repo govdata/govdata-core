@@ -14,6 +14,7 @@ import common.location as loc
 import common.solr as solr
 import functools
 from common.acursor import asyncCursorHandler
+import time
 
 SPECIAL_KEYS = CM.SPECIAL_KEYS
 
@@ -29,6 +30,7 @@ class getHandler(asyncCursorHandler):
     @tornado.web.asynchronous
     def get(self):
         
+        self.TIMER = time.time()
         args = self.request.arguments
         for k in args.keys():
             args[k] = args[k][0]
@@ -67,11 +69,10 @@ class getHandler(asyncCursorHandler):
                 
         self.processor = functools.partial(gov_processor,args.pop('processor',None))
        
-        passed_args = dict([(key,args.get(key,None)) for key in ['timeQuery','spaceQuery','versionNumber']]) 
+        passed_args = dict([(key,args.get(key,None)) for key in ['timeQuery','spaceQuery','versionNumber','returnMetadata']]) 
  
         A,collection,needsVersioning,versionNumber,uniqueIndexes,vars = get_args(collectionName,querySequence,**passed_args)
-
-               
+                       
         self.needsVersioning = needsVersioning
         self.versionNumber = versionNumber
         self.uniqueIndexes = uniqueIndexes
@@ -84,6 +85,7 @@ class getHandler(asyncCursorHandler):
         self.add_async_cursor(collection,A)
         
 
+        
     def begin(self):
         if self.jsonPcallback:
             self.write(self.jsonPcallback + '(')
@@ -113,15 +115,14 @@ class getHandler(asyncCursorHandler):
                 returnedObj["metadata"] = metadata
                 
         if self.stream:
-            self.write('}')  
-                   
+            self.write('}')
+            
         if self.returnObj and not self.stream:
             self.write(json.dumps(returnedObj,default=pm.json_util.default))
             
         if self.jsonPcallback:
             self.write(')')
-            
-       
+
         self.finish()
           
 
@@ -160,7 +161,7 @@ def gov_processor(processor,r,handler,collection):
     return r
 
        
-def get_args(collectionName,querySequence,timeQuery=None, spaceQuery = None, versionNumber=None):
+def get_args(collectionName,querySequence,timeQuery=None, spaceQuery = None, versionNumber=None, returnMetadata=False):
     """
     collection : String => collection name e.g. BEA_NIPA
     query : JSON dictionary or list of dictionaries represnting the mongo query.  Each dictionary has the following keys:
@@ -191,11 +192,9 @@ def get_args(collectionName,querySequence,timeQuery=None, spaceQuery = None, ver
                         find all correponding records with __retained__ = true and __versionNumber__ < V' and for each  one, apply diffs, eading version history in backwards order.
 
     """
-    if versionNumber != 'ALL':
-        collection = CM.Collection(collectionName,versionNumber=versionNumber)
-    else:
-        collection =  CM.Collection(collectionName)
-   
+
+    collection = CM.Collection(collectionName,versionNumber=versionNumber,attachMetadata=returnMetadata)
+        
     versionNumber = collection.versionNumber
     currentVersion = collection.currentVersion
     
@@ -223,7 +222,7 @@ def get_args(collectionName,querySequence,timeQuery=None, spaceQuery = None, ver
             
         for (i,v) in insertions:
             querySequence.insert(i,v)
-                
+
     if timeQuery:
         if hasattr(collection,'overallDate'):
             OK = td.checkQuery(timeQuery, collection.overallDate)
@@ -286,7 +285,7 @@ def get_args(collectionName,querySequence,timeQuery=None, spaceQuery = None, ver
     else:
         sQ = None
         SpaceColNamesToReturn = 'ALL'
-
+        
     if querySequence and (sQ or tQ):
         for (i,(action,args)) in enumerate(querySequence):
             if action in ['find','find_one']:
@@ -318,7 +317,8 @@ def get_args(collectionName,querySequence,timeQuery=None, spaceQuery = None, ver
                             posargs = setArgTuple(posargs,t + '.' + '.'.join(p),sQ[p])
                         
                 querySequence[i] = (action,[posargs,kwargs])                    
-                
+    
+
     if querySequence:
     
         [Actions, Args] = zip(*querySequence)
@@ -336,7 +336,6 @@ def get_args(collectionName,querySequence,timeQuery=None, spaceQuery = None, ver
           
             posargs = tuple([processArg(arg,collection) for arg in posargs])
             kwargs = dict([(argname,processArg(arg,collection)) for (argname,arg) in kwargs.items()])
-            
 
             posArgs.append(posargs)
             kwArgs.append(kwargs)
@@ -514,7 +513,7 @@ def processArg(arg,collection):
                 S["$or"] = [{kk:v} for kk in k]
         if '$where' in arg:
             S['$where'] = arg['$where']
-
+        return S
     else:
         return arg
 
@@ -579,7 +578,12 @@ def getTable(handler):
         handler.status = 'warning'
         handler.warnings = [{'reason':'other','message':'No results.'}]
         
-    return {'cols':cols,'rows':handler.data}
+    returnCols = handler.args.get("returnCols",True) 
+    if returnCols:
+        return {'cols':cols,'rows':handler.data}
+    else:
+        return {"rows":handler.data}
+    
 
 def getType(handler,i,id):
 
@@ -593,10 +597,14 @@ def getType(handler,i,id):
     else:
         return 'object'
 
+import numpy
+isnan = numpy.isnan
 def table_processor(handler,x,collection):
     def clean(d):
         if is_string_like(d):
-            return d.replace("\n"," ")
+            return d.replace("\n","\\\n")
+        elif is_num_like(d) and isnan(d):
+            return None
         else:
             return d
     return [clean(x.get(id,None)) for (id,label) in handler.fields]

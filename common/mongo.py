@@ -4,7 +4,7 @@ utilities for working with govdata in mongoDB format
 """
    
 import pymongo as pm
-    
+from common.utils import Timer    
 
 SPECIAL_KEYS =  ['__versionNumber__','__retained__','__addedKeys__','__originalVersion__']  
 
@@ -32,7 +32,8 @@ class Collection(pm.collection.Collection):
           
     """
     
-    def __init__(self,name,connection = None,versionNumber=None):
+    def __init__(self,name,connection = None,versionNumber=None,attachMetadata = False):
+        
         if connection == None:
             connection = pm.Connection(document_class=pm.son.SON)
         assert 'govdata' in connection.database_names(), 'govdata collection not found.'
@@ -41,24 +42,24 @@ class Collection(pm.collection.Collection):
         pm.collection.Collection.__init__(self,db,name)
         metaname = '__' + name + '__'
         assert metaname in db.collection_names(), 'No metadata collection associated with ' + name + ' found.'
-        self.metaCollection = db[metaname]      
-                    
+        self.metaCollection = db[metaname]              
+                                
         versionsname = '__' + name + '__VERSIONS__'
-        if versionsname in db.collection_names() and versionNumber != 'ALL':
-            self.versions = db[versionsname]
-            currentVersion = max(self.versions.distinct('versionNumber'))
-            self.currentVersion = currentVersion
-            if versionNumber == None:
-                versionNumber = currentVersion
-            self.versionNumber = versionNumber
-            self.metadata = dict([(l['name'],l) for l in self.metaCollection.find({'versionNumber':versionNumber})])
-        else:
-            self.metadata = dict([(l['name'],l) for l in self.metaCollection.find()])
-            
+        assert versionsname in db.collection_names()
+        self.versions = db[versionsname]
+        self.currentVersion = max(self.versions.distinct('versionNumber'))
+        if versionNumber == None:
+            versionNumber = self.currentVersion
+        self.versionNumber = versionNumber
+       
+        vQuery = {"versionNumber":versionNumber} if self.versionNumber != 'ALL' else {}
+        if not attachMetadata:
+            vQuery["name"] = "" 
+        self.metadata = dict([(l['name'],l) for l in self.metaCollection.find(vQuery)])
+                
         self.valueProcessors = self.metadata[''].get('valueProcessors',{})
         self.nameProcessors = self.metadata[''].get('nameProcessors',{})
-
-
+        
         slicesname =  '__' + name + '__SLICES__'
         if slicesname in db.collection_names():
             self.slices = db[slicesname]
