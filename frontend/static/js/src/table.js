@@ -19,7 +19,6 @@ iv.Table = function(opts) {
         bSort : false,
         bProcessing : true,
         bJQueryUI : true,
-        iDisplayLength: 10,
         fnServerData: function ( sSource, aoData, fnCallback ) {
             console.log(aoData);
             esta.serverData({
@@ -44,9 +43,9 @@ iv.Table.prototype.settings = {
 };
 
 iv.Table.prototype.template = _.template("\
-<table width=<%= metadata.columns.length*100 %>px >\
+<table width=<%= metadata.showCols.length*100 %>px >\
 <thead>\
-<% _.each(metadata.columns, function(col,i) { %>\
+<% _.each(metadata.showCols, function(col,i) { %>\
     <th width=100px><%= col %></th>\
 <% }); %>\
 </thead>\

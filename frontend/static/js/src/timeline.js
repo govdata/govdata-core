@@ -5,42 +5,6 @@ iv.Timeline = function(opts) {
 
 _.extend(iv.Timeline.prototype,iv.Module.prototype);
 
-iv.Timeline.prototype.transform = function(row) {
-    var timeCols = this.metadata.columnGroups.timeColNames;
-    if(timeCols) {
-        var dateFormat = this.metadata.dateFormat;
-        var dateDivisions = this.metadata.dateDivisions;
-        var dateFormatTesters = _.map(dateDivisions, function(dateCode) {
-            var idx = dateFormat.indexOf(dateCode);
-            return (function(dateObj) {
-                return dateObj[idx] !== 'X';
-            });
-        });
-        var toDateStr = this.metadata.nameProcessors.timeColNames;
-        var toDate = function(d) { return new Date(toDateStr(d));};
-        var dateGroups = {};
-        _.each(this.metadata.columns, function(col,i) {
-            if(_.include(timeCols, col)) {
-                _.each(dateFormatTesters, function(dateTest,j) {
-                    if(dateTest(col)) {
-                        var dd = dateDivisions[j];
-                        if(dateGroups[dd] === undefined) dateGroups[dd] = [];
-                        var d = toDate(col);
-                        var v = row[i];
-                        if(_.isNumber(v)) {
-                            dateGroups[dd].push({x: d, y: v});
-                        }
-                        _.breakLoop();
-                    }
-                });
-            }
-        });
-        return dateGroups;
-    } else {
-        return null;
-    }
-}
-
 iv.Timeline.prototype.update = function() {
     if (this.data === undefined) {
         return;
