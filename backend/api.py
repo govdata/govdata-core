@@ -204,7 +204,6 @@ def get_args(collectionName,querySequence,timeQuery=None, spaceQuery = None, ver
     
     ColumnGroups = collection.columnGroups
 
-    print timeQuery
     if versionNumber != 'ALL':  
         insertions = []
         for (i,(action,args)) in enumerate(querySequence):
@@ -319,6 +318,7 @@ def get_args(collectionName,querySequence,timeQuery=None, spaceQuery = None, ver
                         
                 querySequence[i] = (action,[posargs,kwargs])                    
     
+    print querySequence
     if querySequence:
     
         [Actions, Args] = zip(*querySequence)
