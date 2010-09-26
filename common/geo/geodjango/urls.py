@@ -19,4 +19,5 @@ urlpatterns = patterns('',
     (r'^geo/geodb/(?P<level_code>\w+)/$','location.views.geodb'),
     (r'^geo/fips/$','location.views.fips'),
     (r'^geo/regions/(?P<level_code>\w+)/$','location.views.regions')
+    (r'^geo/boundaries/(?P<level_code>\w+)/$','location.views.boundaries')
 )
