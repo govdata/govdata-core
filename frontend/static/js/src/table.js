@@ -13,7 +13,7 @@ iv.Table = function(opts) {
     $(this.container).find("table").dataTable( {
         bScrollInfinite : true,
         bScrollCollapse : true,
-        sScrollY : "500px",
+        sScrollY : "300px",
         sScrollX : "740px",
         sAjaxSource : '',
         bSort : false,
@@ -21,7 +21,7 @@ iv.Table = function(opts) {
         iDisplayLength : 100,
         bProcessing : true,
         bJQueryUI : true,
-        bAutoWidth : true,
+        bAutoWidth : false,
         bLengthChange : false,
         bServerSide : true,
         aoColumnDefs : [{
@@ -64,10 +64,10 @@ iv.Table.prototype.settings = {
 // <% if (_.include(metdata.))
 
 iv.Table.prototype.template = _.template("\
-<table>\
+<table width=<%= (metadata.showCols.length * 100) %>px >\
 <thead>\
 <% _.each(metadata.showCols, function(col,i) { %>\
-    <th><%= col %></th>\
+    <th width=100px ><%= col %></th>\
 <% }); %>\
 </thead>\
 <tbody>\
