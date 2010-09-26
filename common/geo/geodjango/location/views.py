@@ -249,8 +249,8 @@ def boundariesGuts(g,level_code):
             max_len = max(lens)
             max_len_idx = lens.index(max_len)
             r['geom'] = [r['geom'][max_len_idx]]
-            if len(r['geom']) > 20
-            r['geom'] = r['geom'][::10]
+            if len(r['geom']) > 20:
+                r['geom'] = r['geom'][::10]
 
     return resD
         
