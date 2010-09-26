@@ -89,7 +89,7 @@ $search-width: 700px;
   input {
     font-size: 1.5em;
     width: 99.3%;
-  }  
+  }
 }
 
 #welcome {
@@ -134,6 +134,9 @@ $search-width: 700px;
 }
 
 #sidebar {
+  h3 {
+    padding: 0 0 5px 0;
+  }
   .goal {
     font-style: italic;
     p {
