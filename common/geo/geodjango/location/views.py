@@ -201,27 +201,27 @@ def regionsGuts(g,level_code):
 	return R
 	
 	
-	
-def boundaries(request,level_code):
-	g = request.GET
-	return HttpResponse(json.dumps(boundariesGuts(g,level_code)))
-	
-def bounariesGuts(g,level_code)
-
-    code_name = loc.LEVEL_CODES[level_code]
-    name_name = loc.LEVEL_CODES[level_code]
-    
-    if 'code' in g:
-        codelist = [{code_name : g['code']}]
-    else:
-        codelist = regionsGuts({'bounds':'-179,0,-0,179'},level_code)
-        R = {}
-		R['method'] = 'filter'
-		R['field'] = 'geom'
-		R['type'] = 'intersects'
-		R['query'] = "POLYGON((-179 0,0 0,0 179,-179 179,-179 0))"
-		R['return'] = ','.join([code_name,name_name,geom])
-		
-		geodbGuts(R,level_code)
-    
-	
+# 	
+# def boundaries(request,level_code):
+# 	g = request.GET
+# 	return HttpResponse(json.dumps(boundariesGuts(g,level_code)))
+# 	
+# def bounariesGuts(g,level_code):
+# 
+#     code_name = loc.LEVEL_CODES[level_code]
+#     name_name = loc.LEVEL_CODES[level_code]
+#     
+#     if 'code' in g:
+#         codelist = [{code_name : g['code']}]
+#     else:
+#         codelist = regionsGuts({'bounds':'-179,0,-0,179'},level_code)
+#         R = {}
+# 		R['method'] = 'filter'
+# 		R['field'] = 'geom'
+# 		R['type'] = 'intersects'
+# 		R['query'] = "POLYGON((-179 0,0 0,0 179,-179 179,-179 0))"
+# 		R['return'] = ','.join([code_name,name_name,geom])
+# 		
+# 		geodbGuts(R,level_code)
+#     
+# 	
