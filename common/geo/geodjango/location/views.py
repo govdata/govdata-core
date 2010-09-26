@@ -242,13 +242,14 @@ def boundariesGuts(g,level_code):
             poly = geom[0][0]
             resD[code]['geom'] = [zip(poly.x,poly.y)]
     
-    resolution = g.get('res','high')
+    resolution = g.get('res',None)
     if resolution:
+        resolution = int(resolution)
         for k in resD:
             r = resD[k]
             for (j,l) in enumerate(r['geom']):
                 if len(l) > 5*resolution:
-                    r['geom'][j] = r['geom'][0][::resolution]
+                    r['geom'][j] = r['geom'][j][::resolution]
                 elif len(l) < resolution:
                     r['geom'][j] = []
             r['geom'] = [l for l in r['geom'] if l]
