@@ -80,8 +80,11 @@ def geodbGuts(g,level_code):
  		code = loc.LEVEL_CODES[level_code]
  		returnVals = [name,code]
 
-	results = [dict([(a,str(Rgetattr(x,a.split('.')))) for a in returnVals if Rhasattr(x,a.split('.'))]) for x in results]
- 
+    if g.get('stringify',True):
+        results = [dict([(a,str(Rgetattr(x,a.split('.')))) for a in returnVals if Rhasattr(x,a.split('.'))]) for x in results]
+     else:
+        results = [dict([(a,Rgetattr(x,a.split('.'))) for a in returnVals if Rhasattr(x,a.split('.'))]) for x in results]
+         
 	return results
 	
 
@@ -201,27 +204,46 @@ def regionsGuts(g,level_code):
 	return R
 	
 	
-# 	
-# def boundaries(request,level_code):
-# 	g = request.GET
-# 	return HttpResponse(json.dumps(boundariesGuts(g,level_code)))
-# 	
-# def bounariesGuts(g,level_code):
-# 
-#     code_name = loc.LEVEL_CODES[level_code]
-#     name_name = loc.LEVEL_CODES[level_code]
-#     
-#     if 'code' in g:
-#         codelist = [{code_name : g['code']}]
-#     else:
-#         codelist = regionsGuts({'bounds':'-179,0,-0,179'},level_code)
-#         R = {}
-# 		R['method'] = 'filter'
-# 		R['field'] = 'geom'
-# 		R['type'] = 'intersects'
-# 		R['query'] = "POLYGON((-179 0,0 0,0 179,-179 179,-179 0))"
-# 		R['return'] = ','.join([code_name,name_name,geom])
-# 		
-# 		geodbGuts(R,level_code)
-#     
-# 	
+	
+def boundaries(request,level_code):
+	g = request.GET
+	return HttpResponse(json.dumps(boundariesGuts(g,level_code)))
+	
+def bounariesGuts(g,level_code):
+
+    code_name = loc.LEVEL_CODES[level_code]
+    name_name = loc.LEVEL_CODES[level_code]
+    
+    R  = {}
+    if 'code' in g:
+        R['method'] = 'filter'
+        R['querylist'] = [{'field':code_name,'query':g['code']}]
+    else:
+		R['field'] = 'geom'
+		R['type'] = 'intersects'
+		R['query'] = "POLYGON((-179 0,0 0,0 179,-179 179,-179 0))"
+	
+	R['method'] = 'filter'
+	R['return'] = ','.join([code_name,name_name,geom])
+	R['stringify'] = False
+	
+	results = geodbGuts(R,level_code)
+    
+	resD = {}
+	for r in results:
+	    code = r[code_name]
+	    if code in resD:
+	        geom = r['geom']
+	        poly = geom[0]
+	        resD[code]['geom'].append(zip(poly.x,poly.y))
+	    else:
+	        resD[code] = r
+	        geom = r['geom']
+	        poly = geom[0]
+	        resD[code]['geom'] = [zip(poly.x,poly.y)]
+	        
+
+    return resD
+        
+	        
+	return resD
