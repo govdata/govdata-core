@@ -1,20 +1,18 @@
 iv.Table = function(opts) {
     iv.Module.call(this,opts);
-    this.metadata = opts.metadata;
-    this.transformer = opts.transformer;
-    this.serverData = opts.serverData;
+    _.extend(this,opts);
 
-    _.extend(iv.Table.prototype.settings, opts.settings);
     var esta = this;
     console.log(this.container);
     $(this.container).html(esta.template({
         metadata : esta.metadata
     }));
     $(this.container).find("table").dataTable( {
-        bScrollInfinite : true,
-        bScrollCollapse : true,
+        //bScrollInfinite : true,
+        //bScrollCollapse : true,
+        sPaginationType : "full_numbers",
         sScrollY : "300px",
-        sScrollX : "740px",
+        sScrollX : "760px",
         sAjaxSource : '',
         bSort : false,
         bFilter : true,
@@ -48,7 +46,7 @@ iv.Table = function(opts) {
                 fnCallback({
                     iTotalRecords : esta.metadata.volume,
                     iTotalDisplayRecords: esta.metadata.volume,
-                    sEcho : aoData.sEcho,
+                    sEcho : parseInt(aoData.sEcho),
                     aaData : data
                 });
             });
@@ -58,16 +56,14 @@ iv.Table = function(opts) {
 
 _.extend(iv.Table.prototype,iv.Module.prototype);
 
-iv.Table.prototype.settings = {
-};
 
 // <% if (_.include(metdata.))
 
 iv.Table.prototype.template = _.template("\
-<table width=<%= (metadata.showCols.length * 100) %>px >\
+<table>\
 <thead>\
 <% _.each(metadata.showCols, function(col,i) { %>\
-    <th width=100px ><%= col %></th>\
+    <th><%= col %></th>\
 <% }); %>\
 </thead>\
 <tbody>\

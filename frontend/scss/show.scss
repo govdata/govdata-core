@@ -28,8 +28,7 @@ margin-left: 30px;
 /*  position: absolute;
   top: 50%;
   left: 0;*/
-  overflow: auto;
-  height: 400px;
+/*  overflow: auto; */
 }
 
 #tableContainer {
@@ -140,7 +139,7 @@ $colWidth : 200px - 10;
 }
 
 .description {
-  
+
 }
 
 .undefined {
@@ -148,3 +147,35 @@ $colWidth : 200px - 10;
   width: 10px;
   height: 10px;
 }
+
+td, th {
+    white-space: nowrap;
+    text-align: center;
+    padding: 10px;
+}
+
+
+.dataTables_filter, .dataTables_info, .dataTables_paginate, .dataTables_processing {
+    padding: 10px;
+    @include sans;
+    font-weight: 100;
+    float: left;
+}
+
+.dataTables_paginate .ui-button {
+    margin: 0 1px 0 0;
+}
+
+tbody {
+    .even {
+        background-color: RGBA(255,200,200,0.5);
+    }
+    tr {
+        @include clickable;
+        &:hover {
+            background-color: $cardinal;
+            color: white;
+        }
+    }
+}
+
