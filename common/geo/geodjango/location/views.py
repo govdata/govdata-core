@@ -234,16 +234,15 @@ def boundariesGuts(g,level_code):
         code = r[code_name]
         if code in resD:
             geom = r['geom']
-            poly = geom[0]
+            poly = geom[0][0]
             resD[code]['geom'].append(zip(poly.x,poly.y))
         else:
             resD[code] = r
             geom = r['geom']
-            poly = geom[0]
+            poly = geom[0][0]
             resD[code]['geom'] = [zip(poly.x,poly.y)]
             
 
     return resD
         
-            
-    return resD
+         
