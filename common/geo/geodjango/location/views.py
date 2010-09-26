@@ -224,7 +224,7 @@ def boundariesGuts(g,level_code):
         R['query'] = "POLYGON((-179 0,0 0,0 179,-179 179,-179 0))"
     
     R['method'] = 'filter'
-    R['return'] = ','.join([code_name,name_name,geom])
+    R['return'] = ','.join([code_name,name_name,'geom'])
     R['stringify'] = False
     
     results = geodbGuts(R,level_code)
