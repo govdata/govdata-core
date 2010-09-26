@@ -209,7 +209,7 @@ def boundaries(request,level_code):
 	g = request.GET
 	return HttpResponse(json.dumps(boundariesGuts(g,level_code)))
 	
-def bounariesGuts(g,level_code):
+def boundariesGuts(g,level_code):
 
     code_name = loc.LEVEL_CODES[level_code]
     name_name = loc.LEVEL_CODES[level_code]
