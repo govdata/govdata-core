@@ -244,7 +244,8 @@ def boundariesGuts(g,level_code):
     
     resolution = g.get('res','high')
     if resolution == 'low':
-        for r in resD:
+        for k in resD:
+            r = resD[k]
             lens = [len(x) for x in r['geom']]
             max_len = max(lens)
             max_len_idx = lens.index(max_len)
