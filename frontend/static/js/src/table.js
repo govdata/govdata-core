@@ -9,26 +9,45 @@ iv.Table = function(opts) {
     console.log(this.container);
     $(this.container).html(esta.template({
         metadata : esta.metadata
-    }))
+    }));
     $(this.container).find("table").dataTable( {
         bScrollInfinite : true,
         bScrollCollapse : true,
-        sScrollY : "200px",
-        sScrollX : "760px",
+        sScrollY : "300px",
+        sScrollX : "740px",
         sAjaxSource : '',
         bSort : false,
+        bFilter : true,
+        iDisplayLength : 100,
         bProcessing : true,
         bJQueryUI : true,
+        bAutoWidth : false,
+        bLengthChange : false,
+        bServerSide : true,
+        aoColumnDefs : [{
+            aTargets : [0,1,2,3],
+            bVisible : false
+        },{
+            aTargets : ["_all"],
+            fnRender : function(o) {
+                var val = o.aData[o.iDataColumn];
+                if(val === undefined){
+                    return "<div class='undefined'></div>"
+                } else {
+                    return val;
+                }
+            }
+        }],
         fnServerData: function ( sSource, aoData, fnCallback ) {
-            console.log(aoData);
+            console.log(esta.metadata.volume);
             esta.serverData({
                 limit : aoData.iDisplayLength,
                 skip : aoData.iDisplayStart
             }, function(data) {
                 data = esta.transformer(data,esta.metadata)
                 fnCallback({
-                    iTotalRecords : esta.metadata.numRows,
-                    iTotalDisplayRecords: esta.metadata.numRows,
+                    iTotalRecords : esta.metadata.volume,
+                    iTotalDisplayRecords: esta.metadata.volume,
                     sEcho : aoData.sEcho,
                     aaData : data
                 });
@@ -42,11 +61,13 @@ _.extend(iv.Table.prototype,iv.Module.prototype);
 iv.Table.prototype.settings = {
 };
 
+// <% if (_.include(metdata.))
+
 iv.Table.prototype.template = _.template("\
-<table width=<%= metadata.showCols.length*100 %>px >\
+<table width=<%= (metadata.showCols.length * 100) %>px >\
 <thead>\
 <% _.each(metadata.showCols, function(col,i) { %>\
-    <th width=100px><%= col %></th>\
+    <th width=100px ><%= col %></th>\
 <% }); %>\
 </thead>\
 <tbody>\

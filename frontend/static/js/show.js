@@ -59,7 +59,6 @@ var Show = {};
         "metadata.volume","metadata.shortTitle","metadata.title","metadata.sliceCols"]}]]];
                 
         var serverData = function(opts,callback) {
-            var d = new Date();
             var q = [{ action: 'find', args: [baseQuery]}];
             var start = opts.start || 0;
             q.push({ action : 'skip', args : [start]});
@@ -69,35 +68,25 @@ var Show = {};
             var queryString = JSON.stringify({"timeQuery": timeQuery, 
                                     "query":q,"collection":collectionName});
             // var queryString = JSON.stringify({"query":q,"collection":collectionName});
-            console.log(queryString);
             $.ajax({
                 url : apiUrl+'/get',
                 data : { q : queryString },
                 dataType : 'jsonp',
                 success : function(data) {
-                    var n = new Date();
-                    console.log("took "+ (n-d) + " milliseconds")
-                    console.log(data.data);
                     callback(data.data);
                 }
             });
         };
         
         var toData = function(data,metadata) {
-            var d = new Date();
             var result = new Array();
             _.each(data, function(rowObj) {
-                console.log(metadata.showCols.length)
                 var row = new Array(metadata.showCols.length);
-                console.log("HI");
                 _.each(rowObj, function(v,k) {
-                    console.log(metadata.columnNumbers[k]);
                     row[metadata.columnNumbers[k]] = v
                 });
                 result.push(row);
             });
-            var n = new Date();
-            console.log("took "+ (n-d) + " milliseconds")
             return result;
         }
         
@@ -128,10 +117,10 @@ var Show = {};
                 $("#floatedArea").append('<div class="module col2"><div class="title">'+
                     metadata.title+" ("+metadata.shortTitle+')</div><div class="keywords">'+
                     metadata.keywords+'</div></div>');
-                $("#floatedArea").append('<div class="module col1"><div class="description">'+
+                $("#floatedArea").append('<div class="module col2"><div class="description">'+
                     metadata.description+'</div></div>');
                 if(metadata.contactInfo) {
-                    $("#floatedArea").append('<div class="module col3">'+metadata.contactInfo+'</div>');
+                    $("#floatedArea").append('<div class="module col2">'+metadata.contactInfo+'</div>');
                 }
                 
                 // $("#floatedArea").append('<div class="module col3"><div id="timeline" ></div></div>')
@@ -178,6 +167,7 @@ var Show = {};
 var Metadata = function(metadata) {
     // extend yourself with metadata
     _.extend(this,metadata);
+    this.evalProcessors();
     this.calcBaseCols();
     this.calcDateGroups();
     this.calcShowCols("Y");
@@ -254,7 +244,12 @@ Metadata.prototype.calcDateGroups = function() {
     
 Metadata.prototype.calcShowCols = function(selector) {
     var metadata = this;
-    this.showCols = _({}).extend(metadata.baseCols,metadata.dateGroups[selector])
+    var niceDateCols = {};
+    console.log(metadata.nameProcessors);
+    _.map(metadata.dateGroups[selector], function(v,k) {
+        niceDateCols[k] = metadata.nameProcessors.timeColNames(v);
+    });
+    this.showCols = _({}).extend(metadata.baseCols,niceDateCols)
     this.calcColumnNumbers();
 };
 
