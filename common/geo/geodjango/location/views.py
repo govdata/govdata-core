@@ -243,16 +243,17 @@ def boundariesGuts(g,level_code):
             resD[code]['geom'] = [zip(poly.x,poly.y)]
     
     resolution = g.get('res','high')
-    if resolution == 'low':
+    if resolution:
         for k in resD:
             r = resD[k]
-            lens = [len(x) for x in r['geom']]
-            max_len = max(lens)
-            max_len_idx = lens.index(max_len)
-            r['geom'] = [r['geom'][max_len_idx]]
-            if len(r['geom'][0]) > 20:
-                r['geom'][0] = r['geom'][0][::10]
+            for (j,l) in enumerate(r['geom']):
+                if len(l) > 5*resolution:
+                    r['geom'][j] = r['geom'][0][::resolution]
+                elif len(l) < resolution:
+                    r['geom'][j] = []
+            r['geom'] = [l for l in r['geom'] if l]
 
+                 
     return resD
         
          
