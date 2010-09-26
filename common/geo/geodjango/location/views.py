@@ -82,7 +82,7 @@ def geodbGuts(g,level_code):
 
     if g.get('stringify',True):
         results = [dict([(a,str(Rgetattr(x,a.split('.')))) for a in returnVals if Rhasattr(x,a.split('.'))]) for x in results]
-     else:
+    else:
         results = [dict([(a,Rgetattr(x,a.split('.'))) for a in returnVals if Rhasattr(x,a.split('.'))]) for x in results]
          
 	return results
