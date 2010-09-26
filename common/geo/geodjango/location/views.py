@@ -4,7 +4,7 @@ from django.http import HttpResponse
 import location.models as models
 import common.location as loc
 import json
-from common.utils import Rgetattr, Rhasattr, uniqify, ListUnion, dictListUniqify
+from common.utils import Rgetattr, Rhasattr, uniqify, ListUnion, dictListUniqify, is_string_like
 
 def main(request):
 	return HttpResponse(str(request))
@@ -34,6 +34,8 @@ def geodbGuts(g,level_code):
 	
 	if 'querylist' in g:
 		querylist = g['querylist']
+		if is_string_like(querylist):
+		    querylist = json.loads(querylist)
 	else:
 		keylist =['field','query','type','pattern','radius','units']
 		querylist = [dict( [(k,g[k]) for k in keylist if k in g])]	
@@ -200,4 +202,26 @@ def regionsGuts(g,level_code):
 	
 	
 	
+def boundaries(request,level_code):
+	g = request.GET
+	return HttpResponse(json.dumps(boundariesGuts(g,level_code)))
+	
+def bounariesGuts(g,level_code)
+
+    code_name = loc.LEVEL_CODES[level_code]
+    name_name = loc.LEVEL_CODES[level_code]
+    
+    if 'code' in g:
+        codelist = [{code_name : g['code']}]
+    else:
+        codelist = regionsGuts({'bounds':'-179,0,-0,179'},level_code)
+        R = {}
+		R['method'] = 'filter'
+		R['field'] = 'geom'
+		R['type'] = 'intersects'
+		R['query'] = "POLYGON((-179 0,0 0,0 179,-179 179,-179 0))"
+		R['return'] = ','.join([code_name,name_name,geom])
+		
+		geodbGuts(R,level_code)
+    
 	
