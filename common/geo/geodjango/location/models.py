@@ -5,6 +5,9 @@ from django.contrib.gis.db import models
 from django.contrib.gis.utils import LayerMapping
 import os
 
+    
+CACHED_NUM = 0
+
 class USCounties(models.Model):
     area = models.FloatField()
     perimeter = models.FloatField()
