@@ -212,7 +212,7 @@ def boundaries(request,level_code):
 def boundariesGuts(g,level_code):
 
     code_name = loc.LEVEL_CODES[level_code]
-    name_name = loc.LEVEL_CODES[level_code]
+    name_name = loc.LEVEL_NAMES[level_code]
     
     R  = {}
     if 'code' in g:
@@ -241,8 +241,20 @@ def boundariesGuts(g,level_code):
             geom = r['geom']
             poly = geom[0][0]
             resD[code]['geom'] = [zip(poly.x,poly.y)]
-            
+    
+    resolution = g.get('res',None)
+    if resolution:
+        resolution = int(resolution)
+        for k in resD:
+            r = resD[k]
+            for (j,l) in enumerate(r['geom']):
+                if len(l) > 5*resolution:
+                    r['geom'][j] = r['geom'][j][::resolution]
+                elif len(l) < resolution:
+                    r['geom'][j] = []
+            r['geom'] = [l for l in r['geom'] if l]
 
+                 
     return resD
         
          
