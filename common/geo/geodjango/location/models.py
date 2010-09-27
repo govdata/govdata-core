@@ -6,7 +6,7 @@ from django.contrib.gis.utils import LayerMapping
 import os
 
     
-CACHED_NUM = 0
+QUERY_CACHE = {}
 
 class USCounties(models.Model):
     area = models.FloatField()

@@ -211,52 +211,57 @@ def boundaries(request,level_code):
     
 def boundariesGuts(g,level_code):
 
-    code_name = loc.LEVEL_CODES[level_code]
-    name_name = loc.LEVEL_NAMES[level_code]
-    
-    R  = {}
-    if 'code' in g:
-        R['method'] = 'filter'
-        R['querylist'] = [{'field':code_name,'query':g['code']}]
-    else:
-        R['field'] = 'geom'
-        R['type'] = 'intersects'
-        R['query'] = "POLYGON((-179 0,0 0,0 179,-179 179,-179 0))"
-    
-    R['method'] = 'filter'
-    R['return'] = ','.join([code_name,name_name,'geom'])
-    R['stringify'] = False
-    
-    results = geodbGuts(R,level_code)
-    
-    resD = {}
-    for r in results:
-        code = r[code_name]
-        if code in resD:
-            geom = r['geom']
-            poly = geom[0][0]
-            resD[code]['geom'].append(zip(poly.x,poly.y))
-        else:
-            resD[code] = r
-            geom = r['geom']
-            poly = geom[0][0]
-            resD[code]['geom'] = [zip(poly.x,poly.y)]
-    
-    resolution = g.get('res',None)
-    if resolution:
-        resolution = int(resolution)
-        for k in resD:
-            r = resD[k]
-            for (j,l) in enumerate(r['geom']):
-                if len(l) > 5*resolution:
-                    r['geom'][j] = r['geom'][j][::resolution]
-                elif len(l) < resolution:
-                    r['geom'][j] = []
-            r['geom'] = [l for l in r['geom'] if l]
 
+    query_descriptor = ((('code',g.get('code'),('res',g.get('res'))),level_code)
+        
+    if query_descriptor in models.QUERY_CACHE:
+        resD = models.QUERY_CACHE[query_descriptor]
+    else:
+        code_name = loc.LEVEL_CODES[level_code]
+        name_name = loc.LEVEL_NAMES[level_code]
+        
+        R  = {}
+        if 'code' in g:
+            R['method'] = 'filter'
+            R['querylist'] = [{'field':code_name,'query':g['code']}]
+        else:
+            R['field'] = 'geom'
+            R['type'] = 'intersects'
+            R['query'] = "POLYGON((-179 0,0 0,0 179,-179 179,-179 0))"
+        
+        R['method'] = 'filter'
+        R['return'] = ','.join([code_name,name_name,'geom'])
+        R['stringify'] = False
+        
+        results = geodbGuts(R,level_code)
+        
+        resD = {}
+        for r in results:
+            code = r[code_name]
+            if code in resD:
+                geom = r['geom']
+                poly = geom[0][0]
+                resD[code]['geom'].append(zip(poly.x,poly.y))
+            else:
+                resD[code] = r
+                geom = r['geom']
+                poly = geom[0][0]
+                resD[code]['geom'] = [zip(poly.x,poly.y)]
+        
+        resolution = g.get('res',None)
+        if resolution:
+            resolution = int(resolution)
+            for k in resD:
+                r = resD[k]
+                for (j,l) in enumerate(r['geom']):
+                    if len(l) > 5*resolution:
+                        r['geom'][j] = r['geom'][j][::resolution]
+                    elif len(l) < resolution:
+                        r['geom'][j] = []
+                r['geom'] = [l for l in r['geom'] if l]
+    
               
-    resD['CACHED_NUM'] = models.CACHED_NUM
-    models.CACHED_NUM += 1
+        models.QUERY_CACHE[query_descriptor] = resD
     
     return resD
         
