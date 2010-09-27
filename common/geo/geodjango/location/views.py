@@ -241,7 +241,7 @@ def boundariesGuts(g,level_code):
         
         resD = {}
         for r in results:
-            code = r[code_name]
+            code = r.pop(code_name)
             if code in resD:
                 geom = r['geom']
                 poly = geom[0][0]
@@ -264,7 +264,8 @@ def boundariesGuts(g,level_code):
                         r['geom'][j] = []
                 r['geom'] = [l for l in r['geom'] if l]
     
-              
+        resD = [{'code':k,'name':r['name'],'borders':r['geom']} for (k,r) in resD.items()]
+        
         models.QUERY_CACHE[query_descriptor] = resD
     
     return resD
