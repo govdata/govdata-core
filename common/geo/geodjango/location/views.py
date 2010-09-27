@@ -212,7 +212,7 @@ def boundaries(request,level_code):
 def boundariesGuts(g,level_code):
 
 
-    query_descriptor = ((('code',g.get('code'),('res',g.get('res'))),level_code)
+    query_descriptor = (  (  ('code',g.get('code')),('res',g.get('res'))  ) ,level_code)
         
     if query_descriptor in models.QUERY_CACHE:
         resD = models.QUERY_CACHE[query_descriptor]
