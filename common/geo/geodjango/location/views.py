@@ -204,7 +204,8 @@ def regionsGuts(g,level_code):
     return R
     
     
-    
+CACHED_NUM = 0
+
 def boundaries(request,level_code):
     g = request.GET
     return HttpResponse(json.dumps(boundariesGuts(g,level_code)))
@@ -254,7 +255,9 @@ def boundariesGuts(g,level_code):
                     r['geom'][j] = []
             r['geom'] = [l for l in r['geom'] if l]
 
-                 
+              
+    resD['CACHED_NUM'] = CACHED_NUM
+    CACHED_NUM += 1
     return resD
         
          
