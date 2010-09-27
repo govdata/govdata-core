@@ -84,7 +84,7 @@ iv.Table = function(opts) {
                 w = oTable.width();
                 esta.width = w;
             }
-            oTable.width(w+w*0.1);
+            oTable.width(w+w*0.3);
             //oTable.fnDraw();
         },
         fnInitComplete: function() {

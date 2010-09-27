@@ -25,11 +25,11 @@ def make_metadata_dict(metadata):
     return dict([(m["name"],m["metadata"]) for m in metadata])
 
 def make_metadata_value_render(metadata_dict):
+    ctx = commonjs.pyV8CommonJS()
     for collectionName,value in metadata_dict.iteritems():
         vp = value['valueProcessors']
         cg = value['columnGroups']
         cgkeys_in_vp = [k for k in cg if k in vp.keys()]
-        ctx = commonjs.pyV8CommonJS()
         for k in vp:
             fn = "var %s_%s = function (value){ %s };" % (collectionName,k,vp[k])
             ctx.eval(str(fn))
@@ -44,6 +44,7 @@ def make_metadata_value_render(metadata_dict):
                 fname = None
         if fname:
             fn = "%s_%s(%s)"%(collectionName,fname,json.dumps(value))
+            ctx.eval("require('underscore')")
             return ctx.eval(str(fn))
         else:
             return str(value)
