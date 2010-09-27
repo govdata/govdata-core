@@ -79,6 +79,13 @@ iv.Table = function(opts) {
                     oTable.fnSetColumnVis(i,false);
                 }
             });
+            var w = esta.width;
+            if(!w) {
+                w = oTable.width();
+                esta.width = w;
+            }
+            oTable.width(w+w*0.1);
+            //oTable.fnDraw();
         },
         fnInitComplete: function() {
             $("table tr").first().click();

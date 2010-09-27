@@ -2,7 +2,7 @@
  * An implementation of the CommonJS Modules 1.0
  * Copyright (c) 2009 by David Flanagan
  */
- 
+
 
 var registered = {};
 var require = function require(module) {
@@ -140,7 +140,7 @@ registered.location = exports;
             if (dateformat[ind] != dateformat[ind-1]){
             	clist.push(ind)
     			llist.push(0)
-            } 
+            }
             llist[llist.length-1] += 1
 
     	}
@@ -156,7 +156,7 @@ registered.location = exports;
     	return result
 
     };
-    
+
     exports.stringtomongo = stringtomongo;
     exports.tObjFlatten = tObjFlatten;
     exports.convertToDT = convertToDT;
