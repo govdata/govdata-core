@@ -250,7 +250,7 @@ def boundariesGuts(g,level_code):
             r = resD[k]
             for (j,l) in enumerate(r['geom']):
                 if len(l) > 5*resolution:
-                    r['geom'][j] = [::resolution]
+                    r['geom'][j] = r['geom'][j][::resolution]
                 elif len(l) < resolution:
                     r['geom'][j] = []
             r['geom'] = [l for l in r['geom'] if l]
@@ -258,6 +258,7 @@ def boundariesGuts(g,level_code):
               
     resD['CACHED_NUM'] = CACHED_NUM
     CACHED_NUM += 1
+    
     return resD
         
          
