@@ -207,7 +207,11 @@ def regionsGuts(g,level_code):
 
 def boundaries(request,level_code):
     g = request.GET
-    return HttpResponse(json.dumps(boundariesGuts(g,level_code)))
+    callback = g.get('callback')
+    if callback:
+        return HttpResponse(callback + '(' + json.dumps(boundariesGuts(g,level_code)) + ')')
+    else:
+        return HttpResponse(json.dumps(boundariesGuts(g,level_code)))
     
 def boundariesGuts(g,level_code):
 
