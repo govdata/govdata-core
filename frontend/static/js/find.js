@@ -31,7 +31,7 @@ var Find = {};
                 lastXhr = $.ajax({
                     url : apiUrl + "/terms",
                     data : {
-                        "terms.fl" : "mongoText",
+                        "terms.fl" : "autocomplete",
                         "terms.sort" : "index",
                         "terms.prefix" : request.term,
                         "omitHeader" : true
@@ -63,7 +63,7 @@ var Find = {};
     var getItems = function( callback ) {
         $.get('/',
             $.param({
-                q : Find.q,
+                q : escape(Find.q),
                 partial : true,
                 page : Find.offset,
                 filter : Find.filters

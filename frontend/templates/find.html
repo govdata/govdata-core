@@ -3,7 +3,7 @@
 {% block javascript %}
   Find.run();
   Find.max_offset = {{ data["response"]["numFound"] / float(kwargs['per_page']) }};
-  Find.q = "{{ kwargs['q'] }}";
+  Find.q = {{ json.dumps(kwargs['q']) }};
   Find.filters = {{ kwargs['jsonfilters'] }};
   Find.registerAutoPaginate();
 {% end %}

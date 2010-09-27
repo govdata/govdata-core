@@ -9,6 +9,7 @@ iv.Timeline.prototype.update = function() {
     if (this.data === undefined) {
         return;
     }
+    $(this.container).empty().css("width","100%");
     var start = this.data[0].x;
     var end = this.data[this.data.length-1].x;
     /* Sizing and scales. */
@@ -51,16 +52,23 @@ iv.Timeline.prototype.update = function() {
     /* The line. */
     vis.add(pv.Line)
       .data(this.data)
-      .interpolate("step-after")
+      //.interpolate("step-after")
       .left(function(d){ return x(d.x);})
       .bottom(function(d){ return y(d.y);})
       .lineWidth(3);
 
     this.renderer = vis;
-}
+};
 
 iv.Timeline.prototype.render = function() {
     if(this.renderer) {
         this.renderer.render();
     }
+};
+
+iv.Timeline.prototype.add = function(data) {
+    console.log(data);
+    this.data = data;
+    this.update();
+    this.render();
 }

@@ -46,7 +46,7 @@ def make_metadata_value_render(metadata_dict):
             fn = "%s_%s(%s)"%(collectionName,fname,json.dumps(value))
             return ctx.eval(str(fn))
         else:
-            return str(value)        
+            return str(value)
     return render
 
 
@@ -62,21 +62,21 @@ class TableHandler(tornado.web.RequestHandler):
 
     COUNT_CACHE = {}
     DEFAULT_DISPLAY_LENGTH = 50
-     
-    @tornado.web.asynchronous 
+
+    @tornado.web.asynchronous
     def get(self):
         base_query_string = self.get_argument("q",None)
         base_query = json.loads(base_query_string,object_pairs_hook=collections.OrderedDict)
         query_seq = [{"action": "find", "args": [base_query.copy()]}]
         filter_query = base_query.copy()
         collection = self.get_argument("collection",None)
-         
+
         args = self.request.arguments
         for k in args:
-            args[k] = args[k][0]      
-            
-        sEcho = self.get_argument("sEcho",0) 
-       
+            args[k] = args[k][0]
+
+        sEcho = self.get_argument("sEcho",0)
+
         #add skip for iDisplayStart
         iDisplayStart = self.get_argument("iDisplayStart",0)
         query_seq.append({"action":"skip","args":[iDisplayStart]})
@@ -85,26 +85,26 @@ class TableHandler(tornado.web.RequestHandler):
         query_seq.append({"action":"limit","args":[iDisplayLength]})
 
         iSortCol = self.get_argument("iSortCol","")
-           
+
         #add to find for sSearch
         sSearch = self.get_argument("sSearch",'')
         searchables = [int(k.split('_')[1]) for k in args if k.startswith('bSearchable') and args[k]]
         filters = dict([(int(k.split('_')[1]),args[k]) for k in args if k.startswith('bSearch_') and args[k]])
-        if sSearch:                 
+        if sSearch:
             query_seq[0]["args"][0].append({"$or":dict([(s, re.compile(sSearch,re.I)) for s in searchables])})
             filter_query["$or"] = collections.OrderedDict([(s, re.compile(sSearch,re.I)) for s in searchables])
         for k,search in filters.items():
             if search:
                 query_seq[0]["args"][0].append({k:re.compile(search,re.I)})
                 filter_query["$or"] = {k:re.compile(search,re.I)}
-            
+
         sortables = [int(k.split('_')[1]) for k in args if k.startswith('bSortable') and args[k]]
         #add sort if sortable from iSortCol and iSortDir
         if iSortCol != '' and iSortCol in sortables:
             direction = pm.ASCENDING if iSortDir == "asc" else pm.DESCENDING
             query.append({"action":sort,"kwargs":{"direction":direction}})
 
-        #compute countss        
+        #compute countss
         query_string = json.dumps(base_query)
         if (query_string,collection) in self.COUNT_CACHE:
             iTotalRecords= self.COUNT_CACHE[(query_string,collection)]
@@ -123,11 +123,11 @@ class TableHandler(tornado.web.RequestHandler):
             filter_query_count_string = json.dumps({"query":filter_count_query,"collection":collection})
             request2 = options.api_url + '/get?q=' + quote(filter_query_count_string)
             iTotalDisplayRecords = json.loads(urllib2.urlopen(request2).read())['data']
-            self.COUNT_CACHE[(filter_query_string,collection)] = iTotalDisplayRecords      
-            
-        #parse the request from dataTables and make the request 
+            self.COUNT_CACHE[(filter_query_string,collection)] = iTotalDisplayRecords
+
+        #parse the request from dataTables and make the request
         http = tornado.httpclient.AsyncHTTPClient()
-        
+
         backend_request = '/table?q=%s' % (quote(json.dumps({"query":query_seq,"collection":collection})),)
         http.fetch(options.api_url + backend_request, callback = self.async_callback(self.on_response,
                     sEcho=sEcho,iTotalRecords=iTotalRecords,iTotalDisplayRecords=iTotalDisplayRecords))
@@ -162,7 +162,7 @@ class FindHandler(tornado.web.RequestHandler):
             }
             query = urlencode(params)
             http.fetch(options.api_url+"/find?"+query,
-                       callback=self.async_callback(self.on_response, partial=partial, 
+                       callback=self.async_callback(self.on_response, partial=partial,
                        queries=queries, filters=filters, jsonfilters=json.dumps(filters), **kwargs))
     def on_response(self, response, **kwargs):
         if response.error: raise tornado.web.HTTPError(500)
@@ -186,7 +186,7 @@ class FindHandler(tornado.web.RequestHandler):
             self.render("_find.html",data=data,kwargs=kwargs)
         else:
             kwargs['per_page'] = options.per_page
-            self.render("find.html",data=data,kwargs=kwargs)
+            self.render("find.html",data=data,json=json,kwargs=kwargs)
 
 
 class MetadataHandler(tornado.web.RequestHandler):
