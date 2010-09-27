@@ -47,7 +47,7 @@ $tdHeight : 30px;
 
 #tableHeader, #tableData {
   table {
-    table-layout: fixed;
+    /* table-layout: fixed; */
     td {
       border: 1px solid #ccc;
       vertical-align:middle;
@@ -116,6 +116,12 @@ $colWidth : 200px - 10;
 .col4 {
   width: $colWidth * 4;
 }
+.col5 {
+  width: $colWidth * 5;
+}
+.col6 {
+  width: $colWidth * 6;
+}
 
 #floatedArea.masoned, #floatedArea.masoned .module {
   @include transition(all, .3s, ease-out);
@@ -143,14 +149,14 @@ $colWidth : 200px - 10;
 }
 
 .undefined {
-  background-color: #DDD;
+  background-color: RGBA(0,0,0,0.1);
   width: 10px;
   height: 10px;
 }
 
 td, th {
-    white-space: nowrap;
-    text-align: center;
+    //white-space: nowrap;
+    //text-align: left;
     padding: 10px;
 }
 
@@ -173,9 +179,16 @@ tbody {
     tr {
         @include clickable;
         &:hover {
+            //background-color: RGBA(112,52,53,0.75);
             background-color: $cardinal;
             color: white;
         }
     }
 }
+
+
+.dataTables_empty {
+    background-color: #000;
+}
+
 
