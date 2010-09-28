@@ -71,9 +71,6 @@ var Show = {};
             var queryString = JSON.stringify({"timeQuery": timeQuery,
                                     "query":q,"collection":collectionName});
             // var queryString = JSON.stringify({"query":q,"collection":collectionName});
-            console.log("SERVER");
-            console.log(queryString);
-            countRows({},_.identity);
             countRows({}, function(count) {
                 Show.metadata.count = count;
                 $.ajax({
@@ -168,12 +165,12 @@ var Show = {};
                 var metadata = Show.metadata;
 
                 $("#floatedArea").append('<div class="module col2"><div class="title">'+
-                    metadata.title+" ("+metadata.shortTitle+')</div><div class="keywords">'+
+                    metadata.title+" ("+metadata.shortTitle+')</div><div class="keywords"><span class="label">keywords: </span>'+
                     metadata.keywords+'</div></div>');
-                $("#floatedArea").append('<div class="module col2"><div class="description">'+
+                $("#floatedArea").append('<div class="module col2"><div class="description"><span class="label">Description: </span>'+
                     metadata.description+'</div></div>');
                 if(metadata.contactInfo) {
-                    $("#floatedArea").append('<div class="module col2">'+metadata.contactInfo+'</div>');
+                    $("#floatedArea").append('<div class="module col2"><span class="label">Contact Info: </span>'+metadata.contactInfo+'</div>');
                 }
 
                 $("#floatedArea").append('<div class="module col3"><div id="timeline" ></div></div>')
@@ -214,7 +211,7 @@ var Show = {};
         $(window).resize(function() {
             // Use timer method so this event doesn't fire All the time
             clearTimeout(Show.resizeTimer);
-            Show.resizeTimer = setTimeout(Show.updatePos/itions, 500);
+            Show.resizeTimer = setTimeout(Show.updatePositions, 500);
         });
 
         $("table tr").live("click", function() {

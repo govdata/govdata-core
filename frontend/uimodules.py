@@ -107,7 +107,7 @@ class Facet(tornado.web.UIModule):
         print formated_queries
         assert(facets != None)
         return self.render_string("modules/facet.html", facets=facets, filterFn=filterFn, rmFilterFn=rmFilterFn, queries=formated_queries, filters=formated_filters, **kwargs)
-                
+
 class Find(tornado.web.UIModule):
     def render(self, results=[], **kwargs):
         modresults = []

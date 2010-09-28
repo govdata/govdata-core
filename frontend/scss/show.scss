@@ -172,6 +172,13 @@ td, th {
     margin: 0 1px 0 0;
 }
 
+thead {
+  th {
+    font-weight: bold;
+    @include sans;
+  }
+}
+
 tbody {
     .even {
         background-color: RGBA(255,200,200,0.5);
@@ -191,4 +198,7 @@ tbody {
     background-color: #000;
 }
 
-
+.label {
+    font-weight: bold;
+    @include sans;
+}

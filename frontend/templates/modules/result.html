@@ -1,12 +1,11 @@
 <td class="dataset {% if result['dataset']['color'] %}eveneven{% else %}evenodd{% end %}">
-  {% if result['dataset']['diff'] %}
-    <div class="diff">
-    {{result['dataset']['diff']}}
-    </div>
-  {% end %}
-  <div class="hidden">
-    <a href='{{ filterFn("dataset", result['dataset']['data']) }}'>{{result['dataset']['data']}}</a>
-  </div>
+    <a href='{{ filterFn("dataset", result['dataset']['data']) }}'
+    {% if result['dataset']['diff'] %}
+       class="visible"> {{result['dataset']['diff']}}
+    {% else %}
+       class="hidden"> {{result['dataset']['data']}}
+    {% end %}
+    </a>
 </td>
 <td class="source {% if result['sourceSpec']['color'] %}oddeven{% else %}oddodd{% end %}">
   <div class="{% if result['sourceSpec']['diff'] %}visible{% else %}hidden{% end %}">
@@ -25,22 +24,19 @@
 </td>
 <td class="query {% if result['query']['color'] %}eveneven{% else %}evenodd{% end %}">
   {% if result['query']['diff'] %}
-  <div class="diff">
     {% if result['query']['intersection'] %}
       {% for k,v in result['query']['intersection'].iteritems() %}
-      <div style="color:RGBA(83,83,83,0.5);"><span class="query_key">{{k}}</span> : <span>{{ renderer(result['collectionName'],k,v) }}</span></div>
+      <a class="hidden" href='{{ filterFn(k,v,True) }}'><span class="query_key">{{k}}</span> : <span>{{ renderer(result['collectionName'],k,v) }}</span></a>
       {% end %}
-    {% end %}  
-    {% for k,v in result['query']['diff'].iteritems() %}
-    <div style=""><span class="query_key">{{k}}</span> : <span>{{ renderer(result['collectionName'],k,v) }}</span></div>
     {% end %}
-  </div>
-  {% end %}
-  <div class="hidden">
+    {% for k,v in result['query']['diff'].iteritems() %}
+    <a class="visible" href='{{ filterFn(k,v,True) }}'><span class="query_key">{{k}}</span> : <span>{{ renderer(result['collectionName'],k,v) }}</span></a>
+    {% end %}
+  {% else %}
     {% for k,v in result['query']['data'].iteritems() %}
       <a href='{{ filterFn(k,v,True) }}'><span class="query_key">{{k}}</span> : <span>{{ renderer(result['collectionName'],k,v) }}</span></a>
     {% end %}
-  </div>
+  {% end %}
 </td>
 <td class="{% if result['volume']['color'] %}oddeven{% else %}oddodd{% end %}">
   <!-- <div class="{% if result['volume']['diff'] %}diff{% else %}hidden{% end %}"> -->

@@ -159,7 +159,8 @@ class FindHandler(tornado.web.RequestHandler):
                 "fq" : filters,
                 "start" : page * options.per_page,
                 "rows" : options.per_page,
-                # "facet.field" : [""]
+                "facet.field" : ["agency","subagency","datasetTight","dateDivisionsTight","spatialDivisionsTight"],
+                "facet" : "true"
             }
             query = urlencode(params)
             http.fetch(options.api_url+"/find?"+query,

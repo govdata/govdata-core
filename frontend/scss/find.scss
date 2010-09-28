@@ -37,6 +37,10 @@ $search-width: 700px;
     width: 100%;
     td:first-child {
         width: 80%;
+        overflow: hidden;
+    }
+    td {
+        padding: 3px;
     }
   }
   .numFound {
@@ -52,11 +56,13 @@ $search-width: 700px;
     }
   }
   tr:hover {
-    background-color: $cardinal;
-    color: white;
+    text-decoration: line-through;
+    a:hover {
+        color: $steel;
+    }
   }
   td:first-child {
-    width: 40%;
+    width: 50%;
   }
 }
 #main {
@@ -182,6 +188,23 @@ $search-width: 700px;
   }
   tbody {
     tr {
+      td {
+        border-left: 1px solid #ddd;
+        text-align: center;
+        &.query, &.source {
+          text-align: left;
+        }
+        //.hidden {
+            //display: block;
+            //visibility: none;
+        //}
+        &.query a, &.source a {
+          display: block;
+        }
+        &.query .hidden {
+          color: RGBA(83,83,83,0.5);
+        }
+      }
       &:hover {
         background-color: $cardinal;
         color: #fff;
@@ -191,21 +214,12 @@ $search-width: 700px;
             text-decoration: underline;
           }
         }
-        div.diff {
-          display: none;
-        }
-        div.hidden, div.visible {
+        .hidden, .visible {
           display: block;
+          visibility: visible;
         }
-      }
-      td {
-        border-left: 1px solid #ddd;
-        text-align: center;
-        &.query, &.source {
-          text-align: left;
-        }
-        &.query a, &.source a {
-          display: block;
+        td.query .hidden {
+            color: #fff;
         }
       }
     }

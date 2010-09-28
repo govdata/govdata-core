@@ -44,8 +44,8 @@ iv.Table = function(opts) {
     });
 
     $(this.container).find("table").dataTable( {
-        bScrollInfinite : true,
-        bScrollCollapse : true,
+        //bScrollInfinite : true,
+        //bScrollCollapse : true,
         sPaginationType : "full_numbers",
         sScrollY : "400px",
         sScrollX : (190*6)+"px",
