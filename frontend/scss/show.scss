@@ -8,82 +8,10 @@
 #floatedArea {
 margin-top: 40px;
 margin-left: 30px;
-/*  margin: auto;
-  text-align: center;
-  width: 50%;*/
-/*  .module {
-    text-align: left;
-    float: left;
-  }*/
 }
 
 #rest {
   margin: 30px 0 0px 0;
-/*  width: 100%;*/
-/*  height: 100%;*/
-}
-
-#table {
-/*  @include transition(all, .3s, ease-out);*/
-/*  position: absolute;
-  top: 50%;
-  left: 0;*/
-/*  overflow: auto; */
-}
-
-#tableContainer {
-}
-
-#tableHeader ul, #tableData li {
-}
-#tableData .cell, #tableHeader li {
-}
-
-#tableHeader, #tableData, #tableSpacer {
-  position: absolute;
-}
-
-$tdHeight : 30px;
-
-#tableHeader, #tableData {
-  table {
-    /* table-layout: fixed; */
-    td {
-      border: 1px solid #ccc;
-      vertical-align:middle;
-      height: $tdHeight;
-      div {
-        height: $tdHeight;
-        text-align: center;
-        overflow: hidden;
-      }
-    }
-  }
-}
-
-#tableHeader {
-  top: 0;
-  left: 0;
-  background-color: white;
-  @include transition(all, .3s, ease-out);
-}
-
-#tableData {
-  top: $tdHeight;
-  left: 0;
-  background-color: white;
-  @include transition(all, .3s, ease-out);
-}
-
-#tableContainer {
-  position: relative;
-  left: 0;
-  top: 0;
-}
-
-#tableSpacer {
-  top: 0;
-  left: 0;
 }
 
 
@@ -93,20 +21,25 @@ $tdHeight : 30px;
 .module {
 /*  width: 100px;
   height: 300px;*/
-  z-index: 0;
-  border-top: 5px solid $cardinal;
-  text-align: left;
-  margin: 5px;
-  padding: 10px;
-  @include box-shadow(2px, 2px, 10px, $shadow);
-  @include round-all(10px);
+  margin: 0;
+  padding: 0;
+  .inner {
+      z-index: 0;
+      border-top: 5px solid $cardinal;
+      text-align: left;
+      margin: 10px;
+      padding: 5px;
+      @include box-shadow(2px, 2px, 10px, $shadow);
+      @include round-all(10px);
+  }
 }
 
-$colWidth : 200px - 10;
+$colWidth : 150px;
 
 .col1 {
   width: $colWidth;
 }
+
 .col2 {
   width: $colWidth * 2;
 }
@@ -186,11 +119,16 @@ tbody {
     tr {
         @include clickable;
         &:hover {
-            //background-color: RGBA(112,52,53,0.75);
-            background-color: $cardinal;
+            background-color: RGBA(128,53,52,0.51);
+            //background-color: $cardinal;
+            //background-color: RGBA(255,200,200,.5);
             color: white;
         }
     }
+}
+
+table {
+    background-color: white;
 }
 
 

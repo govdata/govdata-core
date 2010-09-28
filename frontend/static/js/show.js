@@ -6,7 +6,7 @@ var Show = {};
 
     Show.updatePositions = function() {
         $('#floatedArea').masonry({
-            columnWidth: 200,
+            columnWidth: 150,
             resizeable: false, // handle resizing ourselves
             itemSelector: '.module' });
     };
@@ -155,6 +155,14 @@ var Show = {};
             Show.updatePositions();
         };
 
+        var renderSource = function(source) {
+            return _.template("<div class='sourceHierarchy'>\
+                    <% _.each(source, function(v,k) { %>\
+                        <div><span class='label'><%= k %>: </span><%= v.name %></div>\
+                    <% }); %>\
+                    </div>", {source : source});
+        };
+
         // Initial load with metadata
         $.ajax({
             url : Show.apiUrl+'/sources',
@@ -164,21 +172,25 @@ var Show = {};
                 Show.metadata = new Metadata(data[0].metadata);
                 var metadata = Show.metadata;
 
-                $("#floatedArea").append('<div class="module col2"><div class="title">'+
+                $("#floatedArea").append('<div class="module col3"><div class="inner"><div class="title">'+
                     metadata.title+" ("+metadata.shortTitle+')</div><div class="keywords"><span class="label">keywords: </span>'+
-                    metadata.keywords+'</div></div>');
-                $("#floatedArea").append('<div class="module col2"><div class="description"><span class="label">Description: </span>'+
-                    metadata.description+'</div></div>');
+                    metadata.keywords+'</div></div></div>');
                 if(metadata.contactInfo) {
-                    $("#floatedArea").append('<div class="module col2"><span class="label">Contact Info: </span>'+metadata.contactInfo+'</div>');
+                    $("#floatedArea").append('<div class="module col3"><div class="inner"><span class="label">Contact Info: </span>'+metadata.contactInfo+'</div></div>');
                 }
+                $("#floatedArea").append('<div class="module col3"><div class="description inner"><span class="label">Description: </span>'+
+                    metadata.description+'</div></div>');
+                $("#floatedArea").append('<div class="module col1"><div class="query inner"><span class="label">Query: </span>'+
+                    query+'</div></div>');
+                $("#floatedArea").append('<div class="module col2"><div class="source inner"><span class="label">Source: </span>'+
+                    renderSource(metadata.source)+'</div></div>');
 
-                $("#floatedArea").append('<div class="module col3"><div id="timeline" ></div></div>')
+                $("#floatedArea").append('<div class="module col3"><div class="inner"><div id="timeline" ></div></div></div>')
                 Show.timeline = new iv.Timeline({
                   container : document.getElementById('timeline')
                 });
 
-                $("#floatedArea").append('<div class="module col6"><div id="table"></div></div>');
+                $("#floatedArea").append('<div class="module col6"><div id="table" class="inner"></div></div>');
                 Show.table = new iv.Table({
                   container : document.getElementById('table'),
                   metadata : metadata,

@@ -43,12 +43,14 @@ iv.Table = function(opts) {
         }
     });
 
-    $(this.container).find("table").dataTable( {
+    var oTable = $("#"+this.tableId).dataTable( {
         //bScrollInfinite : true,
         //bScrollCollapse : true,
         sPaginationType : "full_numbers",
         sScrollY : "400px",
-        sScrollX : (190*6)+"px",
+        //sScrollX : (190*6)+"px",
+        sScrollX : "100%",
+        //sScrollXInner : "150%",
         sAjaxSource : '',
         bSort : false,
         bFilter : false,
@@ -79,12 +81,12 @@ iv.Table = function(opts) {
                     oTable.fnSetColumnVis(i,false);
                 }
             });
-            var w = esta.width;
-            if(!w) {
-                w = oTable.width();
-                esta.width = w;
-            }
-            oTable.width(w+w*0.3);
+            //var w = esta.width;
+            //if(!w) {
+                //w = oTable.width();
+                //esta.width = w;
+            //}
+            //oTable.width(w+w*0.3);
             //oTable.fnDraw();
         },
         fnInitComplete: function() {
@@ -109,6 +111,10 @@ iv.Table = function(opts) {
             });
         }
     } );
+    console.log(_.size(metadata.groups.labelColumns));
+    new FixedColumns(oTable, {
+        columns : _.size(metadata.groups.labelColumns)
+    });
 };
 
 _.extend(iv.Table.prototype,iv.Module.prototype);

@@ -26,7 +26,7 @@ class Application(tornado.web.Application):
             "ui_modules": uimodules,
             "xsrf_cookies": True,
             "cookie_secret": "13oETzXKQAGaYdkL5gEmGeJJFuYh7EQnp2XdTP1o/Vo=",
-        }
+            }
         tornado.web.Application.__init__(self, hands, **settings)
 
 def main():
