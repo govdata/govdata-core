@@ -5,15 +5,15 @@ JS_CORE_FILES = \
 	js/show.js \
 
 JS_LIB_FILES = \
-	js/lib/jquery.js
+	js/lib/underscore.js
 
 JS_MODULE_FILES = \
 	js/modules/module.js
 
 
 JS_FILES = \
-	$(JS_CORE_FILES) \
 	$(JS_LIB_FILES) \
+	$(JS_CORE_FILES) \
 	$(JS_MODULE_FILES)
 
 JS_COMPILER = \
