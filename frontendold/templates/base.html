@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>{% block title %}Harvard - MIT Government Data Portal{% end %}</title>
+    {% block head %}
+    <script type="text/javascript" src="http://use.typekit.com/zxl6sxj.js"></script>
+    <script type="text/javascript">try{Typekit.load();}catch(e){}</script>
+    <link href='{{ static_url("css/theme/cardinal.css")}}' rel='stylesheet' type='text/css' />
+    <link href='{{ static_url("css/base.css") }}' rel='stylesheet' type='text/css' />
+    {% end %}
+    {% block head-extended %}
+    {% end %}
+  </head>
+  <body>
+    {% block body %}
+    <div id='header'>
+      {% block header %}
+      <nav>
+        <a href="/">Harvard - MIT Government Data Portal</a>
+        <a>
+          {% block title %}{% end %}
+        </a>
+      </nav>
+      {% end %}
+    </div>
+    <div id='content'>
+      {% block content %}
+      {% end %}
+    </div>
+    <div id='footer'>
+      {% block footer %}
+      {% end %}
+    </div>
+    {% end %}
+    <script language='javascript' src='{{ static_url("js/external/jquery.js") }}' type='text/javascript'></script>
+    <script language='javascript' src='http://ajax.googleapis.com/ajax/libs/jqueryui/1.8.4/jquery-ui.min.js' type='text/javascript'></script>
+    <script language='javascript' src='{{ static_url("js/external/underscore.js") }}' type='text/javascript'></script>
+    <script language='javascript' src='{{ static_url("js/external/underscore.strings.js") }}' type='text/javascript'></script>
+    {% block javascript-include %}
+    {% end %}
+    <script type='text/javascript'>
+      //<![CDATA[
+        jQuery(function(){
+          $("img.typekit-badge").remove();
+          {% block javascript %}
+          {% end %}
+        });
+      //]]>
+    </script>
+  </body>
+</html>

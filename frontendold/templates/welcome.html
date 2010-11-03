@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block head-extended %}
+<link href='{{ static_url("css/find.css") }}' rel='stylesheet' type='text/css' />
+{% end %}
+
+{% block javascript %}
+  Find.run();
+{% end %}
+
+{% block javascript-include %}
+  <script language='javascript' src='{{ static_url("js/find.js") }}' type='text/javascript'></script>
+{% end %}
+
+{% block content %}
+  <div id='sidebar'>
+    <div class='inner'>
+      {% block sidebar %}
+        <div class="goal">
+        <p>The goal of this project is to make finding
+        and interpreting government data efficient and easy.</p>
+        <p>Feel free to send feedback to <span class="mail">govdata&nbsp;at&nbsp;media.mit.edu</span></p>
+        </div>
+      {% end %}
+    </div>
+    <img src="{{ static_url('images/harvard_seal.png') }}" width='50px' />
+    <img src="{{ static_url('images/mit_seal.png') }}" width='50px' />
+    {% block post-sidebar %}
+    {% end %}
+  </div>
+  <div id='search'>
+    <div class='inner'>
+      {% block search %}
+        {{ modules.Search(kwargs['q']) }}
+      {% end %}
+    </div>
+  </div>
+  <div id='main'>
+    <div class='inner'>
+      <div id='results'>
+        {% block results %}
+        <div id='welcome'>
+        <div class='logo-name'>
+          <div class="a">Welcome to the</div>
+          <div class="b">Harvard - MIT</div>
+          <div class="c">Government</div>
+          <div class="d"><span>Data</span> Portal</div>
+        </div>
+        </div>
+        {% end %}
+      </div>
+    </div>
+  </div>
+{% end %}

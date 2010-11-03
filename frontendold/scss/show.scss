@@ -1,0 +1,142 @@
+@import "_constants";
+@import "_mixins";
+
+#content {
+  margin-left: 0;
+}
+
+#floatedArea {
+margin-top: 40px;
+margin-left: 30px;
+}
+
+#rest {
+  margin: 30px 0 0px 0;
+}
+
+
+#timeline {
+}
+
+.module {
+/*  width: 100px;
+  height: 300px;*/
+  margin: 0;
+  padding: 0;
+  .inner {
+      z-index: 0;
+      border-top: 5px solid $cardinal;
+      text-align: left;
+      margin: 10px;
+      padding: 5px;
+      @include box-shadow(2px, 2px, 10px, $shadow);
+      @include round-all(10px);
+  }
+}
+
+$colWidth : 150px;
+
+.col1 {
+  width: $colWidth;
+}
+
+.col2 {
+  width: $colWidth * 2;
+}
+.col3 {
+  width: $colWidth * 3;
+}
+.col4 {
+  width: $colWidth * 4;
+}
+.col5 {
+  width: $colWidth * 5;
+}
+.col6 {
+  width: $colWidth * 6;
+}
+
+#floatedArea.masoned, #floatedArea.masoned .module {
+  @include transition(all, .3s, ease-out);
+}
+
+//datatables
+.dataTables_empty {
+  display: none;
+}
+
+.title {
+  @include sans;
+  font-size: 2.5em;
+  font-weight: 100;
+  padding: 0 0 30px 0;
+  line-height: 1em;
+}
+
+.keywords {
+  font-style: italic;
+}
+
+.description {
+
+}
+
+.undefined {
+  background-color: RGBA(0,0,0,0.1);
+  width: 10px;
+  height: 10px;
+}
+
+td, th {
+    //white-space: nowrap;
+    //text-align: left;
+    padding: 10px;
+}
+
+
+.dataTables_filter, .dataTables_info, .dataTables_paginate, .dataTables_processing {
+    padding: 10px;
+    @include sans;
+    font-weight: 100;
+    float: left;
+}
+
+.dataTables_paginate .ui-button {
+    margin: 0 1px 0 0;
+}
+
+thead {
+  th {
+    font-weight: bold;
+    @include sans;
+  }
+}
+
+tbody {
+    .even {
+        background-color: RGBA(255,200,200,0.5);
+    }
+    tr {
+        @include clickable;
+        &:hover {
+            background-color: RGBA(128,53,52,0.51);
+            //background-color: $cardinal;
+            //background-color: RGBA(255,200,200,.5);
+            color: white;
+        }
+    }
+}
+
+table {
+    background-color: white;
+}
+
+
+.dataTables_empty {
+    background-color: #000;
+}
+
+.label {
+    font-weight: bold;
+    @include sans;
+}
