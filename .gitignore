@@ -3,4 +3,5 @@
 *.css
 *.log
 *.pyc
+*.swp
 nginx.conf

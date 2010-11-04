@@ -1,35 +1,20 @@
-var gov = gov || {};
+goog.provide('gov.find');
 
-(function($) {
-    gov.Find = {};
-    var Find = gov.Find;
+gov.find.addSearchBar = function() {
+  gov.find.searchbar = new gov.SearchBar("#content", gov.find.query);
+  goog.events.listen(gov.find.searchbar,
+                    "keypress",
+                    gov.find.keypress,
+                    false,
+                    gov.find);
+};
 
-    Find.Query = function() {
-        this.items = [];
-    };
+gov.find.onLoad = function() {
+  gov.find.query = new gov.Query();
+  gov.find.addSearchBar();
+};
 
-    Find.Query.prototype.value = function() {
-        return this.items.join(" ");
-    };
+gov.find.keypress = function() {
+  console.log('keypress');
+};
 
-    Find.addSearchBar = function() {
-        var s = new gov.SearchBar("#content");
-        s.bind('submit', function(e) {
-            console.log('submit happened');
-        });
-    };
-
-    $(document).ready(function() {
-        console.log("ready");
-        Find.addSearchBar();
-        //match("/find", function() {
-            //Find.addSearchBar();
-            //Find.addWelcomeMsg();
-        //});
-        //match("/find?q=", function() {
-            //Find.addSearchBar();
-            //Find.addResults();
-        //});
-    });
-
-})(jQuery);

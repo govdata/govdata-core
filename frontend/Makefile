@@ -47,6 +47,7 @@ createfolders: Makefile
 
 copyfiles: Makefile
 	cp $(SRC)/index-release.html $(BUILD)/index.html
+	cp $(SRC)/favicon.ico $(BUILD)/favicon.ico
 	cp -r $(SRC)/images $(BUILD)/images
 
 jsdoc: $(JS_FILES) Makefile

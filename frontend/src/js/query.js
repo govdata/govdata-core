@@ -1,12 +1,18 @@
-var gov = gov || {};
+goog.provide('gov.Query');
 
-(function($) {
+goog.require('goog.events');
+goog.require('goog.events.EventTarget');
 
-  gov.Query =
-  gov.Query = function() {
+gov.Query = function() {
+  goog.events.EventTarget.call(this);
+  this.items = [];
+};
+goog.inherits(gov.Query, goog.events.EventTarget);
 
-  }
+gov.Query.prototype.value = function() {
+  return this.items.join(" ");
+};
 
-  gov.Query.prototype =
-
-})(jQuery);
+gov.Query.prototype.update = function() {
+  this.dispatchEvent("update");
+}

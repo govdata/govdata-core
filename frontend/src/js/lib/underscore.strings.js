@@ -35,7 +35,7 @@
           },
 
         join: function(sep) {
-            // TODO: Could this be faster by converting 
+            // TODO: Could this be faster by converting
             // arguments to Array and using array.join(sep)?
             sep = String(sep);
             var str = "";
@@ -55,7 +55,7 @@
 
         reverse: function(str){
             return Array.prototype.reverse.apply(str.split('')).join('');
-        },  
+        },
 
         contains: function(str, needle){
             return str.indexOf(needle) !== -1;
