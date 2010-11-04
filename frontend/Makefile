@@ -1,14 +1,15 @@
-JS_CORE_FILES = \
-	js/common.js \
-	js/api.js \
-	js/find.js \
-	js/show.js \
+SRC = src
+
+BUILD = build
 
 JS_LIB_FILES = \
-	js/lib/underscore.js
+	$(SRC)/js/lib/underscore.js
+
+JS_CORE_FILES = \
+	$(SRC)/js/find.js \
 
 JS_MODULE_FILES = \
-	js/modules/module.js
+	$(SRC)/js/modules/module.js
 
 
 JS_FILES = \
@@ -24,26 +25,33 @@ JS_COMPILER = \
 JSDOC_HOME = /Library/jsdoc-toolkit
 JSDOC = java -jar $(JSDOC_HOME)/jsrun.jar $(JSDOC_HOME)/app/run.js
 
-all: govdata-d0.1.js govdata-r0.1.js
-govdata-d0.1.js: $(JS_FILES)
-govdata-r0.1.js: $(JS_FILES)
+all: createfolders scss copyfiles govdata.js
+govdata.js: $(JS_FILES)
 
-%-d0.1.js: Makefile
-	grep '	' -Hn $(filter %.js,$^) && echo "ERROR: tab" && exit 1 || true
-	grep '' -Hn $(filter %.js,$^) && echo "ERROR: dos newline" && exit 1 || true
-	grep ' $$' -Hn $(filter %.js,$^) && echo "ERROR: trailing space" && exit 1 || true
-	rm -f $@
-	echo "// $(shell git rev-parse HEAD)" >> $@
-	cat $(filter %.js,$^) >> $@
+%data.js:: Makefile
+	rm -f $(BUILD)/$@
+	echo "// $(shell git rev-parse --short HEAD)" >> $(BUILD)/$@
+	cat $(filter %.js,$^) | $(JS_COMPILER) >> $(BUILD)/$@
 
-%-r0.1.js:: Makefile
-	rm -f $@
-	echo "// $(shell git rev-parse --short HEAD)" >> $@
-	cat $(filter %.js,$^) | $(JS_COMPILER) >> $@
+scss-watch: Makefile
+	sass --scss --watch $(SRC)/scss:$(SRC)/css
+
+serve: Makefile
+	$(shell cd $(SRC); python -m SimpleHTTPServer)
+
+scss: Makefile
+	sass --scss --update $(SRC)/scss:$(BUILD)/css
+
+createfolders: Makefile
+	mkdir -p $(BUILD)
+
+copyfiles: Makefile
+	cp $(SRC)/index-release.html $(BUILD)/index.html
+	cp -r $(SRC)/images $(BUILD)/images
 
 jsdoc: $(JS_FILES) Makefile
 	rm -rf jsdoc
 	$(JSDOC) -a -t=$(JSDOC_HOME)/templates/jsdoc -d=$@ -E="^pv-" $(JS_FILES)
 
 clean:
-	rm -rf govdata-d0.1.js govdata-r0.1.js jsdoc
+	rm -rf $(BUILD) jsdoc
