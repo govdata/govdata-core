@@ -1,0 +1,163 @@
+// Mixins
+
+@mixin linear-gradient($first, $second) {
+  background: $second;
+  filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='$first', endColorstr='$second');
+  background: -webkit-gradient(linear, left top, left bottom, from($first), to($second));
+  background: -moz-linear-gradient(top, $first, $second); }
+  
+@mixin background-gradient($first, $second) {
+  html {
+    background-repeat: no-repeat;
+    height: 100%;
+    body {
+      height: 100%;
+      background-repeat: no-repeat;
+      @include linear-gradient($first, $second); } } }
+
+@mixin round($tl, $tr, $br, $bl) {
+  -moz-border-radius: {
+    topleft: $tl;
+    topright: $tr;
+    bottomright: $br;
+    bottomleft: $bl; }
+  -webkit-border: {
+    top-left-radius: $tl;
+    top-right-radius: $tr;
+    bottom-right-radius: $br;
+    bottom-left-radius: $bl; }
+  border: {
+    top-left-radius: $tl;
+    top-right-radius: $tr;
+    bottom-right-radius: $br;
+    bottom-left-radius: $bl; } }
+
+@mixin round-all($val) {
+  @include round($val,$val,$val,$val); }
+
+@mixin columns($count: 2, $spacing: 5px) {
+  column-count: $count;
+  -webkit-column-count: $count;
+  column-gap: $spacing; 
+  -webkit-column-gap: $spacing;
+  li {
+    break-inside: avoid-column;
+    -webkit-column-break-inside: avoid; } }
+
+@mixin transition($on: all, $speed: 0.3s, $easing: ease-in-out) {
+  -webkit-transition: $on $speed $easing;
+     -moz-transition: $on $speed $easing;
+       -o-transition: $on $speed $easing;
+          transition: $on $speed $easing; }
+
+@mixin box-shadow($x, $y, $size, $color) {
+  -webkit-box-shadow: $x $y $size $color;
+  -moz-box-shadow: $x $y $size $color;
+  box-shadow: $x $y $size $color; }
+
+@mixin box-shadow-inset($x, $y, $size, $color) {
+  -webkit-box-shadow: inset $x $y $size $color;
+  -moz-box-shadow: inset $x $y $size $color;
+  box-shadow: inset $x $y $size $color; }
+
+@mixin text-shadow($x, $y, $size, $color) {
+  text-shadow: $x $y $size $color; }
+
+@mixin transform($amount) {
+  -webkit-transform: $amount;
+  -moz-transform: $amount;
+  transform: $amount; }
+
+@mixin set-size($width, $margin, $padding) {
+  width: $width - $padding * 2 - $margin * 2;
+  padding: $padding;
+  margin: $margin;
+}
+
+/*@mixin inline-list {
+  list-style-type: none;
+  &, & li {
+    margin: 0px;
+    padding: 0px;
+    display: inline; } }*/
+
+@mixin fancy-input {
+  @include transition;
+  background-color: white;
+  border: 1px solid #cccccc;
+  margin-bottom: 16px;
+  margin-top: 8px;
+  border-radius: 5px;
+  padding: 5px;
+  &:focus {
+    outline: none;
+    background-color: black;
+    @include box-shadow(2px, 2px, 25px, #666666);
+    @include transform(scale(1.05)); 
+    } }
+
+@mixin clickable {
+  &:hover {
+    cursor: pointer; } }
+
+@mixin clear {
+  clear: both;
+  overflow: hidden;
+  height: 0; }
+
+/*@mixin round($tl, $tr, $br, $bl) {
+  -moz-border-radius: {
+    topleft: #{$tl}px;
+    topright: #{$tr}px;
+    bottomright: #{$br}px;
+    bottomleft: #{$bl}px; };
+  -webkit-border: {
+    top-left-radius: #{$tl}px;
+    top-right-radius: #{$tr}px;
+    bottom-right-radius: #{$br}px;
+    bottom-left-radius: #{$bl}px; };
+  border: {
+    top-left-radius: #{$tl}px;
+    top-right-radius: #{$tr}px;
+    bottom-right-radius: #{$br}px;
+    bottom-left-radius: #{$bl}px; }; }
+
+@mixin vertical-gradiant($start, $end) {
+  background-image: -webkit-gradient(linear, 0% 10%, 0% 90%, from($start), to($end));
+  background-image: -moz-linear-gradient(0% 100% 90deg, $start, $end); }*/
+
+@mixin opacity($op) {
+  opacity: $op; }
+
+//  filter: alpha(opacity=#{$opacity*100})
+//  -ms-filter: unquote("progid:DXImageTransform.Microsoft.Alpha(Opacity=#{round($opacity * 100)})");
+
+// Make an element completely transparent.
+@mixin transparent {
+  @include opacity(0); }
+
+// Make an element completely opaque.
+@mixin opaque {
+  @include opacity(1); }
+
+@mixin clickable {
+  &:hover {
+    cursor: pointer; } }
+
+@mixin inline-list {
+  list-style-type: none;
+  margin: 0px;
+  padding: 0px;
+  display: inline;
+  li {
+    margin: 0px;
+    padding: 0px;
+    display: inline; } }
+
+@mixin serif {
+  font-family: "calluna-1","calluna-2",serif;
+}
+
+@mixin sans {
+  font-family: "museo-sans-1","museo-sans-2",sans-serif;
+}
