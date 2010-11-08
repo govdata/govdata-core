@@ -3,9 +3,10 @@
 
 @include global-reset;
 
-$bubble-color: #F00;
+$bubble-color: #FA1;
+$bubble-margin: 10px;
 
 .bubble {
   background-color: $bubble-color;
-  margin: 0 5px;
+  margin: $bubble-margin;
 }
