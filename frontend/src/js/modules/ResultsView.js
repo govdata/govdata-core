@@ -4,16 +4,28 @@ goog.require('goog.events');
 goog.require('goog.events.EventTarget');
 
 //given object and level creates a view
-gov.ResultsView = function(elem,dataHandler,resultRenderer) {
+gov.ResultsView = function(elem,dataHandler,resultRenderer,start,collapse) {
   this.data = dataHandler;
   this.resultRenderer = resultRenderer
-  this.element = $(this.html).appendTo(elem);
+  this.elem = elem
+  this.start = start
+  this.collapse = collapse
   goog.events.listen(this.data,
                     "newResults",
                     this.updateData,
                     false,
                     this);
   
+
+};
+
+gov.ClusterView = function(elem,data,metadata,start,collapse,context) {
+  this.data = data;
+  this.metadata = metadata
+  this.element = $(this.html).appendTo(elem);
+  this.start = start
+  this.collapse = collapse
+  this.context = context
 
 };
 
@@ -34,20 +46,21 @@ var commonFinder = function(common,next){
   }
 
 
-gov.ResultsView.prototype.clusterView = function(docs,start,collapse){
+var computeCommon = function(metadict,start){
 
   var sourceDict = new Object();
   
-  for (i in this.data.metadata){
-     var entry = this.data.metadata[i]
+  for (name in metadict){
+
+     var entry = metadict[name]
      
-     var goodkeys = _.keys(entry["metadata"]["source"]).slice(start)
+     var goodkeys = _.keys(entry["source"]).slice(start)
      
-     sourceDict[entry["name"]] = new Object() ; 
+     sourceDict[name] = new Object() ; 
      
      for (k in goodkeys){
-       key = goodkeys[k]
-       sourceDict[entry["name"]][key] = entry["metadata"]["source"][key]
+       var key = goodkeys[k]
+       sourceDict[name][key] = entry["source"][key]
      }
      
   }
@@ -59,13 +72,44 @@ gov.ResultsView.prototype.clusterView = function(docs,start,collapse){
   var commonR = _.reduce(sourcekeysRev,commonFinder,undefined)  
   commonR.reverse()
   
+  if (_.isEqual(commonL,commonR)){
+    commonR = []
+  }
+  return [commonL,commonR]
   
-  collapsedDocs = new Object();
+}
+  
+
+gov.ResultsView.prototype.updateData = function() {
+
+  var docs = this.data.docs()
+  var metadata = this.data.metadata
+  
+  var view = new gov.ClusterView(this.elem,docs,metadata,this.start,this.collapse,this)
+  view.render()
+  return view
+  
+  }
+  
+  
+gov.ClusterView.prototype.render = function(){  
+
+  var docs = this.data
+  var metadict = this.metadata
+  
+  var start = this.start
+  var collapse = this.collapse
+  
+  common = computeCommon(metadict,start)
+  commonL = common[0]
+  commonR = common[1]
+  
+  var collapsedDocs = new Object();
   
   for (i in docs){
   
     var doc = docs[i]
-    sourcename = _.map(_.values(sourceDict[doc["collectionName"]]).slice(0,collapse),function(obj){return obj["name"]}).join('__')
+    sourcename = _.map(_.values(metadict[doc["collectionName"]]["source"]).slice(start,collapse),function(obj){return obj["name"]}).join('__')
     if (sourcename in collapsedDocs){
        collapsedDocs[sourcename].push(doc)
        
@@ -74,34 +118,37 @@ gov.ResultsView.prototype.clusterView = function(docs,start,collapse){
     }
       
   }
-    
+
   var html = "Cluster by: " + commonL.join(' ') + ' ... ' + commonR.join(' ') 
   for (key in collapsedDocs){
     subcollapse = 0
+
+    var colNames = _.uniq(_.map(collapsedDocs[key],function(val){return val["collectionName"]; }))
+    var newmetadict = new Object()
     
+    for (k in colNames){
+      var innerkey = colNames[k]
+      newmetadict[innerkey] = metadict[innerkey]
+    }
+
     if (subcollapse === 0){
-      html += "<br/><br/>" + key.split('__').join(' >> ') + "<br/><br/>"
-      html += this.resultRenderer(collapsedDocs[key],collapse)
+      newcommon = computeCommon(newmetadict,start + collapse)
+      html += "<br/><br/>" + key.split('__').join(' >> ') + ", Collapse by:" + newcommon[0].join(' ') + ' ... ' + newcommon[1].join(' ') + "<br/><br/>"
+      html += this.context.resultRenderer(collapsedDocs[key],collapse)
+   
+      this.element.html(html); 
+      
     } else {
 
-      html += this.clusterView(collapsedDocs[key],start + collapse,subcollapse)
+      new gov.ClusterView(key,collapsedDocs[key],newmetadict,this.resultRendererFn,start + collapse,subcollapse)
     
     }
+    
   }
 
-  return html
+   
 
 }
 
-gov.ResultsView.prototype.updateData = function() {
-
-  var docs = this.data.docs()
-  
-  var html = this.clusterView(docs,0,2)
-  this.element.html(html);
-  
-
-}
-
-gov.ResultsView.prototype.html = "<div id='results'></div>";
+gov.ClusterView.prototype.html = "<div id='results'></div>";
 

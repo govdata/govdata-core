@@ -35,15 +35,19 @@ gov.find.getmetadata = function(doclist,options){
     url: gov.API_URL + '/sources',
     dataType: 'jsonp',
     data: params,
-    success : function(data){
-       gov.find.results.metadataDone(data);
+    success : function(metadata){
+      var metadict = new Object();
+      for (i in metadata){
+        var val = metadata[i]
+        metadict[val["name"]] = val["metadata"]
+      }
+       gov.find.results.metadataDone(metadict);
     }
   })
 }
 
 gov.find.resultRendererFn = function(resultlist,collapse){
- 
- 
+  
   var html = "<table>";
   _.each(resultlist, function(d) {
     html += "<tr>";
@@ -99,7 +103,7 @@ gov.find.onLoad = function() {
   gov.find.query = new gov.Query(gov.find.submit);
   gov.find.addSearchBar();
   gov.find.results = new gov.FindResults(gov.find.getmetadata);
-  gov.find.resultsView = new gov.ResultsView("#content",gov.find.results,gov.find.resultRendererFn);
+  gov.find.resultsView = new gov.ResultsView("#content",gov.find.results,gov.find.resultRendererFn,0,2);
 };
 
 gov.find.keypress = function() {
