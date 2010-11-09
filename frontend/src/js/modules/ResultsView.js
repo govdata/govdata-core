@@ -27,6 +27,8 @@ gov.ClusterView = function(elem,data,metadata,start,collapse,context) {
   this.collapse = collapse
   this.context = context
 
+
+
 };
 
 var commonFinder = function(common,next){
@@ -104,43 +106,43 @@ gov.ClusterView.prototype.render = function(){
   commonL = common[0]
   commonR = common[1]
   
-  var collapsedDocs = new Object();
+  var collapseddocs = new Object();
   
   for (i in docs){
   
     var doc = docs[i]
     sourcename = _.map(_.values(metadict[doc["collectionName"]]["source"]).slice(start,collapse),function(obj){return obj["name"]}).join('__')
-    if (sourcename in collapsedDocs){
-       collapsedDocs[sourcename].push(doc)
+    if (sourcename in collapseddocs){
+       collapseddocs[sourcename].push(doc)
        
     } else {
-       collapsedDocs[sourcename] = [doc]
+       collapseddocs[sourcename] = [doc]
     }
       
   }
 
   var html = "Cluster by: " + commonL.join(' ') + ' ... ' + commonR.join(' ') 
-  for (key in collapsedDocs){
+  for (key in collapseddocs){
     subcollapse = 0
 
-    var colNames = _.uniq(_.map(collapsedDocs[key],function(val){return val["collectionName"]; }))
+    var colnames = _.uniq(_.map(collapseddocs[key],function(val){return val["collectionName"]; }))
     var newmetadict = new Object()
     
-    for (k in colNames){
-      var innerkey = colNames[k]
+    for (k in colnames){
+      var innerkey = colnames[k]
       newmetadict[innerkey] = metadict[innerkey]
     }
 
     if (subcollapse === 0){
       newcommon = computeCommon(newmetadict,start + collapse)
       html += "<br/><br/>" + key.split('__').join(' >> ') + ", Collapse by:" + newcommon[0].join(' ') + ' ... ' + newcommon[1].join(' ') + "<br/><br/>"
-      html += this.context.resultRenderer(collapsedDocs[key],collapse)
+      html += this.context.resultRenderer(collapseddocs[key],collapse)
    
       this.element.html(html); 
       
     } else {
 
-      new gov.ClusterView(key,collapsedDocs[key],newmetadict,this.resultRendererFn,start + collapse,subcollapse)
+      new gov.ClusterView(key,collapseddocs[key],newmetadict,this.resultRendererFn,start + collapse,subcollapse)
     
     }
     
