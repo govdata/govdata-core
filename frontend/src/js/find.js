@@ -8,7 +8,7 @@ gov.find.submit = function(options) {
     start : 0,
     rows : 20,
     'facet.field' : ['agency','subagency','datasetTight','dateDivisionsTight','spatialDivisionsTight'],
-    facet : 'true'    
+    facet : 'true'
   }
   $.extend(true,params,options);
   $.ajax({
@@ -45,7 +45,7 @@ gov.find.getmetadata = function(doclist,callback,options){
 };
 
 gov.find.resultRendererFn = function(resultlist,collapse){
-  
+
   var html = "<table>";
   _.each(resultlist, function(d) {
     html += "<tr>";
@@ -59,7 +59,8 @@ gov.find.resultRendererFn = function(resultlist,collapse){
 }
 
 gov.find.addSearchBar = function() {
-  gov.find.searchbar = new gov.SearchBar("#content", {
+  gov.find.searchbar = new gov.SearchBar();
+  var params = {
     query: gov.find.query,
     autocomplete: {
       minLength : 2,
@@ -88,13 +89,15 @@ gov.find.addSearchBar = function() {
           });
       }
     }
-  });
-  
-  goog.events.listen(gov.find.searchbar,
-                    "keypress",
-                    gov.find.keypress,
-                    false,
-                    gov.find);
+  };
+  gov.find.searchbar.render();
+    //goog.dom.getElement('searchbar');
+
+  //goog.events.listen(gov.find.searchbar,
+                    //"keypress",
+                    //gov.find.keypress,
+                    //false,
+                    //gov.find);
 };
 
 gov.find.onLoad = function() {
