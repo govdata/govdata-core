@@ -1,46 +1,35 @@
 <!DOCTYPE html>
 <html>
-  <head>
-  <title>Page Title</title>
-  <link rel="stylesheet" href="css/style.css" />
-  <script src="js/lib/jquery.js"></script>
-  <script src="js/lib/jquery.hotkeys.js"></script>
-  <script src="js/lib/jquery-ui-1.8.1.custom.min.js"></script>
+	<head>
+	<title>Page Title</title>
+	<link type="text/css" href="css/smoothness/jquery-ui-1.8.6.custom.css" rel="Stylesheet" />
+	<link type="text/css" href="css/style.css" rel="stylesheet" />
 
-  <script src="js/lib/underscore.js"></script>
-  <script src="js/lib/underscore.strings.js"></script>
+	<script src="js/lib/jquery.js"></script>
+	<script src="js/lib/jquery.hotkeys.js"></script>
+	<script src="js/lib/jquery-ui-1.8.6.custom.min.js"></script>
 
-  <script src="js/lib/goog/base.js"></script>
-  <script>
-    goog.require('goog.dom');
-    goog.require('goog.History');
-    goog.require('goog.ui.Container');
-    goog.require('goog.ui.Component');
-    goog.require('goog.ui.ContainerRenderer');
-  </script>
+	<script src="js/lib/underscore.js"></script>
+	<script src="js/lib/underscore.strings.js"></script>
 
-  <script src="js/gov.js"></script>
-  <script src="js/find.js"></script>
-  <script src="js/history.js"></script>
-  <script src="js/Query.js"></script>
-  <script src="js/modules/FindResults.js"></script>
-  <script src="js/modules/ResultsView.js"></script>
-  <script src="js/modules/SearchBar.js"></script>
-  <script src="js/modules/SearchBubble.js"></script>
+	<script src="js/extensions.js"></script>
+	<script src="js/gov.js"></script>
+	<script src="js/find.js"></script>
+	<script src="js/widgets/SearchBar.js"></script>
 
-  <script>
-    $(function() {
-        console.log("init");
-        gov.find.onLoad();
-    });
-  </script>
+	<script>
+		$(function() {
+				console.log("init");
+				gov.find.onLoad();
+		});
+	</script>
 </head>
 <body>
-  <div id="header">
-  </div>
-  <div id="content">
-  </div>
-  <div id="footer">
-  </div>
+	<div id="header">
+	</div>
+	<div id="content">
+	</div>
+	<div id="footer">
+	</div>
 </body>
 </html>
