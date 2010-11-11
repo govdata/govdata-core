@@ -21,15 +21,13 @@ gov.find.submit = function(options) {
   });
 }
 
-gov.find.getmetadata = function(doclist,options){
+gov.find.getmetadata = function(doclist,callback,options){
   var colls = _.uniq(_.map(doclist,function(doc){return doc["collectionName"][0] ;}));
   var qSeq = [["find",[[{"name":{"$in":colls}}],{"fields":["name","metadata.source"]}]]];
   var qSeqStr = JSON.stringify(qSeq);
 
-  var params = {
-    querySequence: qSeqStr
-  }
-  $.extend(true,params,options)
+  var params = {querySequence: qSeqStr};
+  $.extend(true,params,options);
 
   $.ajax({
     url: gov.API_URL + '/sources',
@@ -38,13 +36,13 @@ gov.find.getmetadata = function(doclist,options){
     success : function(metadata){
       var metadict = new Object();
       for (i in metadata){
-        var val = metadata[i]
-        metadict[val["name"]] = val["metadata"]
+        var val = metadata[i];
+        metadict[val["name"]] = val["metadata"];
       }
-       gov.find.results.metadataDone(metadict);
+      callback(metadict);
     }
-  })
-}
+  });
+};
 
 gov.find.resultRendererFn = function(resultlist,collapse){
   
@@ -102,8 +100,8 @@ gov.find.addSearchBar = function() {
 gov.find.onLoad = function() {
   gov.find.query = new gov.Query(gov.find.submit);
   gov.find.addSearchBar();
-  gov.find.results = new gov.FindResults(gov.find.getmetadata);
-  gov.find.resultsView = new gov.ResultsView("#content",gov.find.results,gov.find.resultRendererFn,0,2);
+  gov.find.results = new gov.FindResults({metadatafn : gov.find.getmetadata});
+  gov.find.resultsView = new gov.ResultsView($("#content"),gov.find.results,gov.find.resultRendererFn,0,2);
 };
 
 gov.find.keypress = function() {

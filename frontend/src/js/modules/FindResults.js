@@ -3,26 +3,20 @@ goog.provide('gov.FindResults');
 goog.require('goog.events');
 goog.require('goog.events.EventTarget');
 
-gov.FindResults = function(getmetadatafn) {
+gov.FindResults = function(opts) {
   goog.events.EventTarget.call(this);
-  this.getmetadata = getmetadatafn
+  var defaults = {metadatafn : _.identity}
+  $.extend(this,defaults,opts);
 };
 goog.inherits(gov.FindResults, goog.events.EventTarget);
 
-gov.FindResults.prototype.docs = function() {
-  if(this.results === undefined) {
-    return undefined;
-  }
-  return this.results.response.docs;
-}
-
 gov.FindResults.prototype.newResults = function(results) {
-  console.log("newResults");
   this.results = results;
-  this.getmetadata(this.docs())  
+  this.docs = this.results.response.docs;
+  var esta = this;
+  this.metadatafn(this.docs, function(metadata) {
+    esta.metadata = metadata;
+    esta.dispatchEvent('newResults');
+  });
 };
 
-gov.FindResults.prototype.metadataDone = function(metadata){
-  this.metadata = metadata
-  this.dispatchEvent('newResults');
-};
