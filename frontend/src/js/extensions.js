@@ -3,7 +3,8 @@
 // underscore extensions
 (function() {
 	var root = this;
-	_.mixin({
+
+  _.mixin({
 		provide : function(ns) {
 			var names = ns.split(".");
 			var base = root;
@@ -12,9 +13,25 @@
 			});
 		}
 	});
+
 })();
 
 
 (function( $, undefined ) {
 	var root = this;
+
+	//$.Widget.prototype._init = function() {
+		//this.id = _.uniqueId();
+	//}
+
+	$.Widget.prototype.listenTo = function(target, type, callback) {
+		var self = this;
+		target.element.bind(
+			(target.widgetEventPrefix + type).toLowerCase(),
+			function() {
+				callback.apply(self, this.arguments);
+			}
+		);
+	}
+
 })(jQuery);
