@@ -155,7 +155,8 @@ $.widget( "ui.clusterView", {
 			linearChooser({
 				data : {
 					label : "Cluster by:",
-					list : [{label: "front", list: commonL},{label:"back",list:commonR}]
+					list : [{label: "front", list: commonL},{label:"back",list:commonR}],
+                    resp : [_.range(commonL.length),_.range(-1,-commonR.length-1,-1)]
 				}
 			});
 		lc.find(".chooserSubElement").click(function(e){
@@ -163,6 +164,7 @@ $.widget( "ui.clusterView", {
 			var id = e.target.id;
 			console.log(id, parentId);
 		});
+        
 
 		var html = ""
 		for (key in collapseddata) {
@@ -172,9 +174,33 @@ $.widget( "ui.clusterView", {
 
 			if (subcollapse === 0) {
 				var newcommon = computeCommon(newmetadata,start + collapse);
-				html += "<br/><br/>" + key.split('__').join(' >> ') + ", Collapse by:" + newcommon[0].join(' ') + ' ... ' + newcommon[1].join(' ') + "<br/><br/>"
-				html += this.options.resultsRenderer(collapseddata[key],collapse);
-				this.element.append(html);
+                
+                this.element.append("<div class='clusterElement'><br/><br/>" + key.split('__').join(' >> ') + "<br/><br/>")
+                
+                var innerchooser = $("<div></div>").appendTo(this.widget()).linearChooser({
+                    data : {
+                        label : "Cluster by:",
+                        list : [{label:"front",list:newcommon[0]},{label:"back",list:newcommon[1]}]
+                    }
+                });
+                
+                innerchooser.find(".chooserSubElement").click(function(e){
+			      var parentId = $(e.target).parent().parent().attr("id");
+			      var id = e.target.id;
+			      console.log(id, parentId);
+                  var thing = $(e.target).parent().parent().parent().parent().parent().parent();
+                  console.log(thing)
+                  var options = thing.data().clusterView.options;
+                  options.collapse += 1;
+                  //thing.find(".resultsTable").remove()
+                  console.log(thing.parent())
+                  
+                                    
+                  
+                  
+		        });
+                
+				this.element.append(this.options.resultsRenderer(collapseddata[key],collapse) + '</div>');
 			} else {
 				$("<div class='clusterView'></div>").
 					appendTo(this.widget()).
@@ -201,24 +227,29 @@ $.widget( "ui.linearChooser", {
 			var html = "";
 			var self = this;
 			var tmpl = "\
-<div>\
-	<%= label %>\
-	<ul>\
-	<% _.each(list, function(data) { %>\
-		<li class='chooserElement' id='<%= data.label %>'>\
-			<ul>\
-			<% _.each(data.list, function(item, idx) { %>\
-				<li class='chooserSubElement' id='<%= idx %>'>\
-					<%= item %>\
-				</li>\
-			<% }); %>\
-			</ul>\
-		</li>\
-	<% }); %>\
-	</ul>\
-</div>";
-			console.log(tmpl);
-			$(_.template(tmpl, this.options.data)).appendTo(this.element);
+        <div>\
+            <%= label %>\
+            <ul>\
+            <% _.each(_.zip(list,resp), function(data) { %>\
+                <li class='chooserElement' id='<%= data.label %>'>\
+                    <ul>\
+                    <% _.each(_.zip(data[0].list,data[1]), function(item,idx) { %>\
+                        <li class='chooserSubElement' id='<%= item[1] %>'>\
+                            <%= item[0] %>\
+                        </li>\
+                    <% }); %>\
+                    </ul>\
+                </li>\
+            <% }); %>\
+            </ul>\
+        </div>";
+        
+        if (this.options.data.resp === undefined){
+            this.options.data.resp = _.map(this.options.data.list,function(elt){return _.range(elt.list.length); })
+            
+        }
+			
+        $(_.template(tmpl, this.options.data)).appendTo(this.element);
 			console.log(this.options.data);
 		},
 		destroy : function() {

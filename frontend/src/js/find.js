@@ -101,7 +101,7 @@ var computeCommon = function(metadict,start){
 	};
 
 	gov.find.resultsRenderer = function(resultlist,collapse){
-		var html = "<table>";
+		var html = "<table class='resultsTable'>";
 		_.each(resultlist, function(d) {
 			html += "<tr>";
 			html += "<td>"+d.mongoID[0]+"</td>";
