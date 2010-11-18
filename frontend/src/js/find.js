@@ -102,7 +102,7 @@ define(["gov","jquery","underscore","underscore.strings",
 			});
 	};
 
-	find.onLoad = function() {
+	find.load = function(params, state) {
 		find.query = $(root).query({
 				submitFn: find.submit,
 				newData: function(e,d) {
