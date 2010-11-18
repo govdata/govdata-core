@@ -1,52 +1,10 @@
 var root = this;
 
-define(["underscore","widgets/SearchBar"], function() {
+define(["gov","jquery","underscore","underscore.strings",
+	"jquery.hotkeys","ui.searchbar","ui.query","ui.findresults",
+	"ui.resultsview"], function(gov) {
 	
 	var find = {};
-
-	var subdict = function(olddict,subkeys){
-		return _.reduce(subkeys,function(a,b){
-			a[b] = olddict[b];
-			return a;
-			},{});
-	};
-
-	var commonFinder = function(listoflists) {
-		var commonList = [];
-		_.each(_.first(listoflists), function(obj, i) {
-			var rowi = _.uniq(_.map(listoflists, function(x) { return x[i]; }));
-			if (rowi.length > 1 || rowi[0] === undefined) {
-				_.breakLoop();
-			} else {
-				commonList.push(obj);
-			}
-		});
-		return commonList;
-	};
-
-
-	var computeCommon = function(metadict,start){
-		var sourceDict = {};
-		for (name in metadict) {
-			 var entry = metadict[name];
-			 var goodkeys = _.keys(entry["source"]).slice(start);
-			 sourceDict[name] = {};
-			 for (k in goodkeys) {
-				 var key = goodkeys[k];
-				 sourceDict[name][key] = entry["source"][key];
-			 }
-		}
-		var sourcekeys = _.map(_.values(sourceDict), function(entry){return _.keys(entry) ; });
-		var sourcekeysRev = _.map(sourcekeys,function(n){n = n.slice(); n.reverse() ; return n});
-		var commonL = commonFinder(sourcekeys);
-		var commonR = commonFinder(sourcekeysRev);
-		commonR.reverse();
-		if (_.isEqual(commonL,commonR)) {
-			commonR = [];
-		}
-		return [commonL,commonR];
-	};
-
 
 	find.autocompleteCache = {};
 
@@ -154,17 +112,17 @@ define(["underscore","widgets/SearchBar"], function() {
 		}).data("query");
 		find.addSearchBar();
 		find.results = $(root).
-													findResults({
+													findresults({
 														metadataFn : find.getMetadata
 													}).
-													data("findResults");
-		find.resultsView = $("<div id='results'></div>").
+													data("findresults");
+		find.resultsView = $("<div id='resultsview'></div>").
 													appendTo("#content").
-													resultsView({
+													resultsview({
 														dataHandler: find.results,
 														resultsRenderer: find.resultsRenderer
 													}).
-													data("resultsView");
+													data("resultsview");
 	};
 
 	find.keypress = function() {

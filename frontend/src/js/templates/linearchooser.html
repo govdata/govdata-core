@@ -1,0 +1,16 @@
+<div>
+    <%= label %>
+    <ul>
+    <% _.each(_.zip(list,resp), function(data) { %>
+        <li class='chooserElement' id='<%= data.label %>'>
+            <ul>
+            <% _.each(_.zip(data[0].list,data[1]), function(item,idx) { %>
+                <li class='chooserSubElement' id='<%= item[1] %>'>
+                    <%= item[0] %>
+                </li>
+            <% }); %>
+            </ul>
+        </li>
+    <% }); %>
+    </ul>
+</div>
