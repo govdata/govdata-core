@@ -5,13 +5,60 @@
 
 $bubble-color: #FA1;
 $bubble-margin: 10px;
+$result-box-color: #FA1;
+$query-box-color: #EE2;
 
 .bubble {
   background-color: $bubble-color;
   margin: $bubble-margin;
 }
 
-.linearChooser {
-  display:inline;
+.linearChooser ul {
+   margin:0;
+   padding:0;
+   display:inline;
+}
 
+.linearChooser ul li{
+  display:inline;
+  margin-right:4em;
+  
+}
+
+.linearChooser .chooserElement li{
+
+  margin-right:.2em;
+  
+}
+
+.clusterElement .topBar {
+    overflow:auto;
+    padding:2px;
+}
+
+.clusterElement .linearChooser {
+   float:right;
+}
+
+
+.clusterElement .keyLabel {
+   float:left;
+}
+
+.clusterElement {
+padding:10px;
+
+}
+
+#resultsView {
+padding : 10px 10px;
+}
+
+.resultBox{
+padding : 5px 5px;
+background-color: $result-box-color;
+}
+
+.resultBox .queryBox {
+background-color: $query-box-color;
 }

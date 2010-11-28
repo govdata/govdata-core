@@ -15,7 +15,7 @@ define(["text!templates/linearchooser.html","jquery",
 																						});            
 				}
 				$(_.template(tmpl, this.options.data)).appendTo(this.element);
-				console.log(this.options.data);
+
 			},
 			destroy : function() {
 				this.element.empty();

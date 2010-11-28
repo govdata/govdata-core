@@ -14,7 +14,8 @@ define(["jquery","jquery-ui","jquery-ui.extensions","ui.clusterview"], function(
 			var self = this;
 			var docs = this.options.dataHandler.docs;
 			var metadata = this.options.dataHandler.metadata;
-			var view = $("<div class='clusterview'></div>").
+			this.element.find(".clusterView").remove();
+			var view = $("<div class='clusterView'></div>").
 									appendTo(this.element).
 									clusterview({
 											data : docs,

@@ -29,17 +29,21 @@ define(["jquery","jquery-ui","ui.bubbles"], function() {
 			//self.q.bind("queryupdate", this.update);
 		},
 		update : function() {
-			console.log(this);
-			console.log(this.options.query);
+
 			var items = this.q.items;
-			// update the bubbles
-			//var query = q.q.split(" ");
-			console.log("update the bubbles");
+			var self = this;
+			this.element.find(".bubble").remove();
+			$.each(items,function(ind,item){
+			   self.addBubble(item);
+			
+			});
+
+			
 		},
 		submit : function() {
-			console.log("make query");
 			var value = this.bubbles.value();
 			this.q.update(value);
+			
 		},
 		addBubble : function(val) {
 			this.bubbles.add(val);

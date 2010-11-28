@@ -3,13 +3,10 @@ SRC = src
 BUILD = build
 
 JS_LIB_FILES = \
-	$(SRC)/js/lib/underscore.js
+	$(SRC)/js/underscore.js
 
 JS_CORE_FILES = \
 	$(SRC)/js/find.js \
-
-JS_MODULE_FILES = \
-	$(SRC)/js/modules/module.js
 
 
 JS_FILES = \

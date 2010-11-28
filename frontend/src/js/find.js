@@ -2,7 +2,7 @@ var root = this;
 
 define(["gov","jquery","underscore","underscore.strings",
 	"jquery.hotkeys","ui.searchbar","ui.query","ui.findresults",
-	"ui.resultsview"], function(gov) {
+	"ui.resultsview","jquery.masonry"], function(gov) {
 	
 	var find = {};
 
@@ -21,10 +21,10 @@ define(["gov","jquery","underscore","underscore.strings",
 			url: gov.API_URL + '/find',
 			dataType: 'jsonp',
 			data: params,
+			traditional:true,
 			success: function(data) {
-				console.log("successfully got data");
-				console.log(data);
 				callback(data);
+				
 			}
 		});
 	}
@@ -51,17 +51,60 @@ define(["gov","jquery","underscore","underscore.strings",
 			}
 		});
 	};
+	
+	
+    find.resultRenderer = function(item,collapse){
+  
+     var title = item["title"][0];
+     var source = JSON.parse(item["sourceSpec"][0]);
+     var sourceStr = _(source).keys().slice(collapse).map(function(key){return "<div class='sourceElement'><span class='sourceKey'>" + key + "</span>: <span class='sourceVal'>" + source[key] + "</span></div>";}).join('')
+     var query = JSON.parse(item["query"][0]);
+     var queryStr = _(query).keys().map(function(key){return "<div class='queryElement'><span class='queryKey'>" + key + "</span>: <span class='queryVal'>" + query[key] + '</span></div>';}).join('')
+ 
+     var sourceBox = '<div class="sourceBox">' + sourceStr + '</div>';
+     var queryBox = '<div class="queryBox">' + queryStr + '</div>';
+     return '<div class="resultBox">' + sourceBox + queryBox  + '</div>'
+  
+    };	
 
-	find.resultsRenderer = function(resultlist,collapse){
-		var html = "<table class='resultsTable'>";
-		_.each(resultlist, function(d) {
-			html += "<tr>";
-			html += "<td>"+d.mongoID[0]+"</td>";
-			html += "<td><a href='#/show?q=\""+d.mongoID[0]+"\"' >clickhere</a></td>";
-			html += "</tr>";
-		});
-		html += "</table>";
-		return html
+	find.resultsRenderer = function(parent,resultlist,collapse){
+	
+	    var result_container = $("<div class='resultMason'></div>").appendTo(parent);
+	    
+	    $.each(resultlist,function(ind,result){
+	        result_container.append(find.resultRenderer(result,collapse));
+	    });
+	    
+	    result_container.masonry({
+	        columnWidth:200,
+	        itemSelector : '.resultBox',
+	        resizeable:true,
+	    });
+	    
+	   $('.sourceElement').unbind('click'); 
+	   $('.sourceElement').click(function(e){
+	      var res = $(e.currentTarget);
+	      var newItems = find.query.items.slice(0);
+	      var skey = res.find(".sourceKey").text();
+	      var sval = res.find(".sourceVal").text();
+          var filteritems = find.query.filteritems;
+	      filteritems.push(skey + ':"' + sval + '"');
+          find.query.update(newItems,filteritems);
+
+	    });
+	
+	   $('.queryElement').unbind('click'); 
+	   $('.queryElement').click(function(e){
+	      var res = $(e.currentTarget);
+	      var newItems = find.query.items.slice(0);
+	      var qkey = res.find(".queryKey").text();
+	      var qval = res.find(".queryVal").text();
+	      var newclause = '"' + qkey + '=' + qval + '"';
+	      newItems.push(newclause);
+          find.query.update(newItems);
+
+	    });	
+	  
 	}
 
 	find.addSearchBar = function() {
@@ -106,29 +149,31 @@ define(["gov","jquery","underscore","underscore.strings",
 		find.query = $(root).query({
 				submitFn: find.submit,
 				newData: function(e,d) {
-					console.log("NEW DAATAAA");
 					find.results.newResults(d);
 				}
+		
 		}).data("query");
+		
+		
 		find.addSearchBar();
 		find.results = $(root).
 													findresults({
 														metadataFn : find.getMetadata
 													}).
 													data("findresults");
-		find.resultsView = $("<div id='resultsview'></div>").
+		find.resultsView = $("<div id='resultsView'></div>").
 													appendTo("#content").
 													resultsview({
 														dataHandler: find.results,
 														resultsRenderer: find.resultsRenderer
 													}).
-													data("resultsview");
+													data("resultsView");
+	    
+        
 	};
 
-	find.keypress = function() {
-		console.log('keypress');
-	};
 
+     
 	return find;
 
 });

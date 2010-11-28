@@ -1,4 +1,4 @@
-define(["utils","jquery","jquery-ui","ui.linearchooser"], function(utils) {
+define(["utils","jquery","jquery-ui","ui.linearchooser","ui.clusterelement"], function(utils) {
 
 	$.widget( "ui.clusterview", {
 		options : {
@@ -22,7 +22,7 @@ define(["utils","jquery","jquery-ui","ui.linearchooser"], function(utils) {
 				 collapseddata[sourcename].push(datum);
 			});
 
-			var lc = $("<div class='linearchooser'></div>").
+			var lc = $("<div class='linearChooser'></div>").
 				appendTo(this.widget()).
 				linearchooser({
 					data : {
@@ -34,45 +34,30 @@ define(["utils","jquery","jquery-ui","ui.linearchooser"], function(utils) {
 			lc.find(".chooserSubElement").click(function(e){
 				var parentId = $(e.target).parent().parent().attr("id");
 				var id = e.target.id;
-				console.log(id, parentId);
+	
 			});
         
-
-			var html = ""
+            var key;
 			for (key in collapseddata) {
 				subcollapse = 0;
 				var colnames = _.uniq(_.map(collapseddata[key],function(val){return val["collectionName"]; }));
 				var newmetadata = utils.subdict(metadata,colnames);
 
 				if (subcollapse === 0) {
+				
+				    
 					var newcommon = utils.computeCommon(newmetadata,start + collapse);
-                
-	                this.element.append("<div class='clusterElement'><br/><br/>" + key.split('__').join(' >> ') + "<br/><br/>")
-                
-	                var innerchooser = $("<div></div>").appendTo(this.widget()).linearchooser({
-	                    data : {
-	                        label : "Cluster by:",
-	                        list : [{label:"front",list:newcommon[0]},{label:"back",list:newcommon[1]}]
-	                    }
-	                });
-                
-	                innerchooser.find(".chooserSubElement").click(function(e){
-				      var parentId = $(e.target).parent().parent().attr("id");
-				      var id = e.target.id;
-				      console.log(id, parentId);
-	                  var thing = $(e.target).parent().parent().parent().parent().parent().parent();
-	                  console.log(thing)
-	                  var options = thing.data().clusterView.options;
-	                  options.collapse += 1;
-	                  //thing.find(".resultsTable").remove()
-	                  console.log(thing.parent())
-                  
-                                    
-                  
-                  
-			        });
-                
-					this.element.append(this.options.resultsRenderer(collapseddata[key],collapse) + '</div>');
+					
+                    var cElt = $("<div class='clusterElement'></div>").appendTo(this.widget()).
+                    clusterelement({
+                             key : key,
+                             results : collapseddata[key],
+                             common : newcommon,
+                             collapse : collapse,
+                             renderer: this.options.resultsRenderer
+                    });
+                               					
+					
 				} else {
 					$("<div class='clusterView'></div>").
 						appendTo(this.widget()).
