@@ -5,7 +5,8 @@ define(["jquery","jquery-ui","jquery-ui.extensions","ui.clusterview"], function(
 			dataHandler : undefined,
 			resultsRenderer : undefined,
 			start : 0,
-			collapse : 2
+			collapse : 2,
+			subcollapse : {}
 		},
 		_init : function() {
 			this.listenTo(this.options.dataHandler, "newResults", this.newResults);
@@ -22,6 +23,7 @@ define(["jquery","jquery-ui","jquery-ui.extensions","ui.clusterview"], function(
 											metadata : metadata,
 											start : self.options.start,
 											collapse : self.options.collapse,
+											subcollapse : self.options.subcollapse,
 											resultsRenderer : self.options.resultsRenderer
 									}).
 									data("clusterview");

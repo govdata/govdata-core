@@ -63,7 +63,8 @@ define(["gov","jquery","underscore","underscore.strings",
  
      var sourceBox = '<div class="sourceBox">' + sourceStr + '</div>';
      var queryBox = '<div class="queryBox">' + queryStr + '</div>';
-     return '<div class="resultBox">' + sourceBox + queryBox  + '</div>'
+     var numResults = '<div class="numResults">Records: ' + item["volume"][0] + '</div>';
+     return '<div class="resultBox">' + sourceBox + queryBox  + numResults +'</div>'
   
     };	
 
@@ -104,6 +105,8 @@ define(["gov","jquery","underscore","underscore.strings",
           find.query.update(newItems);
 
 	    });	
+	  
+	  return result_container;
 	  
 	}
 
