@@ -29,7 +29,7 @@ define(["jquery","jquery-ui","ui.bubbles"], function() {
 			//self.q.bind("queryupdate", this.update);
 		},
 		update : function() {
-
+            
 			var items = this.q.items;
 
 			var self = this;

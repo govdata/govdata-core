@@ -1,19 +1,15 @@
 define(["jquery","jquery-ui"], function() {
 
 	$.widget( "ui.statehandler", {
-	    
+
 		_create : function() {
 		   var self = this, 
-		   objects = self.options.objects,
-           state = self.options.state;
-           state = state || {};
-		   self.values = {};
-		
+		   
+		   objects = self.objects = self.options.objects;
+		 
+		   self.values = {}
+
 		   $.each(objects,function(name,obj){
-		      if (_.include(_.keys(state),name)){
-		        obj.update(state[name]);
-		      }
-		      self.values[name] = obj.items;
 		      self.listenTo(obj,"update",function(){
 		         self.values[name] = obj.items;
 		         self.changehash();
@@ -21,10 +17,17 @@ define(["jquery","jquery-ui"], function() {
 		   });
 
 		},
-		changehash : function(){
-		    var self = this;
+		setstate : function(state){
+		   var self = this;
+           state = state || {};	
+           $.each(state,function(name,obj){
+		        self.objects[name].update(obj);
+           });
 
-		    $.address.jsonhash(this.values)
+		},
+		changehash : function(){    
+		    var self = this;
+		    $.address.jsonhash(self.values);
 		},
 		destroy : function() {}
 	});

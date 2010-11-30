@@ -2,7 +2,7 @@ var root = this;
 
 define(["gov","jquery","underscore","underscore.strings",
 	"jquery.hotkeys","ui.searchbar","ui.query","ui.findresults",
-	"ui.resultsview","jquery.masonry","ui.statehandler"], function(gov) {
+	"ui.resultsview","jquery.masonry","ui.statehandler","ui.dict"], function(gov) {
 	
 	var find = {};
 
@@ -146,11 +146,13 @@ define(["gov","jquery","underscore","underscore.strings",
 				}
 			}
 		};
-		$("<div id='searchbar'></div>").
+		var sb = $("<div id='searchbar'></div>").
 			appendTo("#content").
 			searchbar({
 				query : find.query,
 			});
+			
+		return sb;
 	};
 
 	find.load = function(params, state) {
@@ -164,31 +166,45 @@ define(["gov","jquery","underscore","underscore.strings",
 		
 		}).data("query");
 		
-
-		
-		find.state = $(root).statehandler({
-		    objects : {
-		        query : find.query
-		    },
-		    state : state
-		    
-		});
-		
-		find.addSearchBar();
-		find.results = $(root).
+        find.collapsedict = $(root).dict({
+          items : {" " :2}
+        }).data("dict");
+        
+  
+        if (find.sb === undefined){
+   	       find.sb = find.addSearchBar();
+   	    }
+	
+	    if (find.statehandler === undefined){
+			find.statehandler = $(root).statehandler({
+				objects : {
+					query : find.query,
+					collapsedict : find.collapsedict
+				}
+				
+			}).data("statehandler");
+		}
+ 
+        find.statehandler.setstate(state);
+  		
+  		if (find.results === undefined){
+   		find.results = $(root).
 													findresults({
 														metadataFn : find.getMetadata
 													}).
 													data("findresults");
+	    }
+
+		if (find.resultsView === undefined){								
 		find.resultsView = $("<div id='resultsView'></div>").
 													appendTo("#content").
 													resultsview({
 														dataHandler: find.results,
-														resultsRenderer: find.resultsRenderer
-													}).
-													data("resultsView");
+														resultsRenderer: find.resultsRenderer,
+														collapsedict : find.collapsedict
+													});
 	    
-        
+        }
 	};
 
 

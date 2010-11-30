@@ -38,8 +38,7 @@ define(["utils","jquery","jquery-ui","ui.linearchooser","ui.clusterelement"], fu
       var container = $("<div class='elementContainer'></div>").appendTo(context.widget());
 	  
 	  $.each(collapsedata,function(key,data){
-	    collapsedict[key] = collapsedict[key] || 0;
-		subcollapse = collapsedict[key];      
+		subcollapse = collapsedict.items[key] || 0;    
 		colnames = _.uniq(_.map(data,function(val){return val["collectionName"][0]; }));
 		newmetadata = utils.subdict(metadata,colnames);
 		
@@ -68,7 +67,7 @@ define(["utils","jquery","jquery-ui","ui.linearchooser","ui.clusterelement"], fu
 		    if (num + 1 !== 0){
 
 		      var subcollapse = collapse + num + 1;
-		      collapsedict[key] = subcollapse;
+		      collapsedict.items[key] = subcollapse;
 		      var newelt = $("<div class='clusterView'></div>");
 		      var clusterElement = $(e.target).closest(".clusterElement")
 		      clusterElement.replaceWith(newelt);
@@ -109,6 +108,7 @@ define(["utils","jquery","jquery-ui","ui.linearchooser","ui.clusterelement"], fu
 		elt.attr("id",keyID);
 	  });
 
+      collapsedict._trigger("update",null);
       return container      
 			
 	 };
@@ -117,8 +117,6 @@ define(["utils","jquery","jquery-ui","ui.linearchooser","ui.clusterelement"], fu
    	$.widget( "ui.clusterview", {
 		options : {
 		    start : 0,
-		    collapsedict : {" ":2},
-		    key : " "
 		},
 		_create : function() {
 			var self = this,
@@ -153,6 +151,7 @@ define(["utils","jquery","jquery-ui","ui.linearchooser","ui.clusterelement"], fu
 			    var parentLabel = $(e.target).parent().parent()[0].id;
 
 				collapse = utils.count(key,'|') + num + 1;
+				collapsedict.items[key] = collapse;
 				collapseddata = collapseData(data,metadata,collapse);
 		
 				var subkey;
@@ -175,7 +174,7 @@ define(["utils","jquery","jquery-ui","ui.linearchooser","ui.clusterelement"], fu
 		
 			});
 			            
-	      collapse = collapsedict[key]
+	      collapse = collapsedict.items[key] || 0
           collapseddata = collapseData(data,metadata,collapse);
           var res = renderclusters(collapseddata,collapsedict,metadata, utils.count(key,'|'),collapse,self);
 		  keydiv.click(function(){
