@@ -11,7 +11,6 @@ define(["gov","jquery","underscore","underscore.strings",
 	find.submit = function(options, callback) {
 		var params = {
 			q : '',
-			start : 0,
 			rows : 20,
 			'facet.field' : ['agency','subagency','datasetTight','dateDivisionsTight','spatialDivisionsTight'],
 			facet : 'true'
@@ -53,7 +52,7 @@ define(["gov","jquery","underscore","underscore.strings",
 	};
 	
 	
-    find.resultRenderer = function(item,start,collapse){
+    find.resultRenderer = function(item,collapse){
   
      var title = item["title"][0];
      var source = JSON.parse(item["sourceSpec"][0]);
@@ -61,7 +60,7 @@ define(["gov","jquery","underscore","underscore.strings",
      if (collapse === 0){
        sourceKeys = [];
      } else {
-       sourceKeys = _(source).keys().slice(start + collapse);
+       sourceKeys = _(source).keys().slice(collapse);
      }
      var sourceStr = sourceKeys.map(function(key){return "<div class='sourceElement'><span class='sourceKey'>" + key + "</span>: <span class='sourceVal'>" + source[key] + "</span></div>";}).join('')
      var query = JSON.parse(item["query"][0]);
@@ -74,12 +73,12 @@ define(["gov","jquery","underscore","underscore.strings",
   
     };	
 
-	find.resultsRenderer = function(parent,resultlist,start,collapse){
+	find.resultsRenderer = function(parent,resultlist,collapse){
 	
 	    var result_container = $("<div class='resultMason'></div>").appendTo(parent);
 	    
 	    $.each(resultlist,function(ind,result){
-	        result_container.append(find.resultRenderer(result,start,collapse));
+	        result_container.append(find.resultRenderer(result,collapse));
 	    });
 	    
 	    result_container.masonry({

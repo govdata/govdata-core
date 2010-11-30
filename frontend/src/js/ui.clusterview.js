@@ -1,11 +1,10 @@
 define(["utils","jquery","jquery-ui","ui.linearchooser","ui.clusterelement"], function(utils) {
-    function collapseData(data,metadata,start,collapse){
+    function collapseData(data,metadata,collapse){
 
     	var collapseddata = {};
     	var sourcename;
     	
-    	console.log(start,collapse)
-    	var end = start + collapse;
+    	var end = collapse;
     
 		_.each(data, function(datum) {
 
@@ -41,10 +40,11 @@ define(["utils","jquery","jquery-ui","ui.linearchooser","ui.clusterelement"], fu
 		subcollapse = collapsedict[key];      
 		colnames = _.uniq(_.map(data,function(val){return val["collectionName"][0]; }));
 		newmetadata = utils.subdict(metadata,colnames);
+		
 	
 		if (subcollapse === 0) {
 		    if (colnames.length > 1){
-		       newcommon = utils.computeCommon(newmetadata,start + collapse);	
+		       newcommon = utils.computeCommon(newmetadata,collapse);	
 		    } else {
 		       newcommon = null;
 		    }
@@ -65,7 +65,7 @@ define(["utils","jquery","jquery-ui","ui.linearchooser","ui.clusterelement"], fu
 
 		    if (num + 1 !== 0){
 
-		      var subcollapse = num + 1;
+		      var subcollapse = collapse + num + 1;
 		      collapsedict[key] = subcollapse;
 		      var newelt = $("<div class='clusterView'></div>");
 		      var clusterElement = $(e.target).closest(".clusterElement")
@@ -77,7 +77,7 @@ define(["utils","jquery","jquery-ui","ui.linearchooser","ui.clusterelement"], fu
 		            key : key,
 					data : olddata,
 					metadata : oldmetadata,
-					start : start + collapse,
+					start : start,
 					collapsedict : collapsedict,
 					resultsRenderer : context.options.resultsRenderer  
 			  });
@@ -97,7 +97,7 @@ define(["utils","jquery","jquery-ui","ui.linearchooser","ui.clusterelement"], fu
 				    key : key,
 					data : data,
 					metadata : newmetadata,
-					start : start + collapse,
+					start : start,
 					collapsedict : collapsedict,
 					resultsRenderer : context.options.resultsRenderer
 				});
@@ -124,17 +124,21 @@ define(["utils","jquery","jquery-ui","ui.linearchooser","ui.clusterelement"], fu
 			    key = this.options.key,
 			    data = this.options.data,
 				metadata = this.options.metadata,
-			    start = this.options.start,
 				collapsedict = this.options.collapsedict;
+				start = this.options.start;
 					
 		
 		    var collapse, collapseddata;
 
-		    var common = utils.computeCommon(metadata,start);
+		    var common = utils.computeCommon(metadata,utils.count(key,'|'));
 	        var commonL = common[0], commonR = common[1];
 			
-			var lc = $("<div class='linearChooser'></div>").
-				appendTo(this.widget()).
+			var top = $("<div class='topBar'></div>").appendTo(this.element);
+					
+			var keydiv = $("<div class='keyLabel'>" + key.split('|').slice(start).join(' >> ') + "</div>").appendTo(top);
+			
+			var lc = $("<span class='linearChooser'></span>").
+				appendTo(top).
 				linearchooser({
 					data : {
 						label : "Cluster by:",
@@ -148,7 +152,7 @@ define(["utils","jquery","jquery-ui","ui.linearchooser","ui.clusterelement"], fu
 			    var parentLabel = $(e.target).parent().parent()[0].id;
 
 				collapse = num + 1;
-				collapseddata = collapseData(data,metadata,start,collapse);
+				collapseddata = collapseData(data,metadata,collapse);
 		
 				var subkey;
 				$.each(self.element.find(":ui-clusterelement, :ui-clusterview"),function(ind,item){
@@ -158,14 +162,14 @@ define(["utils","jquery","jquery-ui","ui.linearchooser","ui.clusterelement"], fu
 				   
 				});
 				
-				
-		        renderclusters(collapseddata,collapsedict,metadata,start,collapse,self); 		
+		        renderclusters(collapseddata,collapsedict,metadata,utils.count(key,'|'),collapse,self); 		
 		
 			});
 			            
 	      collapse = collapsedict[key]
-          collapseddata = collapseData(data,metadata,start,collapse);
-          renderclusters(collapseddata,collapsedict,metadata,start,collapse,self);
+          console.log(start,key)
+          collapseddata = collapseData(data,metadata,collapse);
+          renderclusters(collapseddata,collapsedict,metadata, utils.count(key,'|'),collapse,self);
           
      
 		},

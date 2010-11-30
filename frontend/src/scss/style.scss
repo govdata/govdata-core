@@ -67,3 +67,14 @@ background-color: $query-box-color;
 
  padding:7px;
 }
+
+.clusterView .topBar {
+    overflow:auto;
+    padding:2px;
+}
+
+
+.clusterView .keyLabel {
+   float:left;
+   padding:0px 10px;
+}

@@ -38,6 +38,14 @@ define(["underscore"],function() {
 				commonR = [];
 			}
 			return [commonL,commonR];
+		},
+		count : function(str,char){
+		   var sp = str.split(char);
+		   if (sp.length === 1){
+		      return 0;
+		   } else {
+		      return sp.length;
+		   }
 		}
 	}
 });
