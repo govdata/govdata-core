@@ -2,10 +2,24 @@ define(["utils","jquery","jquery-ui","ui.linearchooser","ui.clusterelement"], fu
     function collapseData(data,metadata,start,collapse){
 
     	var collapseddata = {};
+    	var sourcename;
+    	
+    	
+    	var end = start + collapse;
+    
 		_.each(data, function(datum) {
-		var sourcename = _.pluck(
-			_.values(metadata[datum.collectionName].source).slice(start,start+collapse),
+
+		if (end === 0){
+		  sourcename = _.pluck(
+			_.values(metadata[datum.collectionName].source),
 				"name").join('|');
+		}else{
+ 		  sourcename = _.pluck(
+			_.values(metadata[datum.collectionName].source).slice(0,end),
+				"name").join('|');
+	    } 
+				
+				
 	    collapseddata[sourcename] = (collapseddata[sourcename] || []);
 		collapseddata[sourcename].push(datum);
 		});
@@ -18,108 +32,104 @@ define(["utils","jquery","jquery-ui","ui.linearchooser","ui.clusterelement"], fu
     };
       
     
-    function replacecluster(key,data,metadata,start,collapse,subcollapse,context){
-
-		var subcollapseVal = subcollapse[key]; 
-
-		var colnames = _.uniq(_.map(data,function(val){return val["collectionName"]; }));
-		
-		var newmetadata = utils.subdict(metadata,colnames);
-		var newelt ;
-		
-		var keyID = key.replace(/ /g,'__');
-		
- 
-		if (subcollapseVal === 0) {				    
-			newcommon = utils.computeCommon(newmetadata,start + collapse);
-			
-			newelt = $("<div class='clusterElement'></div>");
-			
-			$(context.widget()).find("#" + keyID).replaceWith(newelt);
-			
-			newelt.clusterelement({
+    function renderclusters(collapsedata,collapsedict,metadata,start,collapse,context){
+    
+      var key, data, colnames, subcollapse, newmetadata, elt, newcommon, keyID;
+	  
+	  $.each(collapsedata,function(key,data){
+	    collapsedict[key] = collapsedict[key] || 0;
+		subcollapse = collapsedict[key];      
+		colnames = _.uniq(_.map(data,function(val){return val["collectionName"][0]; }));
+		newmetadata = utils.subdict(metadata,colnames);
+	
+		if (subcollapse === 0) {
+		    if (colnames.length > 1){
+		       newcommon = utils.computeCommon(newmetadata,start + collapse);	
+		    } else {
+		       newcommon = null;
+		    }
+		       
+			elt = $("<div class='clusterElement'></div>").appendTo(context.widget()).
+			clusterelement({
 					 key : key,
-					 results : collapseddata,
+					 results : data,
 					 common : newcommon,
 					 collapse : collapse,
 					 renderer: context.options.resultsRenderer
 			});
 			
+   		    elt.find(".topBar .chooserSubElement").click(function(e){
+   		
+		    var num = parseInt($(e.target)[0].id);
+		   
+		    console.log(num)
+		    if (num + 1 !== 0){
+		      var subcollapse = num + 1;
+		      collapsedict[key] = subcollapse;
+		      var newelt = $("<div class='clusterView'></div>");
+		      var clusterElement = $(e.target).closest(".clusterElement")
+		      clusterElement.replaceWith(newelt);
+		      var olddata = collapsedata[key];
+		      var colnames = _.uniq(_.map(olddata,function(val){return val["collectionName"][0]; }));
+		      var oldmetadata = utils.subdict(metadata,colnames);
+		      
+		      newelt.clusterview({				    
+		            key : key,
+					data : olddata,
+					metadata : oldmetadata,
+					start : start + collapse,
+					collapsedict : collapsedict,
+					resultsRenderer : context.options.resultsRenderer  
+			  });
+		      
+		      newelt.attr("id",key.replace(/ /g,'__'));
+		       
+		      
+		    }
+		    
+		   
+		  });			
 											
 		} else {
-		    newelt = $("<div class='clusterView'></div>");
-		    
-		    var oldelt = $(context.widget()).find('#' + jqueryescape(keyID));
-		    oldelt.replaceWith(newelt);
-    		    
-			newelt.clusterview({
+			elt = $("<div class='clusterView'></div>").
+				appendTo(context.widget()).
+				clusterview({
+				    key : key,
 					data : data,
 					metadata : newmetadata,
-					start : start,
-					collapse : collapse + subcollapseVal,
-					subcollapse : subcollapse,
+					start : start + collapse,
+					collapsedict : collapsedict,
 					resultsRenderer : context.options.resultsRenderer
 				});
-
-
-
 			
 		};
-		newelt.attr("id",keyID);    
-    
-    };
-    
-    function renderclusters(collapseddata,metadata,start,collapse,subcollapse,context){
-            var key, subcollapseVal, colnames, newmetadata, elt,newcommon, keyID;
+		keyID = key.replace(/ /g,'__');
+		elt.attr("id",keyID);
+	  });
 
             
-			for (key in collapseddata) {
-
-			    keyID = key.replace(/ /g,'__');	
-			   			
-                subcollapseVal = subcollapse[key];      
-                colnames = _.uniq(_.map(collapseddata[key],function(val){return val["collectionName"]; }));
-				newmetadata = utils.subdict(metadata,colnames);
-				if (subcollapseVal === 0) {				    
-					newcommon = utils.computeCommon(newmetadata,start + collapse);
-					
-                    elt = $("<div class='clusterElement'></div>").appendTo(context.widget()).
-                    clusterelement({
-                             key : key,
-                             results : collapseddata[key],
-                             common : newcommon,
-                             collapse : collapse,
-                             renderer: context.options.resultsRenderer
-                    });
-                    
-                               						
-				} else {
-					elt = $("<div class='clusterView'></div>").
-						appendTo(context.widget()).
-						clusterview({
-							data : collapseddata[key],
-							metadata : newmetadata,
-							start : start + collapse,
-							collapse : subcollapseVal,
-							subcollapse : subcollapse,
-							resultsRenderer : context.options.resultsRenderer
-						});
-					
-				};
-				elt.attr("id",keyID);
-			};
+	  
+			
 	 };
+	  
 
-	$.widget( "ui.clusterview", {
+   	$.widget( "ui.clusterview", {
 		options : {
+		    start : 0,
+		    collapsedict : {" ":2},
+		    key : " "
 		},
 		_create : function() {
 			var self = this,
+			    key = this.options.key,
 			    data = this.options.data,
-					metadata = this.options.metadata,
-					start = this.options.start,
-					collapse = this.options.collapse,
-					subcollapse = this.options.subcollapse;
+				metadata = this.options.metadata,
+			    start = this.options.start,
+				collapsedict = this.options.collapsedict;
+					
+					
+		
+		    var collapse, collapseddata;
 
 		    var common = utils.computeCommon(metadata,start);
 	        var commonL = common[0], commonR = common[1];
@@ -138,34 +148,27 @@ define(["utils","jquery","jquery-ui","ui.linearchooser","ui.clusterelement"], fu
 			    var num = parseInt($(e.target)[0].id);
 			    var parentLabel = $(e.target).parent().parent()[0].id;
 
-				collapse=num+1;
-				self.element.find('.clusterElement, .clusterView').remove();
-
-				var collapseddata = collapseData(data,metadata,start,collapse);
-				renderclusters(collapseddata,metadata,start,collapse,subcollapse,self);			
-	
+				collapse = num + 1;
+				collapseddata = collapseData(data,metadata,start,collapse);
+		
+				var subkey;
+				$.each(self.element.find(":ui-clusterelement, :ui-clusterview"),function(ind,item){
+				   subkey = item.id.replace(/__/g,' ');
+				   delete collapsedict[subkey]
+				   $(item).remove();
+				   
+				});
+				
+				
+		        renderclusters(collapseddata,collapsedict,metadata,start,collapse,self); 		
+		
 			});
 			            
-            var collapseddata = collapseData(data,metadata,start,collapse);
-                    
-            $.each(collapseddata,function(key){
-               subcollapse[key] = 0;
-            });
-                     
-            renderclusters(collapseddata,metadata,start,collapse,subcollapse,self);
-            
-            $(this.element).find(".clusterElement .chooserSubElement").click(function(e){
-               var clusterElement = $(e.target).closest(".clusterElement");
-			   var num = parseInt($(e.target)[0].id);
-			   var key = clusterElement.attr("id").replace(/__/g,' ');
-			   subcollapse[key] = num+1;
-			   	   
-			   replacecluster(key,collapseddata[key],metadata,start,collapse,subcollapse,self)
-			   
-            });
-            
-
-  
+	      collapse = collapsedict[key]
+          collapseddata = collapseData(data,metadata,start,collapse);
+          renderclusters(collapseddata,collapsedict,metadata,start,collapse,self);
+          
+     
 		},
 		destroy : function() {
 			this.element.empty();

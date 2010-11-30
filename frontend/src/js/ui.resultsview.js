@@ -3,10 +3,7 @@ define(["jquery","jquery-ui","jquery-ui.extensions","ui.clusterview"], function(
 	$.widget( "ui.resultsview", {
 		options : {
 			dataHandler : undefined,
-			resultsRenderer : undefined,
-			start : 0,
-			collapse : 2,
-			subcollapse : {}
+			resultsRenderer : undefined
 		},
 		_init : function() {
 			this.listenTo(this.options.dataHandler, "newResults", this.newResults);
@@ -16,14 +13,11 @@ define(["jquery","jquery-ui","jquery-ui.extensions","ui.clusterview"], function(
 			var docs = this.options.dataHandler.docs;
 			var metadata = this.options.dataHandler.metadata;
 			this.element.find(".clusterView").remove();
-			var view = $("<div class='clusterView'></div>").
+			var view = $("<div class='clusterView' id='__'></div>").
 									appendTo(this.element).
 									clusterview({
 											data : docs,
 											metadata : metadata,
-											start : self.options.start,
-											collapse : self.options.collapse,
-											subcollapse : self.options.subcollapse,
 											resultsRenderer : self.options.resultsRenderer
 									}).
 									data("clusterview");

@@ -57,7 +57,13 @@ define(["gov","jquery","underscore","underscore.strings",
   
      var title = item["title"][0];
      var source = JSON.parse(item["sourceSpec"][0]);
-     var sourceStr = _(source).keys().slice(collapse).map(function(key){return "<div class='sourceElement'><span class='sourceKey'>" + key + "</span>: <span class='sourceVal'>" + source[key] + "</span></div>";}).join('')
+     var sourceKeys;
+     if (collapse === 0){
+       sourceKeys = [];
+     } else {
+       sourceKeys = _(source).keys().slice(collapse);
+     }
+     var sourceStr = sourceKeys.map(function(key){return "<div class='sourceElement'><span class='sourceKey'>" + key + "</span>: <span class='sourceVal'>" + source[key] + "</span></div>";}).join('')
      var query = JSON.parse(item["query"][0]);
      var queryStr = _(query).keys().map(function(key){return "<div class='queryElement'><span class='queryKey'>" + key + "</span>: <span class='queryVal'>" + query[key] + '</span></div>';}).join('')
  
