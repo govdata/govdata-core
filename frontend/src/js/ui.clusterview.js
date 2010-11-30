@@ -166,6 +166,11 @@ define(["utils","jquery","jquery-ui","ui.linearchooser","ui.clusterelement"], fu
 		        var res = renderclusters(collapseddata,collapsedict,metadata,utils.count(key,'|'),collapse,self); 		
 				keydiv.click(function(){
 		          res.toggle();
+		          if (keydiv.hasClass("hide")){
+ 			        keydiv.removeClass("hide");
+		          } else {
+			        keydiv.addClass("hide");
+		          }
 		        });
 		
 			});
@@ -175,6 +180,11 @@ define(["utils","jquery","jquery-ui","ui.linearchooser","ui.clusterelement"], fu
           var res = renderclusters(collapseddata,collapsedict,metadata, utils.count(key,'|'),collapse,self);
 		  keydiv.click(function(){
 		     res.toggle();
+		     if (keydiv.hasClass("hide")){
+ 			   keydiv.removeClass("hide");
+		     } else {
+			   keydiv.addClass("hide");
+		     }
 		  });
 				         
      

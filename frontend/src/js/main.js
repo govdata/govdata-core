@@ -4,6 +4,7 @@ require(["find","jquery","jquery.address"],
 
 		}).externalChange(function(e) {
 			var state = $.address.jsonhash();
+			state = state || {};
 			var params = $.address.parameters();
 			if(e.path === "/show") { // show
 				console.log("SHOW");

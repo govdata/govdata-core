@@ -2,7 +2,7 @@ var root = this;
 
 define(["gov","jquery","underscore","underscore.strings",
 	"jquery.hotkeys","ui.searchbar","ui.query","ui.findresults",
-	"ui.resultsview","jquery.masonry"], function(gov) {
+	"ui.resultsview","jquery.masonry","ui.statehandler"], function(gov) {
 	
 	var find = {};
 
@@ -154,6 +154,8 @@ define(["gov","jquery","underscore","underscore.strings",
 	};
 
 	find.load = function(params, state) {
+	
+
 		find.query = $(root).query({
 				submitFn: find.submit,
 				newData: function(e,d) {
@@ -162,6 +164,16 @@ define(["gov","jquery","underscore","underscore.strings",
 		
 		}).data("query");
 		
+		if (state["query"]){
+		    find.query.update(state["query"]);
+		}
+		
+		find.state = $(root).statehandler({
+		    objects : {
+		        query : find.query
+		    }
+		    
+		});
 		
 		find.addSearchBar();
 		find.results = $(root).

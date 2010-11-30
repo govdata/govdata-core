@@ -1,6 +1,10 @@
 define(["jquery","jquery-ui"], function() {
 
 	$.widget( "ui.query", {
+	    options : {
+	       items : [],
+	       filteritems : []
+	    },
 		update : function(value,filtervalue) {
 			this.items = value;
 			this._trigger("update",null);
@@ -17,8 +21,8 @@ define(["jquery","jquery-ui"], function() {
 			});
 		},
 		_create : function() {
-			this.items = [];
-			this.filteritems = [];
+			this.items = this.options.items;
+			this.filteritems = this.options.filteritems;
 		},
 		destroy : function() {}
 	});
