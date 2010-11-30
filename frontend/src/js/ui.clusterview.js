@@ -34,6 +34,8 @@ define(["utils","jquery","jquery-ui","ui.linearchooser","ui.clusterelement"], fu
     function renderclusters(collapsedata,collapsedict,metadata,start,collapse,context){
     
       var key, data, colnames, subcollapse, newmetadata, elt, newcommon, keyID;
+      
+      var container = $("<div class='elementContainer'></div>").appendTo(context.widget());
 	  
 	  $.each(collapsedata,function(key,data){
 	    collapsedict[key] = collapsedict[key] || 0;
@@ -41,7 +43,7 @@ define(["utils","jquery","jquery-ui","ui.linearchooser","ui.clusterelement"], fu
 		colnames = _.uniq(_.map(data,function(val){return val["collectionName"][0]; }));
 		newmetadata = utils.subdict(metadata,colnames);
 		
-	
+	    
 		if (subcollapse === 0) {
 		    if (colnames.length > 1){
 		       newcommon = utils.computeCommon(newmetadata,collapse);	
@@ -49,7 +51,7 @@ define(["utils","jquery","jquery-ui","ui.linearchooser","ui.clusterelement"], fu
 		       newcommon = null;
 		    }
 		       
-			elt = $("<div class='clusterElement'></div>").appendTo(context.widget()).
+			elt = $("<div class='clusterElement'></div>").appendTo(container).
 			clusterelement({
 					 key : key,
 					 results : data,
@@ -92,7 +94,7 @@ define(["utils","jquery","jquery-ui","ui.linearchooser","ui.clusterelement"], fu
 											
 		} else {
 			elt = $("<div class='clusterView'></div>").
-				appendTo(context.widget()).
+				appendTo(container).
 				clusterview({
 				    key : key,
 					data : data,
@@ -107,8 +109,7 @@ define(["utils","jquery","jquery-ui","ui.linearchooser","ui.clusterelement"], fu
 		elt.attr("id",keyID);
 	  });
 
-            
-	  
+      return container      
 			
 	 };
 	  
@@ -151,7 +152,7 @@ define(["utils","jquery","jquery-ui","ui.linearchooser","ui.clusterelement"], fu
 			    var num = parseInt($(e.target)[0].id);
 			    var parentLabel = $(e.target).parent().parent()[0].id;
 
-				collapse = num + 1;
+				collapse = utils.count(key,'|') + num + 1;
 				collapseddata = collapseData(data,metadata,collapse);
 		
 				var subkey;
@@ -167,9 +168,8 @@ define(["utils","jquery","jquery-ui","ui.linearchooser","ui.clusterelement"], fu
 			});
 			            
 	      collapse = collapsedict[key]
-          console.log(start,key)
           collapseddata = collapseData(data,metadata,collapse);
-          renderclusters(collapseddata,collapsedict,metadata, utils.count(key,'|'),collapse,self);
+          var res = renderclusters(collapseddata,collapsedict,metadata, utils.count(key,'|'),collapse,self);
           
      
 		},

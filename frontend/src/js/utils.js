@@ -40,11 +40,10 @@ define(["underscore"],function() {
 			return [commonL,commonR];
 		},
 		count : function(str,char){
-		   var sp = str.split(char);
-		   if (sp.length === 1){
+		   if (str === " "){
 		      return 0;
 		   } else {
-		      return sp.length;
+		      return str.split(char).length;
 		   }
 		}
 	}
