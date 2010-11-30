@@ -163,14 +163,20 @@ define(["utils","jquery","jquery-ui","ui.linearchooser","ui.clusterelement"], fu
 				   
 				});
 				
-		        renderclusters(collapseddata,collapsedict,metadata,utils.count(key,'|'),collapse,self); 		
+		        var res = renderclusters(collapseddata,collapsedict,metadata,utils.count(key,'|'),collapse,self); 		
+				keydiv.click(function(){
+		          res.toggle();
+		        });
 		
 			});
 			            
 	      collapse = collapsedict[key]
           collapseddata = collapseData(data,metadata,collapse);
           var res = renderclusters(collapseddata,collapsedict,metadata, utils.count(key,'|'),collapse,self);
-          
+		  keydiv.click(function(){
+		     res.toggle();
+		  });
+				         
      
 		},
 		destroy : function() {

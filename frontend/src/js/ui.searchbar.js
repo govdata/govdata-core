@@ -31,6 +31,7 @@ define(["jquery","jquery-ui","ui.bubbles"], function() {
 		update : function() {
 
 			var items = this.q.items;
+			console.log('Q',items)
 			var self = this;
 			this.element.find(".bubble").remove();
 			$.each(items,function(ind,item){
