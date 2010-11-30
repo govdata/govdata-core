@@ -4,7 +4,7 @@ define(["utils","jquery","jquery-ui","ui.linearchooser","ui.clusterelement"], fu
     	var collapseddata = {};
     	var sourcename;
     	
-    	
+    	console.log(start,collapse)
     	var end = start + collapse;
     
 		_.each(data, function(datum) {
@@ -62,8 +62,9 @@ define(["utils","jquery","jquery-ui","ui.linearchooser","ui.clusterelement"], fu
    		    elt.find(".topBar .chooserSubElement").click(function(e){
    		
 		    var num = parseInt($(e.target)[0].id);
-		   
+
 		    if (num + 1 !== 0){
+
 		      var subcollapse = num + 1;
 		      collapsedict[key] = subcollapse;
 		      var newelt = $("<div class='clusterView'></div>");
@@ -72,12 +73,11 @@ define(["utils","jquery","jquery-ui","ui.linearchooser","ui.clusterelement"], fu
 		      var olddata = collapsedata[key];
 		      var colnames = _.uniq(_.map(olddata,function(val){return val["collectionName"][0]; }));
 		      var oldmetadata = utils.subdict(metadata,colnames);
-		      
 		      newelt.clusterview({				    
 		            key : key,
 					data : olddata,
 					metadata : oldmetadata,
-					start : start + subcollapse,
+					start : start + collapse,
 					collapsedict : collapsedict,
 					resultsRenderer : context.options.resultsRenderer  
 			  });
