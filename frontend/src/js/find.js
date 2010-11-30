@@ -164,14 +164,13 @@ define(["gov","jquery","underscore","underscore.strings",
 		
 		}).data("query");
 		
-		if (state["query"]){
-		    find.query.update(state["query"]);
-		}
+
 		
 		find.state = $(root).statehandler({
 		    objects : {
 		        query : find.query
-		    }
+		    },
+		    state : state
 		    
 		});
 		
