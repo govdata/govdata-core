@@ -54,6 +54,7 @@ define(["utils","jquery","jquery-ui","ui.linearchooser","ui.clusterelement"], fu
 					 key : key,
 					 results : data,
 					 common : newcommon,
+					 start : start,
 					 collapse : collapse,
 					 renderer: context.options.resultsRenderer
 			});
@@ -62,7 +63,6 @@ define(["utils","jquery","jquery-ui","ui.linearchooser","ui.clusterelement"], fu
    		
 		    var num = parseInt($(e.target)[0].id);
 		   
-		    console.log(num)
 		    if (num + 1 !== 0){
 		      var subcollapse = num + 1;
 		      collapsedict[key] = subcollapse;
@@ -77,7 +77,7 @@ define(["utils","jquery","jquery-ui","ui.linearchooser","ui.clusterelement"], fu
 		            key : key,
 					data : olddata,
 					metadata : oldmetadata,
-					start : start + collapse,
+					start : start + subcollapse,
 					collapsedict : collapsedict,
 					resultsRenderer : context.options.resultsRenderer  
 			  });
@@ -126,7 +126,6 @@ define(["utils","jquery","jquery-ui","ui.linearchooser","ui.clusterelement"], fu
 				metadata = this.options.metadata,
 			    start = this.options.start,
 				collapsedict = this.options.collapsedict;
-					
 					
 		
 		    var collapse, collapseddata;
