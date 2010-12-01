@@ -157,7 +157,7 @@ define(["gov","jquery","underscore","underscore.strings",
 
 	find.load = function(params, state) {
 	
-
+ 
 		find.query = $(root).query({
 				submitFn: find.submit,
 				newData: function(e,d) {
@@ -169,33 +169,29 @@ define(["gov","jquery","underscore","underscore.strings",
         find.collapsedict = $(root).dict({
           items : {" " :2}
         }).data("dict");
-        
-  
-        if (find.sb === undefined){
-   	       find.sb = find.addSearchBar();
-   	    }
-	
-	    if (find.statehandler === undefined){
-			find.statehandler = $(root).statehandler({
-				objects : {
-					query : find.query,
-					collapsedict : find.collapsedict
-				}
-				
-			}).data("statehandler");
-		}
- 
+
+		find.statehandler = $(root).statehandler({
+			objects : {
+				query : find.query,
+				collapsedict : find.collapsedict
+			}
+			
+		}).data("statehandler");
+		
+        $("#searchbar").remove();
+        find.sb = find.addSearchBar();
+          				
+		
         find.statehandler.setstate(state);
-  		
-  		if (find.results === undefined){
+        
+
    		find.results = $(root).
 													findresults({
 														metadataFn : find.getMetadata
 													}).
 													data("findresults");
-	    }
-
-		if (find.resultsView === undefined){								
+	    
+	    $("#resultsView").remove();				
 		find.resultsView = $("<div id='resultsView'></div>").
 													appendTo("#content").
 													resultsview({
@@ -204,7 +200,7 @@ define(["gov","jquery","underscore","underscore.strings",
 														collapsedict : find.collapsedict
 													});
 	    
-        }
+       
 	};
 
 

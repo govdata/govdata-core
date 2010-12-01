@@ -12,7 +12,9 @@ define(["jquery","jquery-ui"], function() {
 		   $.each(objects,function(name,obj){
 		      self.listenTo(obj,"update",function(){
 		         self.values[name] = obj.items;
-		         self.changehash();
+		         if (!(self.SETTING)){
+   		           $.address.jsonhash(self.values);
+   		         }
 		      });
 		   });
 
@@ -20,14 +22,13 @@ define(["jquery","jquery-ui"], function() {
 		setstate : function(state){
 		   var self = this;
            state = state || {};	
+           self.SETTING=true;
            $.each(state,function(name,obj){
 		        self.objects[name].update(obj);
+		        //self.objects[name].items = obj;
            });
+           self.SETTING=false;
 
-		},
-		changehash : function(){    
-		    var self = this;
-		    $.address.jsonhash(self.values);
 		},
 		destroy : function() {}
 	});
