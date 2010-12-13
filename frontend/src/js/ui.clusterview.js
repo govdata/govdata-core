@@ -31,14 +31,14 @@ define(["utils","jquery","jquery-ui","ui.linearchooser","ui.clusterelement"], fu
     };
       
     
-    function renderclusters(collapsedata,collapsedict,metadata,start,collapse,context){
+    function renderclusters(collapsedata,collapsedict,hidedict,metadata,start,collapse,context){
     
       var key, data, colnames, subcollapse, newmetadata, elt, newcommon, keyID;
       
       var container = $("<div class='elementContainer'></div>").appendTo(context.widget());
 	  
 	  $.each(collapsedata,function(key,data){
-		subcollapse = collapsedict.items[key] || 0;    
+		subcollapse = collapsedict.items[key] || 0; 
 		colnames = _.uniq(_.map(data,function(val){return val["collectionName"][0]; }));
 		newmetadata = utils.subdict(metadata,colnames);
 		
@@ -57,6 +57,7 @@ define(["utils","jquery","jquery-ui","ui.linearchooser","ui.clusterelement"], fu
 					 common : newcommon,
 					 start : start,
 					 collapse : collapse,
+					 hidedict : hidedict,
 					 renderer: context.options.resultsRenderer
 			});
 			
@@ -80,12 +81,13 @@ define(["utils","jquery","jquery-ui","ui.linearchooser","ui.clusterelement"], fu
 					metadata : oldmetadata,
 					start : start,
 					collapsedict : collapsedict,
+					hidedict : hidedict,
 					resultsRenderer : context.options.resultsRenderer  
 			  });
 		      
 		      newelt.attr("id",key.replace(/ /g,'__'));
-		       
-		      
+		      $(root).data()['statehandler'].changestate();
+
 		    }
 		    
 		   
@@ -100,6 +102,7 @@ define(["utils","jquery","jquery-ui","ui.linearchooser","ui.clusterelement"], fu
 					metadata : newmetadata,
 					start : start,
 					collapsedict : collapsedict,
+					hidedict : hidedict,
 					resultsRenderer : context.options.resultsRenderer
 				});
 			
@@ -108,7 +111,7 @@ define(["utils","jquery","jquery-ui","ui.linearchooser","ui.clusterelement"], fu
 		elt.attr("id",keyID);
 	  });
 
-      collapsedict._trigger("update",null);
+      
       return container      
 			
 	 };
@@ -123,7 +126,8 @@ define(["utils","jquery","jquery-ui","ui.linearchooser","ui.clusterelement"], fu
 			    key = this.options.key,
 			    data = this.options.data,
 				metadata = this.options.metadata,
-				collapsedict = this.options.collapsedict;
+				collapsedict = this.options.collapsedict,
+				hidedict = this.options.hidedict,
 				start = this.options.start;
 					
 		
@@ -133,8 +137,16 @@ define(["utils","jquery","jquery-ui","ui.linearchooser","ui.clusterelement"], fu
 	        var commonL = common[0], commonR = common[1];
 			
 			var top = $("<div class='topBar'></div>").appendTo(this.element);
-					
-			var keydiv = $("<div class='keyLabel'>" + key.split('|').slice(start).join(' >> ') + "</div>").appendTo(top);
+				
+		    var hide = hidedict.items[key] || false		
+		    var classtext;		
+			if (hide === true){
+			    classtext = "keyLabel hide";
+			 
+			} else {
+			    classtext = "keylabel";
+			}
+			var keydiv = $("<div class='" + classtext + "'>" + key.split('|').slice(start).join(' >> ') + "</div>").appendTo(top);
 			
 			var lc = $("<span class='linearChooser'></span>").
 				appendTo(top).
@@ -152,6 +164,7 @@ define(["utils","jquery","jquery-ui","ui.linearchooser","ui.clusterelement"], fu
 
 				collapse = utils.count(key,'|') + num + 1;
 				collapsedict.items[key] = collapse;
+				
 				collapseddata = collapseData(data,metadata,collapse);
 		
 				var subkey;
@@ -161,29 +174,41 @@ define(["utils","jquery","jquery-ui","ui.linearchooser","ui.clusterelement"], fu
 				   $(item).remove();
 				   
 				});
-				
-		        var res = renderclusters(collapseddata,collapsedict,metadata,utils.count(key,'|'),collapse,self); 		
+						
+		        var res = renderclusters(collapseddata,collapsedict,hidedict,metadata,utils.count(key,'|'),collapse,self);
+		        $(root).data()['statehandler'].changestate();
 				keydiv.click(function(){
 		          res.toggle();
 		          if (keydiv.hasClass("hide")){
  			        keydiv.removeClass("hide");
+ 			        hidedict.remove(key);
 		          } else {
 			        keydiv.addClass("hide");
+			        hidedict.add(key,true);
 		          }
+		          $(root).data()['statehandler'].changestate();
+		          
 		        });
 		
 			});
 			            
 	      collapse = collapsedict.items[key] || 0
+	      var hide = hidedict.items[key] || false
           collapseddata = collapseData(data,metadata,collapse);
-          var res = renderclusters(collapseddata,collapsedict,metadata, utils.count(key,'|'),collapse,self);
+          var res = renderclusters(collapseddata,collapsedict,hidedict,metadata, utils.count(key,'|'),collapse,self);
+          if (hide === true){
+              res.hide();
+          }
 		  keydiv.click(function(){
 		     res.toggle();
 		     if (keydiv.hasClass("hide")){
  			   keydiv.removeClass("hide");
+ 			   hidedict.remove(key);
 		     } else {
 			   keydiv.addClass("hide");
+			   hidedict.add(key,true);
 		     }
+		     $(root).data()['statehandler'].changestate();
 		  });
 				         
      

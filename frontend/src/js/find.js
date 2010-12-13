@@ -12,7 +12,7 @@ define(["gov","jquery","underscore","underscore.strings",
 		var params = {
 			q : '',
 			rows : 20,
-			'facet.field' : ['agency','subagency','datasetTight','dateDivisionsTight','spatialDivisionsTight'],
+			'facet.field' : ['sourceSpec','datasetTight','dateDivisionsTight','spatialDivisionsTight'],
 			facet : 'true'
 		};
 		$.extend(true,params,options);
@@ -95,7 +95,8 @@ define(["gov","jquery","underscore","underscore.strings",
 	      var sval = res.find(".sourceVal").text();
           var filteritems = find.query.filteritems;
 	      filteritems.push(skey + ':"' + sval + '"');
-          find.query.update(newItems,filteritems);
+          find.query.update({'qval' : newItems, 'fqval' :filteritems});
+          $(root).data()['statehandler'].changestate();
 
 	    });
 	
@@ -107,7 +108,8 @@ define(["gov","jquery","underscore","underscore.strings",
 	      var qval = res.find(".queryVal").text();
 	      var newclause = '"' + qkey + '=' + qval + '"';
 	      newItems.push(newclause);
-          find.query.update(newItems);
+          find.query.update({'qval': newItems});
+          $(root).data()['statehandler'].changestate();
 
 	    });	
 	  
@@ -167,26 +169,30 @@ define(["gov","jquery","underscore","underscore.strings",
 		}).data("query");
 		
         find.collapsedict = $(root).dict({
-          items : {" " :2}
+          items : {" " :2},
         }).data("dict");
+        
+        find.hidedict = $(root).dict({
+          items : {" " :false},
+        }).data("dict");      
 
 		find.statehandler = $(root).statehandler({
 			objects : {
 				query : find.query,
-				collapsedict : find.collapsedict
+				collapsedict : find.collapsedict,
+				hidedict : find.hidedict
 			}
 			
 		}).data("statehandler");
+	
 		
         $("#searchbar").remove();
         find.sb = find.addSearchBar();
-          				
-		
-        find.statehandler.setstate(state);
-        
+        		
 
-   		find.results = $(root).
-													findresults({
+        find.statehandler.setstate(state);        
+        
+   		find.results = $(root).findresults({
 														metadataFn : find.getMetadata
 													}).
 													data("findresults");
@@ -197,13 +203,15 @@ define(["gov","jquery","underscore","underscore.strings",
 													resultsview({
 														dataHandler: find.results,
 														resultsRenderer: find.resultsRenderer,
-														collapsedict : find.collapsedict
+														collapsedict : find.collapsedict,
+														hidedict : find.hidedict
 													});
 	    
        
+  
 	};
 
-
+    
      
 	return find;
 

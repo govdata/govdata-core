@@ -24,20 +24,25 @@ define(["jquery","jquery-ui","ui.bubbles"], function() {
 			this.bubbles = bubbles;
 			this.q = this.options.query;
 			this.listenTo(this.q, "update", this.update)
-			//$(document).bind("queryupdate", this.update);
-			//_.listenTo(this.q, "update", this.update, this);
-			//self.q.bind("queryupdate", this.update);
+
 		},
 		update : function() {
-            
-			var items = this.q.items;
+            var self = this;
+			var items = self.q.items;
 
-			var self = this;
-			this.element.find(".bubble").remove();
+
+			self.element.find(".bubble").remove();
 			$.each(items,function(ind,item){
 			   self.addBubble(item);
 			
+			});	
+			var filteritems = self.q.filteritems;
+			$.each(filteritems,function(ind,item){
+			   self.addBubble(item,'fq');
+			
 			});
+						
+			
 
 			
 		},
@@ -46,8 +51,8 @@ define(["jquery","jquery-ui","ui.bubbles"], function() {
 			this.q.update(value);
 			
 		},
-		addBubble : function(val) {
-			this.bubbles.add(val);
+		addBubble : function(val,type) {
+			this.bubbles.add(val,type);
 		},
 		destroy : function() {
 			this.element.empty();

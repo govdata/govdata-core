@@ -4,12 +4,18 @@
 @include global-reset;
 
 $bubble-color: #FA1;
+$fqbubble-color: #3A1;
 $bubble-margin: 10px;
 $result-box-color: #FA1;
 $query-box-color: #EE2;
 
 .bubble {
   background-color: $bubble-color;
+  margin: $bubble-margin;
+}
+
+.bubbletextfq {
+  background-color: $fqbubble-color;
   margin: $bubble-margin;
 }
 

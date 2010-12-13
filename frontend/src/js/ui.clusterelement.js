@@ -11,10 +11,18 @@ define(["utils","jquery","jquery-ui","ui.linearchooser","ui.clusterelement"], fu
 				common = this.options.common,
 				collapse = this.options.collapse,
 				start = this.options.start,
+				hidedict = this.options.hidedict,
 				renderer = this.options.renderer;
-				
+					
+				var hide = hidedict.items[key] || false;	
+				if (hide === true){
+					classtext = "keyLabel hide";
+				 
+				} else {
+					classtext = "keylabel";
+				}				
 				var top = $("<div class='topBar'></div>").appendTo(this.element);
-				var key = $("<div class='keyLabel'>" + key.split('|').slice(start).join(' >> ') + "</div>").appendTo(top);
+				var keydiv = $("<div class='" + classtext + "'>" + key.split('|').slice(start).join(' >> ') + "</div>").appendTo(top);
 				
 				if (common){
 				var innerchooser = $("<div class='linearChooser'></div>").appendTo(
@@ -27,14 +35,21 @@ define(["utils","jquery","jquery-ui","ui.linearchooser","ui.clusterelement"], fu
 				}
 				
 				var result_container = renderer(this.element,results,collapse);
-				
-				key.click(function(){
+   			    if (hide === true){
+				   result_container.hide();
+			    }				
+					
+				keydiv.click(function(){
 				   result_container.toggle();
-				   if (key.hasClass("hide")){
-				      key.removeClass("hide");
+			
+				   if (keydiv.hasClass("hide")){
+				      keydiv.removeClass("hide");
+				      hidedict.remove(key);
 				   } else {
-				      key.addClass("hide");
+				      keydiv.addClass("hide");
+				      hidedict.add(key,true);
 				   }
+				   $(root).data()['statehandler'].changestate();
 				});
 				
 				

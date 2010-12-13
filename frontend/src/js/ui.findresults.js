@@ -8,6 +8,7 @@ define(["jquery","jquery-ui"], function() {
 			var self = this;
 			this.results = data;
 			this.docs = this.results.response.docs;
+			this.facet_counts = this.results.facet_counts;
 			this.options.metadataFn(this.docs, function(metadata) {
 				self.metadata = metadata;
 				self._trigger("newResults",null);

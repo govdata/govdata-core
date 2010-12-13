@@ -1,6 +1,6 @@
 define([],function() {
 	return {
-		API_URL : "http://ec2-67-202-20-101.compute-1.amazonaws.com:81"
+		API_URL : "http://ec2-72-44-48-102.compute-1.amazonaws.com:81"
 	};
 });
 
