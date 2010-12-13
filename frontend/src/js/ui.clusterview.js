@@ -31,7 +31,7 @@ define(["utils","jquery","jquery-ui","ui.linearchooser","ui.clusterelement"], fu
     };
       
     
-    function renderclusters(collapsedata,collapsedict,hidedict,metadata,start,collapse,context){
+    function renderclusters(collapsedata,collapsedict,hidedict,facet_dict,metadata,start,collapse,context){
     
       var key, data, colnames, subcollapse, newmetadata, elt, newcommon, keyID;
       
@@ -58,7 +58,8 @@ define(["utils","jquery","jquery-ui","ui.linearchooser","ui.clusterelement"], fu
 					 start : start,
 					 collapse : collapse,
 					 hidedict : hidedict,
-					 renderer: context.options.resultsRenderer
+					 renderer: context.options.resultsRenderer,
+					 facet_dict : facet_dict
 			});
 			
    		    elt.find(".topBar .chooserSubElement").click(function(e){
@@ -82,7 +83,8 @@ define(["utils","jquery","jquery-ui","ui.linearchooser","ui.clusterelement"], fu
 					start : start,
 					collapsedict : collapsedict,
 					hidedict : hidedict,
-					resultsRenderer : context.options.resultsRenderer  
+					resultsRenderer : context.options.resultsRenderer,
+					facet_dict : facet_dict
 			  });
 		      
 		      newelt.attr("id",key.replace(/ /g,'__'));
@@ -103,7 +105,8 @@ define(["utils","jquery","jquery-ui","ui.linearchooser","ui.clusterelement"], fu
 					start : start,
 					collapsedict : collapsedict,
 					hidedict : hidedict,
-					resultsRenderer : context.options.resultsRenderer
+					resultsRenderer : context.options.resultsRenderer,
+					facet_dict : facet_dict,
 				});
 			
 		};
@@ -128,7 +131,8 @@ define(["utils","jquery","jquery-ui","ui.linearchooser","ui.clusterelement"], fu
 				metadata = this.options.metadata,
 				collapsedict = this.options.collapsedict,
 				hidedict = this.options.hidedict,
-				start = this.options.start;
+				start = this.options.start,
+				facet_dict = this.options.facet_dict;
 					
 		
 		    var collapse, collapseddata;
@@ -146,7 +150,14 @@ define(["utils","jquery","jquery-ui","ui.linearchooser","ui.clusterelement"], fu
 			} else {
 			    classtext = "keylabel";
 			}
-			var keydiv = $("<div class='" + classtext + "'>" + key.split('|').slice(start).join(' >> ') + "</div>").appendTo(top);
+			
+			var facet_text;
+			if (key in facet_dict){
+			    facet_text = " <span class='facet'>(" + facet_dict[key] + ")</span>";
+			} else {
+			    facet_text = '';
+			}
+			var keydiv = $("<div class='" + classtext + "'>" + key.split('|').slice(start).join(' >> ') + facet_text + "</div>").appendTo(top);
 			
 			var lc = $("<span class='linearChooser'></span>").
 				appendTo(top).
@@ -175,7 +186,7 @@ define(["utils","jquery","jquery-ui","ui.linearchooser","ui.clusterelement"], fu
 				   
 				});
 						
-		        var res = renderclusters(collapseddata,collapsedict,hidedict,metadata,utils.count(key,'|'),collapse,self);
+		        var res = renderclusters(collapseddata,collapsedict,hidedict,facet_dict,metadata,utils.count(key,'|'),collapse,self);
 		        $(root).data()['statehandler'].changestate();
 				keydiv.click(function(){
 		          res.toggle();
@@ -195,7 +206,7 @@ define(["utils","jquery","jquery-ui","ui.linearchooser","ui.clusterelement"], fu
 	      collapse = collapsedict.items[key] || 0
 	      var hide = hidedict.items[key] || false
           collapseddata = collapseData(data,metadata,collapse);
-          var res = renderclusters(collapseddata,collapsedict,hidedict,metadata, utils.count(key,'|'),collapse,self);
+          var res = renderclusters(collapseddata,collapsedict,hidedict,facet_dict,metadata, utils.count(key,'|'),collapse,self);
           if (hide === true){
               res.hide();
           }

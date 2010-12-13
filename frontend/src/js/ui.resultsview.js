@@ -1,4 +1,4 @@
-define(["jquery","jquery-ui","jquery-ui.extensions","ui.clusterview"], function() {
+define(["jquery","jquery-ui","jquery-ui.extensions","ui.linearchooser","ui.clusterview"], function() {
  
     facet_computer = function(facet_counts){
         var facet_fields = facet_counts['facet_fields'];
@@ -16,31 +16,42 @@ define(["jquery","jquery-ui","jquery-ui.extensions","ui.clusterview"], function(
             var i, subsource;
 
             $.each(_.keys(sourceName),function(i){
-               subsource = _.values(sourceName).slice(0,i).join('__');
+               subsource = _.values(sourceName).slice(0,i).join('|');
                facet_dict[subsource] = (facet_dict[subsource] || 0) + num;
             })
         });
         
         var date_facets = facet_fields["dateDivisionsTight"];
         var L = date_facets.length / 2;
+        var dateDivisions = new Array();
         $.each(_.range(L),function(i){
             key = date_facets[2*i];
             num = date_facets[2*i + 1];
             dateNames = key.split(' ')
             $.each(dateNames,function(j,val){
-               facet_dict[val] = (facet_dict[val] || 0) + num;
+               if (num > 0){
+                  facet_dict[val] = (facet_dict[val] || 0) + num;
+                  dateDivisions.push(val);
+               }
             })
         });       
+        dateDivisions = _.uniq(dateDivisions);
+        
         
         var space_facets = facet_fields["spatialDivisionsTight"];
         var L = space_facets.length / 2;
+        var spatialDivisions = new Array();
         $.each(_.range(L),function(i){
             key = space_facets[2*i];
             num = space_facets[2*i + 1];
-            facet_dict[key] =  (facet_dict[key] || 0) + num;
-        });   
+            if ((num > 0) & (key !== 'Undefined')) {
+               facet_dict[key] =  (facet_dict[key] || 0) + num; 
+               spatialDivisions.push(key);
+            }
+        });
+        var spatialDivisions = _.uniq(spatialDivisions);
         
-        return facet_dict
+        return {'facet_dict' : facet_dict, 'spatialDivisions': spatialDivisions, 'dateDivisions': dateDivisions}
     };
     
 	$.widget( "ui.resultsview", {
@@ -54,13 +65,75 @@ define(["jquery","jquery-ui","jquery-ui.extensions","ui.clusterview"], function(
 		},
 		newResults : function() {
 			var self = this;
-			var docs = this.options.dataHandler.docs;
-			var facet_counts = this.options.dataHandler.facet_counts;
-			var metadata = this.options.dataHandler.metadata;
+			var docs = self.options.dataHandler.docs;
+			var facet_counts = self.options.dataHandler.facet_counts;
+			var metadata = self.options.dataHandler.metadata;
+			var query = self.options.query;
 			
 			//compute facets
-			facet_dict = facet_computer(facet_counts);
-			console.log(facet_dict)
+
+			var facet_info = facet_computer(facet_counts);
+			var facet_dict = facet_info['facet_dict'];
+			var spatialDivisions = facet_info['spatialDivisions'];
+			var dateDivisions = facet_info['dateDivisions'];
+			
+			var dateDivisionsWithFacets = _.map(dateDivisions,function(x){
+			    return x + '<span class="facet"> (' + facet_dict[x] + ")</span>";
+			
+			});
+			
+			var spatialDivisionsWithFacets = _.map(spatialDivisions,function(x){
+			    return x + '<span class="facet"> (' + facet_dict[x] + ")</span>";
+			
+			});
+			
+			var numFound = self.options.dataHandler.numFound;
+			
+			self.element.find(".numFound").remove();
+			$("<span class='numFound' id='totalNumFound'>Total Results: " + numFound + "</span>").
+				appendTo(this.element)
+			
+			self.element.find(".linearChooser").remove();
+			var dateChooser = $("<span class='linearChooser' id='dateChooser'></span>").
+				appendTo(this.element).
+				linearchooser({
+					data : {
+						label : "Filter date by:",
+						list : [{label: "date", list: dateDivisionsWithFacets}],
+					}
+				});	
+				
+			dateChooser.find('.chooserSubElement').click(function(e){
+			    var num = parseInt($(e.target)[0].id);
+			    var filterval = dateDivisions[num];
+				var filteritems = query.filteritems;
+				var items = query.items;
+			    filteritems.push('dateDivisionsTight:"' + filterval + '"');
+				query.update({'qval' : items, 'fqval' :filteritems});
+				$(root).data()['statehandler'].changestate();			    
+			
+			});
+			
+			var spaceChooser = $("<span class='linearChooser' id='spaceChooser'></span>").
+				appendTo(this.element).
+				linearchooser({
+					data : {
+						label : "Filter space by:",
+						list : [{label: "space", list: spatialDivisionsWithFacets}],
+					}
+				});					
+			
+			spaceChooser.find('.chooserSubElement').click(function(e){
+			    var num = parseInt($(e.target)[0].id);
+			    var filterval = spatialDivisions[num];
+				var filteritems = query.filteritems;
+				var items = query.items;
+			    filteritems.push('spatialDivisionsTight:"' + filterval + '"');
+				query.update({'qval' : items, 'fqval' :filteritems});
+				$(root).data()['statehandler'].changestate();			    
+			
+			});			
+			
 			
 			self.element.find(".clusterView").remove();
 			var view = $("<div class='clusterView' id='__'></div>").
@@ -72,6 +145,7 @@ define(["jquery","jquery-ui","jquery-ui.extensions","ui.clusterview"], function(
 											collapsedict : self.options.collapsedict,
 											key : self.options.key,
 											hidedict : self.options.hidedict,
+											facet_dict : facet_dict
 											
 									}).
 									data("clusterview");

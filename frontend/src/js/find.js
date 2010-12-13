@@ -204,7 +204,8 @@ define(["gov","jquery","underscore","underscore.strings",
 														dataHandler: find.results,
 														resultsRenderer: find.resultsRenderer,
 														collapsedict : find.collapsedict,
-														hidedict : find.hidedict
+														hidedict : find.hidedict,
+														query : find.query
 													});
 	    
        

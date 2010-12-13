@@ -41,14 +41,12 @@ define(["jquery","jquery-ui","ui.bubbles"], function() {
 			   self.addBubble(item,'fq');
 			
 			});
-						
-			
-
 			
 		},
 		submit : function() {
 			var value = this.bubbles.value();
 			this.q.update(value);
+			$(root).data()['statehandler'].changestate();
 			
 		},
 		addBubble : function(val,type) {

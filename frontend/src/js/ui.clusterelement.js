@@ -12,7 +12,8 @@ define(["utils","jquery","jquery-ui","ui.linearchooser","ui.clusterelement"], fu
 				collapse = this.options.collapse,
 				start = this.options.start,
 				hidedict = this.options.hidedict,
-				renderer = this.options.renderer;
+				renderer = this.options.renderer,
+				facet_dict = this.options.facet_dict;
 					
 				var hide = hidedict.items[key] || false;	
 				if (hide === true){
@@ -21,8 +22,14 @@ define(["utils","jquery","jquery-ui","ui.linearchooser","ui.clusterelement"], fu
 				} else {
 					classtext = "keylabel";
 				}				
+				var facet_text;
+				if (key in facet_dict){
+					facet_text = " <span class='facet'>(" + facet_dict[key] + ")</span>";
+				} else {
+					facet_text = '';
+				}				
 				var top = $("<div class='topBar'></div>").appendTo(this.element);
-				var keydiv = $("<div class='" + classtext + "'>" + key.split('|').slice(start).join(' >> ') + "</div>").appendTo(top);
+				var keydiv = $("<div class='" + classtext + "'>" + key.split('|').slice(start).join(' >> ') + facet_text +  "</div>").appendTo(top);
 				
 				if (common){
 				var innerchooser = $("<div class='linearChooser'></div>").appendTo(
