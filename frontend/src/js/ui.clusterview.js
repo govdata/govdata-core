@@ -3,6 +3,9 @@ define(["utils","jquery","jquery-ui","ui.linearchooser","ui.clusterelement"], fu
 
     	var collapseddata = {};
     	var sourcename;
+    	var sourcenamebasedict = {};
+    	var sourcenamebase;
+    	var prev_sourcename;
     	
     	var end = collapse;
     
@@ -12,7 +15,29 @@ define(["utils","jquery","jquery-ui","ui.linearchooser","ui.clusterelement"], fu
 		  sourcename = _.pluck(
 			_.values(metadata[datum.collectionName].source),
 				"name").join('|');
-		}else{
+		} else if (end == 'QUERY') {
+
+		  sourcenamebase = _.pluck(_.values(metadata[datum.collectionName].source),
+				"name").join('|');
+
+		  if ((prev_sourcename !== undefined) && (prev_sourcename.split('|').slice(0,-1).join('|') == sourcenamebase)) {
+		      sourcename = prev_sourcename;
+		 
+		  } else {
+		  
+		      if (sourcenamebase in sourcenamebasedict){
+		          sourcenamebasedict[sourcenamebase] += 1;
+		      } else {
+		          sourcenamebasedict[sourcenamebase] = 0;
+		      }    
+		     		      
+		      sourcename = sourcenamebase + '|' + sourcenamebasedict[sourcenamebase];
+
+		  }
+		  
+          prev_sourcename = sourcename;
+		  
+		} else{
  		  sourcename = _.pluck(
 			_.values(metadata[datum.collectionName].source).slice(0,end),
 				"name").join('|');
@@ -139,6 +164,12 @@ define(["utils","jquery","jquery-ui","ui.linearchooser","ui.clusterelement"], fu
 
 		    var common = utils.computeCommon(metadata,utils.count(key,'|'));
 	        var commonL = common[0], commonR = common[1];
+	        $.each(commonL,function(i,x){
+	            commonL[i] = '<div class="innerClusterChooser">' + x[0].toUpperCase() + x.slice(1) + '</div>';
+	        });
+	        $.each(commonR,function(i,x){
+	            commonR[i] = '<div class="innerClusterChooser">' + x[0].toUpperCase() + x.slice(1) + '</div>';
+	        });	        
 			
 			var top = $("<div class='topBar'></div>").appendTo(this.element);
 				
@@ -148,7 +179,7 @@ define(["utils","jquery","jquery-ui","ui.linearchooser","ui.clusterelement"], fu
 			    classtext = "keyLabel hide";
 			 
 			} else {
-			    classtext = "keylabel";
+			    classtext = "keyLabel";
 			}
 			
 			var facet_text;
@@ -159,25 +190,50 @@ define(["utils","jquery","jquery-ui","ui.linearchooser","ui.clusterelement"], fu
 			}
 			var keydiv = $("<div class='" + classtext + "'>" + key.split('|').slice(start).join(' >> ') + facet_text + "</div>").appendTo(top);
 			
-			var lc = $("<span class='linearChooser'></span>").
-				appendTo(top).
-				linearchooser({
-					data : {
-						label : "Cluster by:",
-						list : [{label: "front", list: commonL},{label:"back",list:commonR}],
-	                    resp : [_.range(commonL.length),_.range(-commonR.length,0)]
-					}
-				});
-				
-			lc.find(".chooserSubElement").click(function(e){
-			    var num = parseInt($(e.target)[0].id);
-			    var parentLabel = $(e.target).parent().parent()[0].id;
+			var clusterTarget = $('#filterBar');
+			
+			clusterTarget.find('#clusterChooser').remove()
 
-				collapse = utils.count(key,'|') + num + 1;
+			lc = $("<span id='clusterChooser' class='linearChooser'></span>").
+			appendTo(clusterTarget).
+			linearchooser({
+				data : {
+					label : "<div>Cluster by:</div>",
+					list : [{label: "front", list: commonL},{label:"back",list:commonR},{label:'query',list:['<div class="innerClusterChooser">Query</div>']}],
+					resp : [_.range(commonL.length),_.range(-commonR.length,0),['QUERY']]
+				}
+			});
+			
+			var lList =  _.range(commonL.length).concat(_.range(-commonR.length,0));
+			var chId;
+			if (collapsedict.items[key] !== 'QUERY') { 
+			    chId = lList.slice(collapsedict.items[key] - 1)[0];
+			} else {
+			    chId = 'QUERY'
+			}
+			    
+
+			lc.find('.chooserSubElement').removeClass('shown');
+			lc.find('#' + chId).addClass('shown');
+			
+			lc.find(".chooserSubElement").click(function(e){
+			    var num = $(e.currentTarget)[0].id;
+			    if (num !== 'QUERY'){
+			        num = parseInt(num);
+	            }
+	            
+	            
+			    var parentLabel = $(e.currentTarget).parent().parent()[0].id;
+
+                if (num !== 'QUERY'){
+    				collapse = utils.count(key,'|') + num + 1;
+    			} else {
+    			    collapse = 'QUERY';
+    			}
 				collapsedict.items[key] = collapse;
-				
-				collapseddata = collapseData(data,metadata,collapse);
 		
+				collapseddata = collapseData(data,metadata,collapse);
+					
 				var subkey;
 				$.each(self.element.find(":ui-clusterelement, :ui-clusterview"),function(ind,item){
 				   subkey = item.id.replace(/__/g,' ');
@@ -186,7 +242,17 @@ define(["utils","jquery","jquery-ui","ui.linearchooser","ui.clusterelement"], fu
 				   
 				});
 						
+				
 		        var res = renderclusters(collapseddata,collapsedict,hidedict,facet_dict,metadata,utils.count(key,'|'),collapse,self);
+
+			    if (collapsedict.items[key] !== 'QUERY') {
+			       chId =lList.slice(collapsedict.items[key] - 1)[0];
+			    } else {
+			       chId = 'QUERY';
+			    }	        
+		        lc.find('.chooserSubElement').removeClass('shown');
+			    lc.find('#' + chId).addClass('shown');
+		        
 		        $(root).data()['statehandler'].changestate();
 				keydiv.click(function(){
 		          res.toggle();

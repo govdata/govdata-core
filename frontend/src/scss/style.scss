@@ -3,20 +3,162 @@
 
 @include global-reset;
 
-$bubble-color: #FA1;
+$bubble-color: #FFBB99;
 $fqbubble-color: #3A1;
 $bubble-margin: 10px;
-$result-box-color: #FA1;
+$result-box-color: #FDFDFD;
+$inner-result-box-color: #F0EDEA;
 $query-box-color: #EE2;
+$background-color: 	#FDFDFD;
+$sameVal-font-color : #BFBFBF;
+$sameVal-font-size : 8px;
+$header-height : 33px;
+$searchbar-height : 30px;
+$filterbar-height : 40px;
+$searchbar-top-padding : 10px;
+
+body {
+  background-color : $background-color;
+  font-family : "museo-sans-1", "museo-sans-2";
+}
+
+#searchbar {
+    position:fixed;
+    width : 100%;
+    top: $header-height;
+    height : $searchbar-height;
+    padding-right: 10px; 
+    padding-top: $searchbar-top-padding;
+    background-color : #F0F0F0;
+    z-index : 150;
+}
+
+#filterBar{
+    position:fixed;
+    width : 100%;
+    top : $searchbar-height + $header-height + $searchbar-top-padding;
+    height : filterbar-height;
+    z-index : 125;
+    background-color : white;
+  
+}
+
+/*
+#searchbar input{
+    position : fixed;
+    right : 10px;
+    padding-right:20px;
+}*/
+
+#searchbar input{
+    position:fixed;   
+}
+
+#searchbar ul li{
+   list-style: none;
+   display : inline;
+}
+
+#searchbar .bubbles {
+    float:left;
+}
+
+#searchbar input{
+    float:right;
+}
+
+.innerDateChooser, .innerSpaceChooser{
+     position:relative;
+     float:left; 
+     padding-right:25px;
+     padding-top:12px;
+}
+
+.innerClusterChooser{
+     float:left;
+     padding-top:12px;
+     padding-right:12px;
+
+}
+
+
+    
+#clusterChooser{
+    float:left;
+}
+
+.innerDateChooser .facet, .innerSpaceChooser .facet{
+     position:absolute;
+     font-size: 9px;
+}
+
+
+
+hr {
+    top:$header-height + $searchbar-height + $filterbar-height + $searchbar-top-padding;
+    position:fixed;
+    size:10;
+    width:100%;
+    z-index : 125;
+
+}
+
+.innerResultBox{
+    background-color : $inner-result-box-color;
+    -moz-border-radius: 5px;
+    -webkit-border-radius: 5px;
+    border-radius: 5px;
+
+}
+
+.innerResultBox:hover{
+    -moz-border-radius: 0px;
+    -webkit-border-radius: 0px;
+    border-radius: 0px;
+
+}
+
+.resultBox:hover {
+    background-color: #D3D0CD;
+    cursor: pointer;
+    
+}
+
+.resultBox{
+width:100px;
+padding : 5px 5px;
+background-color: $result-box-color;
+    -moz-border-radius: 5px;
+    -webkit-border-radius: 5px;
+    border-radius: 5px;
+}
+
+.resultBox .queryBox {
+background-color: $query-box-color;
+}
+
+.sourceElement:hover, .queryElement:hover{
+    text-decoration : underline;
+}
+
+.sameVal {
+    color : $sameVal-font-color;
+    /* font-size : $sameVal-font-size; */
+}
 
 .bubble {
+  position : relative;
+  padding-right:12px;
+  padding-left:5px;
   background-color: $bubble-color;
   margin: $bubble-margin;
+  -moz-border-radius: 4px;
+  -webkit-border-radius: 4px;
+  border-radius: 4px;
 }
 
 .bubbletextfq {
   background-color: $fqbubble-color;
-  margin: $bubble-margin;
 }
 
 .linearChooser ul {
@@ -31,15 +173,59 @@ $query-box-color: #EE2;
   
 }
 
+
+
 .linearChooser .chooserElement li{
 
   margin-right:.2em;
   
 }
 
+#dateChooser, #spaceChooser {
+    float:left;
+    padding-right:20px;
+}
+
+
+.shown {
+    color : blue;
+}
+
+.chooserSubElement:hover{
+    text-decoration : underline;
+}
+
+#totalNumFound {
+    float:left;
+    padding-left:5px;
+    padding-right:50px;
+}
+
+.resultBox .numResults{
+    position : absolute;
+    top : 0;
+    right : -5px;
+    font-size : 9px;
+}
+
+.remover{
+    position : absolute;
+    top : 0;
+    right : 0;
+    /* padding:0 2px; */
+    width: 10px;
+    font-size: 12px;
+
+}
+
+#filterBar {
+    overflow:auto;
+}
+
 .clusterElement .topBar {
     overflow:auto;
     padding:2px;
+    position:relative;
 }
 
 .clusterElement .linearChooser {
@@ -47,7 +233,7 @@ $query-box-color: #EE2;
 }
 
 
-.clusterElement .keyLabel {
+.topBar .keyLabel {
    float:left;
 }
 
@@ -57,21 +243,17 @@ padding:10px;
 }
 
 #resultsView {
-padding : 10px 10px;
+ position:absolute;
+ width : 100% ;
+ top : $header-height + $searchbar-height + $filterbar-height;
+ padding : 10px 10px;
+ padding-top : 15px;
 }
 
-.resultBox{
-padding : 5px 5px;
-background-color: $result-box-color;
-}
 
-.resultBox .queryBox {
-background-color: $query-box-color;
-}
 
 .clusterView {
-
- padding:0 20px;
+ padding-top:15px;
 }
 
 .clusterView .topBar {
@@ -82,14 +264,43 @@ background-color: $query-box-color;
 
 .clusterView .keyLabel {
    float:left;
-   padding:0px 10px;
-}
-
-
-.remover {
- padding:0 2px;
 }
 
 .hide {
   text-decoration : line-through;
+}
+
+
+#header {
+    height: $header-height;
+    width: 100%;
+    color: #FFF;
+    position:fixed;
+    background: #333;
+    z-index: 200;
+    top: 0px;
+}
+
+#header ul{
+    padding: 7px;  
+    
+}
+#header ul {
+    float:left;
+}
+#header ul li {
+    padding: 0 10px;
+    float: left;
+}
+
+#header a {
+    text-decoration: none;
+    color: #DDD;
+}
+
+#header a:hover  {
+    color: #FFF;
+}
+#header a:hover {
+    text-decoration: overline;
 }

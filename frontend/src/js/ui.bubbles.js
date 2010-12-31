@@ -9,7 +9,7 @@ define(["jquery","jquery-ui"], function() {
 		    } else {
 		        classtext = 'bubbletext'
 		    }
-			var bubbl = $("<div class='bubble'><span class='" + classtext + "'>"+val+"</span><span class='remover'>(x)</span></div>").
+			var bubbl = $("<li class='bubble'><span class='" + classtext + "'>"+val+"</span><span class='remover'>&otimes;</span></li>").
 				appendTo(this.element);
 			bubbl.find('.remover').click(function(){
 			   bubbl.remove();   

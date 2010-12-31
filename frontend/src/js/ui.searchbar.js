@@ -4,15 +4,19 @@ define(["jquery","jquery-ui","ui.bubbles"], function() {
 		_create : function() {
 			var self = this,
 			o = self.options,
+			autocomplete = o.autocomplete
 			el = self.element,
-			bubbles = $("<div class='bubbles'></div>").
+			bubbles = $("<ul class='bubbles'></ul>").
 										bubbles().
 										appendTo(el).
 										data("bubbles"),
 			input = $("<input type='text' />").
-								appendTo(el).
-								bind('keydown', 'return', function() {
+								appendTo(el);
+			input.unbind('keydown');
+			input.autocomplete(autocomplete)
+			input.bind('keydown', 'return', function() {
 									var val = _.trim(input.val());
+
 									if(val === "") {
 										self.submit();
 									} else {
@@ -21,6 +25,8 @@ define(["jquery","jquery-ui","ui.bubbles"], function() {
 									}
 									return false;
 								});
+
+		    
 			this.bubbles = bubbles;
 			this.q = this.options.query;
 			this.listenTo(this.q, "update", this.update)

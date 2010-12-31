@@ -78,33 +78,40 @@ define(["jquery","jquery-ui","jquery-ui.extensions","ui.linearchooser","ui.clust
 			var dateDivisions = facet_info['dateDivisions'];
 			
 			var dateDivisionsWithFacets = _.map(dateDivisions,function(x){
-			    return x + '<span class="facet"> (' + facet_dict[x] + ")</span>";
+			    return '<div class="innerDateChooser">' + x + '<span class="facet">' + facet_dict[x] + "</span></div>";
 			
 			});
 			
 			var spatialDivisionsWithFacets = _.map(spatialDivisions,function(x){
-			    return x + '<span class="facet"> (' + facet_dict[x] + ")</span>";
+			    return '<div class="innerSpaceChooser">' + x + '<span class="facet">' + facet_dict[x] + "</span></div>";
 			
 			});
 			
+			
+			
 			var numFound = self.options.dataHandler.numFound;
 			
+		
+			$("#subHeader").find('#filterBar').remove();
+
+			var filterBar = $("<div id='filterBar'></div>").appendTo($("#subHeader"));
+			
 			self.element.find(".numFound").remove();
-			$("<span class='numFound' id='totalNumFound'>Total Results: " + numFound + "</span>").
-				appendTo(this.element)
+			$("<div class='numFound' id='totalNumFound'><div style='font-size:30px'>" + numFound + "</div><div>Total Results</div></div>").
+				appendTo(filterBar)
 			
 			self.element.find(".linearChooser").remove();
-			var dateChooser = $("<span class='linearChooser' id='dateChooser'></span>").
-				appendTo(this.element).
+			var dateChooser = $("<div class='linearChooser' id='dateChooser'></div>").
+				appendTo(filterBar).
 				linearchooser({
 					data : {
-						label : "Filter date by:",
+						label : "<div>Filter date by:</div>",
 						list : [{label: "date", list: dateDivisionsWithFacets}],
 					}
 				});	
 				
 			dateChooser.find('.chooserSubElement').click(function(e){
-			    var num = parseInt($(e.target)[0].id);
+			    var num = parseInt($(e.currentTarget)[0].id);
 			    var filterval = dateDivisions[num];
 				var filteritems = query.filteritems;
 				var items = query.items;
@@ -114,17 +121,17 @@ define(["jquery","jquery-ui","jquery-ui.extensions","ui.linearchooser","ui.clust
 			
 			});
 			
-			var spaceChooser = $("<span class='linearChooser' id='spaceChooser'></span>").
-				appendTo(this.element).
+			var spaceChooser = $("<div class='linearChooser' id='spaceChooser'></div>").
+				appendTo(filterBar).
 				linearchooser({
 					data : {
-						label : "Filter space by:",
+						label : "<div>Filter space by:</div>",
 						list : [{label: "space", list: spatialDivisionsWithFacets}],
 					}
 				});					
 			
 			spaceChooser.find('.chooserSubElement').click(function(e){
-			    var num = parseInt($(e.target)[0].id);
+			    var num = parseInt($(e.currentTarget)[0].id);
 			    var filterval = spatialDivisions[num];
 				var filteritems = query.filteritems;
 				var items = query.items;
@@ -134,6 +141,8 @@ define(["jquery","jquery-ui","jquery-ui.extensions","ui.linearchooser","ui.clust
 			
 			});			
 			
+			self.element.find("hr").remove();
+			$("<hr/>").appendTo(filterBar);
 			
 			self.element.find(".clusterView").remove();
 			var view = $("<div class='clusterView' id='__'></div>").

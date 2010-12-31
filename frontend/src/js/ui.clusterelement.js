@@ -20,18 +20,30 @@ define(["utils","jquery","jquery-ui","ui.linearchooser","ui.clusterelement"], fu
 					classtext = "keyLabel hide";
 				 
 				} else {
-					classtext = "keylabel";
+					classtext = "keyLabel";
 				}				
 				var facet_text;
-				if (key in facet_dict){
+/*				if (key in facet_dict){
 					facet_text = " <span class='facet'>(" + facet_dict[key] + ")</span>";
 				} else {
 					facet_text = '';
-				}				
-				var top = $("<div class='topBar'></div>").appendTo(this.element);
-				var keydiv = $("<div class='" + classtext + "'>" + key.split('|').slice(start).join(' >> ') + facet_text +  "</div>").appendTo(top);
+				}			*/
 				
-				if (common){
+				facet_text = ''
+				
+				var top = $("<div class='topBar'></div>").appendTo(this.element);
+				var keytext;
+				if (collapse != 'QUERY'){
+                   keytext = "<div class='" + classtext + "'>" + key.split('|').slice(start).join(' > ') + facet_text +  "</div>"
+                  
+				} else{
+     			   keytext = "<div class='" + classtext + "'>" + key.split('|').slice(start,-1).join(' > ') + facet_text +  "</div>"
+				}
+				
+				var keydiv = $(keytext).appendTo(top);
+				
+				
+/*				if (common){
 				var innerchooser = $("<div class='linearChooser'></div>").appendTo(
 				   top).linearchooser({
 				       data : {
@@ -39,9 +51,9 @@ define(["utils","jquery","jquery-ui","ui.linearchooser","ui.clusterelement"], fu
 				          list : [{label:"front",list:common[0]},{label:"back",list:common[1]}]
 				       }
 				   });
-				}
+				}*/
 				
-				var result_container = renderer(this.element,results,collapse);
+				var result_container = renderer(this.element,results,collapse,facet_dict[key]);
    			    if (hide === true){
 				   result_container.hide();
 			    }				

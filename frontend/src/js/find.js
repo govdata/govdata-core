@@ -1,17 +1,17 @@
 var root = this;
 
-define(["gov","jquery","underscore","underscore.strings",
+define(["gov","common/location","common/timedate", "jquery","underscore","underscore.strings",
 	"jquery.hotkeys","ui.searchbar","ui.query","ui.findresults",
-	"ui.resultsview","jquery.masonry","ui.statehandler","ui.dict"], function(gov) {
-	
+	"ui.resultsview","jquery.masonry","ui.statehandler","ui.dict"], function(gov,loc,td) {
+    
 	var find = {};
-
+	
 	find.autocompleteCache = {};
 
 	find.submit = function(options, callback) {
 		var params = {
 			q : '',
-			rows : 20,
+			rows : 60,
 			'facet.field' : ['sourceSpec','datasetTight','dateDivisionsTight','spatialDivisionsTight'],
 			facet : 'true'
 		};
@@ -52,39 +52,134 @@ define(["gov","jquery","underscore","underscore.strings",
 	};
 	
 	
-    find.resultRenderer = function(item,collapse){
+	same_as = function(item1,item2,key){
+	    if ((key in item1) & (key in item2) & (item1[key] == item2[key])) {
+	        return 'sameVal'
+	    } else {
+	        return 'diffVal'
+	    }
+	
+	}
+	
+	make_value = function(v,k){
+	    
+	    if (k == 'Location'){
+	        return loc.phrase(v)
+	    } else {
+	        return v 
+	    }  
+	}
+	
+    find.resultRenderer = function(item,collapse,prev_item){
   
      var title = item["title"][0];
-     var source = JSON.parse(item["sourceSpec"][0]);
+     var source = item["sourceSpecParsed"]
+     var prev_source;
+     if (prev_item["sourceSpecParsed"]) {
+         prev_source = prev_item["sourceSpecParsed"]
+         prev_query =  prev_item["queryParsed"]
+     } else {
+         prev_source = {};
+         prev_query = {};
+     }
      var sourceKeys;
      if (collapse === 0){
        sourceKeys = [];
+     } else if (collapse === 'QUERY') {
+       sourceKeys = _(source).keys();
      } else {
        sourceKeys = _(source).keys().slice(collapse);
      }
-     var sourceStr = sourceKeys.map(function(key){return "<div class='sourceElement'><span class='sourceKey'>" + key + "</span>: <span class='sourceVal'>" + source[key] + "</span></div>";}).join('')
-     var query = JSON.parse(item["query"][0]);
-     var queryStr = _(query).keys().map(function(key){return "<div class='queryElement'><span class='queryKey'>" + key + "</span>: <span class='queryVal'>" + query[key] + '</span></div>';}).join('')
+     var sourceStr = sourceKeys.map(function(key){return "<div class='sourceElement " + same_as(source,prev_source,key) + "'><span class='sourceKey'>" + key + "</span>: <span class='sourceVal'>" + source[key] + "</span></div>";}).join('')
+     var query = item["queryParsed"];
+     var queryStr = _(query).keys().map(function(key){return "<div class='queryElement " + same_as(query,prev_query,key) + "'><span class='queryKey'>" + key + "</span>: <span class='queryVal'>" + make_value(query[key],key) + '</span></div>';}).join('')
  
      var sourceBox = '<div class="sourceBox">' + sourceStr + '</div>';
      var queryBox = '<div class="queryBox">' + queryStr + '</div>';
-     var numResults = '<div class="numResults">Records: ' + item["volume"][0] + '</div>';
-     return '<div class="resultBox">' + sourceBox + queryBox  + numResults +'</div>'
+     var numResults = '<div class="numResults">' + item["volume"][0] + '</div>';
+     return '<div class="resultBox"><div class="innerResultBox">' + sourceBox + queryBox  + numResults +'</div></div>'
   
     };	
+    
+    dictIntersect = function(dict1,dict2){
+        var k,v;
+        $.each(dict2, function(k,v){
+           
+            if ((k in dict1) && (dict1[k] != v)) {
+             
+               delete dict1[k];
+            }
+        });
+    };
+    
+    dictDiff = function(dict1,dict2){
+        var k,v;
+        $.each(dict2, function(k,v){
+            if (dict1[k] == v) {
+               delete dict1[k];
+            }
+        });
+    };
 
-	find.resultsRenderer = function(parent,resultlist,collapse){
-	
+    computeCommons = function(resultlist){
+        var commons = {'source': _.clone(resultlist[0]['sourceSpecParsed']),
+                       'query': _.clone(resultlist[0]['queryParsed'])
+                      } ;
+                              
+        var i,r;
+        $.each(resultlist.slice(1),function(i,r){    
+            dictIntersect(commons['source'],_.clone(r['sourceSpecParsed']))
+            dictIntersect(commons['query'],_.clone(r['queryParsed']))
+            
+        });
+        
+        $.each(resultlist,function(i,r){
+             dictDiff(r['sourceSpecParsed'],commons['source'])
+             dictDiff(r['queryParsed'],commons['query'])
+        });
+        
+        return commons
+        
+    };
+    
+	find.resultsRenderer = function(parent,resultlist,collapse,facet){
+	    
+	    var Rcopy = [];
+
+        var ival = {}
+	    $.each(resultlist,function(ind,val){
+	        ival = {"sourceSpecParsed" : JSON.parse(val["sourceSpec"][0]),
+	                "queryParsed" : JSON.parse(val["query"][0]),
+	                "volume" : val['volume'],
+	                "title": val["title"]
+	               };
+	        Rcopy.push(ival);
+	    });
+
+	    var common_container = $("<div class='commonContainer'></div>").appendTo(parent);
+	    
+	    var commons = computeCommons(Rcopy);
+	    
+	    console.log(commons)
+	    	   	    	    
 	    var result_container = $("<div class='resultMason'></div>").appendTo(parent);
 	    
-	    $.each(resultlist,function(ind,result){
-	        result_container.append(find.resultRenderer(result,collapse));
+      
+	    $.each(Rcopy,function(ind,result){
+	        var prev_result;
+	        if (ind > 0){
+	            prev_result = resultlist[ind-1];
+	        } else {
+	            prev_result = {}
+	        }
+	        result_container.append(find.resultRenderer(result,collapse,prev_result));
 	    });
 	    
 	    result_container.masonry({
-	        columnWidth:200,
+	        columnWidth:120,
+	        singleMode : true,
 	        itemSelector : '.resultBox',
-	        resizeable:true,
+	        //resizeable:true,
 	    });
 	    
 	   $('.sourceElement').unbind('click'); 
@@ -128,6 +223,7 @@ define(["gov","jquery","underscore","underscore.strings",
 								response(find.autocompleteCache[term]);
 								return;
 						}
+						
 						lastXhr = $.ajax({
 								url : gov.API_URL + "/terms",
 								data : {
@@ -149,9 +245,10 @@ define(["gov","jquery","underscore","underscore.strings",
 			}
 		};
 		var sb = $("<div id='searchbar'></div>").
-			appendTo("#content").
+			appendTo("#subHeader").
 			searchbar({
 				query : find.query,
+				autocomplete : params.autocomplete
 			});
 			
 		return sb;
@@ -169,7 +266,7 @@ define(["gov","jquery","underscore","underscore.strings",
 		}).data("query");
 		
         find.collapsedict = $(root).dict({
-          items : {" " :2},
+          items : {" " :0},
         }).data("dict");
         
         find.hidedict = $(root).dict({
@@ -185,6 +282,7 @@ define(["gov","jquery","underscore","underscore.strings",
 			
 		}).data("statehandler");
 	
+	    var subheader = $("<div id='subHeader'></div>").appendTo('#content');
 		
         $("#searchbar").remove();
         find.sb = find.addSearchBar();
@@ -212,7 +310,6 @@ define(["gov","jquery","underscore","underscore.strings",
   
 	};
 
-    
      
 	return find;
 
