@@ -72,9 +72,11 @@ define(["gov","common/location","common/timedate", "jquery","underscore","unders
 	
     find.resultRenderer = function(item,collapse,prev_item){
   
-     var title = item["title"][0];
      var source = item["sourceSpecParsed"]
      var prev_source;
+     if (prev_item === undefined){
+         prev_item = {}
+     }
      if (prev_item["sourceSpecParsed"]) {
          prev_source = prev_item["sourceSpecParsed"]
          prev_query =  prev_item["queryParsed"]
@@ -83,6 +85,7 @@ define(["gov","common/location","common/timedate", "jquery","underscore","unders
          prev_query = {};
      }
      var sourceKeys;
+     
      if (collapse === 0){
        sourceKeys = [];
      } else if (collapse === 'QUERY') {
@@ -96,7 +99,13 @@ define(["gov","common/location","common/timedate", "jquery","underscore","unders
  
      var sourceBox = '<div class="sourceBox">' + sourceStr + '</div>';
      var queryBox = '<div class="queryBox">' + queryStr + '</div>';
-     var numResults = '<div class="numResults">' + item["volume"][0] + '</div>';
+     var numResults;
+     if (item["volume"] !== undefined){
+         numResults = '<div class="numResults">' + item["volume"][0] + '</div>';
+     } else {
+         numResults = '';
+     }
+     
      return '<div class="resultBox"><div class="innerResultBox">' + sourceBox + queryBox  + numResults +'</div></div>'
   
     };	
@@ -122,20 +131,20 @@ define(["gov","common/location","common/timedate", "jquery","underscore","unders
     };
 
     computeCommons = function(resultlist){
-        var commons = {'source': _.clone(resultlist[0]['sourceSpecParsed']),
-                       'query': _.clone(resultlist[0]['queryParsed'])
+        var commons = {'sourceSpecParsed': _.clone(resultlist[0]['sourceSpecParsed']),
+                       'queryParsed': _.clone(resultlist[0]['queryParsed'])
                       } ;
                               
         var i,r;
         $.each(resultlist.slice(1),function(i,r){    
-            dictIntersect(commons['source'],_.clone(r['sourceSpecParsed']))
-            dictIntersect(commons['query'],_.clone(r['queryParsed']))
+            dictIntersect(commons['sourceSpecParsed'],_.clone(r['sourceSpecParsed']))
+            dictIntersect(commons['queryParsed'],_.clone(r['queryParsed']))
             
         });
         
         $.each(resultlist,function(i,r){
-             dictDiff(r['sourceSpecParsed'],commons['source'])
-             dictDiff(r['queryParsed'],commons['query'])
+             dictDiff(r['sourceSpecParsed'],commons['sourceSpecParsed'])
+             dictDiff(r['queryParsed'],commons['queryParsed'])
         });
         
         return commons
@@ -160,7 +169,7 @@ define(["gov","common/location","common/timedate", "jquery","underscore","unders
 	    
 	    var commons = computeCommons(Rcopy);
 	    
-	    console.log(commons)
+	    var commonObj = $(find.resultRenderer(commons,collapse)).appendTo(parent);
 	    	   	    	    
 	    var result_container = $("<div class='resultMason'></div>").appendTo(parent);
 	    
@@ -176,10 +185,10 @@ define(["gov","common/location","common/timedate", "jquery","underscore","unders
 	    });
 	    
 	    result_container.masonry({
-	        columnWidth:120,
+	        columnWidth:140,
 	        singleMode : true,
 	        itemSelector : '.resultBox',
-	        //resizeable:true,
+	        resizeable:true,
 	    });
 	    
 	   $('.sourceElement').unbind('click'); 
