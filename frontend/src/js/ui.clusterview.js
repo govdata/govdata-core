@@ -87,7 +87,7 @@ define(["utils","jquery","jquery-ui","ui.linearchooser","ui.clusterelement"], fu
 					 facet_dict : facet_dict
 			});
 			
-   		    elt.find(".topBar .chooserSubElement").click(function(e){
+/*   		    elt.find(".topBar .chooserSubElement").click(function(e){
    		
 		    var num = parseInt($(e.target)[0].id);
 
@@ -118,7 +118,7 @@ define(["utils","jquery","jquery-ui","ui.linearchooser","ui.clusterelement"], fu
 		    }
 		    
 		   
-		  });			
+		  });			*/
 											
 		} else {
 			elt = $("<div class='clusterView'></div>").
@@ -165,10 +165,10 @@ define(["utils","jquery","jquery-ui","ui.linearchooser","ui.clusterelement"], fu
 		    var common = utils.computeCommon(metadata,utils.count(key,'|'));
 	        var commonL = common[0], commonR = common[1];
 	        $.each(commonL,function(i,x){
-	            commonL[i] = '<div class="innerClusterChooser">' + x[0].toUpperCase() + x.slice(1) + '</div>';
+	            commonL[i] = '<div class="innerClusterChooser value">' + x[0].toUpperCase() + x.slice(1) + '</div>';
 	        });
 	        $.each(commonR,function(i,x){
-	            commonR[i] = '<div class="innerClusterChooser">' + x[0].toUpperCase() + x.slice(1) + '</div>';
+	            commonR[i] = '<div class="innerClusterChooser value">' + x[0].toUpperCase() + x.slice(1) + '</div>';
 	        });	        
 			
 			var top = $("<div class='topBar'></div>").appendTo(this.element);

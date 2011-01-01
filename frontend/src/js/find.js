@@ -11,9 +11,10 @@ define(["gov","common/location","common/timedate", "jquery","underscore","unders
 	find.submit = function(options, callback) {
 		var params = {
 			q : '',
-			rows : 100,
+			rows : 50,
 			'facet.field' : ['sourceSpec','datasetTight','dateDivisionsTight','spatialDivisionsTight'],
-			facet : 'true'
+			facet : 'true',
+			fl : ['mongoID','mongoText','sourceSpec','query','volume','topic','collectionName'].join(',')
 		};
 		$.extend(true,params,options);
 		$.ajax({
@@ -70,6 +71,10 @@ define(["gov","common/location","common/timedate", "jquery","underscore","unders
 	    }  
 	}
 	
+	upperFirst = function(x){
+	    return x[0].toUpperCase() + x.slice(1);   
+	};
+	
     find.resultRenderer = function(item,collapse,prev_item){
   
      var source = item["sourceSpecParsed"]
@@ -93,9 +98,9 @@ define(["gov","common/location","common/timedate", "jquery","underscore","unders
      } else {
        sourceKeys = _(source).keys().slice(collapse);
      }
-     var sourceStr = sourceKeys.map(function(key){return "<div class='sourceElement " + same_as(source,prev_source,key) + "'><span class='sourceKey'>" + key + "</span>: <span class='sourceVal'>" + source[key] + "</span></div>";}).join('')
+     var sourceStr = sourceKeys.map(function(key){return "<div class='sourceElement " + same_as(source,prev_source,key) + "'><span class='sourceKey' id='" + key + "'>" + upperFirst(key) + "</span>: <span class='sourceVal'>" + source[key] + "</span></div>";}).join('')
      var query = item["queryParsed"];
-     var queryStr = _(query).keys().map(function(key){return "<div class='queryElement " + same_as(query,prev_query,key) + "'><span class='queryKey'>" + key + "</span>: <span class='queryVal'>" + make_value(query[key],key) + '</span></div>';}).join('')
+     var queryStr = _(query).keys().map(function(key){return "<div class='queryElement " + same_as(query,prev_query,key) + "'><span class='queryKey' id='" + key + "'>" + upperFirst(key) + "</span>: <span class='queryVal'>" + make_value(query[key],key) + '</span></div>';}).join('')
  
      var sourceBox = '<div class="sourceBox">' + sourceStr + '</div>';
      var queryBox = '<div class="queryBox">' + queryStr + '</div>';
@@ -192,6 +197,24 @@ define(["gov","common/location","common/timedate", "jquery","underscore","unders
     
 	find.resultsRenderer = function(parent,resultlist,collapse,facet){
 	    
+		
+		var keyKeys = _.keys(JSON.parse(resultlist[0]['sourceSpec'][0]));
+	
+	    parent.find('.keyLabel .chooserSubElement').unbind('click');
+		parent.find('.keyLabel .chooserSubElement').click(function(e){
+		   var id = parseInt(e.currentTarget.id);
+
+	      var newItems = find.query.items.slice(0);
+	      var skey = keyKeys[id]
+	      var sval = $(e.currentTarget).find(".value").text();
+          var filteritems = find.query.filteritems;
+	      filteritems.push(skey + ':"' + sval + '"');
+          find.query.update({'qval' : newItems, 'fqval' :filteritems});
+          $(root).data()['statehandler'].changestate();		   
+		   
+		});
+		
+	    
 	    var Rcopy = [];
 
         var ival = {}
@@ -236,7 +259,7 @@ define(["gov","common/location","common/timedate", "jquery","underscore","unders
 	   $('.sourceElement').click(function(e){
 	      var res = $(e.currentTarget);
 	      var newItems = find.query.items.slice(0);
-	      var skey = res.find(".sourceKey").text();
+	      var skey = res.find(".sourceKey")[0].id;
 	      var sval = res.find(".sourceVal").text();
           var filteritems = find.query.filteritems;
 	      filteritems.push(skey + ':"' + sval + '"');
@@ -249,7 +272,7 @@ define(["gov","common/location","common/timedate", "jquery","underscore","unders
 	   $('.queryElement').click(function(e){
 	      var res = $(e.currentTarget);
 	      var newItems = find.query.items.slice(0);
-	      var qkey = res.find(".queryKey").text();
+	      var qkey = res.find(".queryKey")[0].id;
 	      var qval = res.find(".queryVal").text();
 	      var newclause = '"' + qkey + '=' + qval + '"';
 	      newItems.push(newclause);
@@ -331,7 +354,8 @@ define(["gov","common/location","common/timedate", "jquery","underscore","unders
 			}
 			
 		}).data("statehandler");
-	
+		
+	    $("#subHeader").remove();
 	    var subheader = $("<div id='subHeader'></div>").appendTo('#content');
 		
         $("#searchbar").remove();

@@ -4,14 +4,17 @@ define(["jquery","jquery-ui","ui.bubbles"], function() {
 		_create : function() {
 			var self = this,
 			o = self.options,
-			autocomplete = o.autocomplete
-			el = self.element,
+			autocomplete = o.autocomplete,
+			el = self.element;
+			
+			var elt_container = $("<div id='searchEltContainer'></div>").appendTo(el);
+			
 			bubbles = $("<ul class='bubbles'></ul>").
 										bubbles().
-										appendTo(el).
+										appendTo(elt_container).
 										data("bubbles"),
 			input = $("<input type='text' />").
-								appendTo(el);
+								appendTo(elt_container);
 			input.unbind('keydown');
 			input.autocomplete(autocomplete)
 			input.bind('keydown', 'return', function() {
@@ -22,15 +25,16 @@ define(["jquery","jquery-ui","ui.bubbles"], function() {
 									} else {
 										self.addBubble(val);
 										input.val("");
+										self.submit();
 									}
 									return false;
 								});
-
+		
 		    
 			this.bubbles = bubbles;
 			this.q = this.options.query;
 			this.listenTo(this.q, "update", this.update)
-
+	
 		},
 		update : function() {
             var self = this;
@@ -56,7 +60,13 @@ define(["jquery","jquery-ui","ui.bubbles"], function() {
 			
 		},
 		addBubble : function(val,type) {
-			this.bubbles.add(val,type);
+		    var self = this;
+			var bubble = this.bubbles.add(val,type);
+			bubble.find('.remover').click(function(){
+			    self.submit();
+			});
+
+									         
 		},
 		destroy : function() {
 			this.element.empty();

@@ -3,12 +3,12 @@
 
 @include global-reset;
 
-$bubble-color: #FDFDFD;
-$fqbubble-color: #3A1;
+$bubble-color: #FFFFCC;
+$fqbubble-color: #CCFF99;
 $bubble-margin: 10px;
 $result-box-color: #FDFDFD;
 $inner-result-box-color: #F0EDEA;
-$query-box-color: #EE2;
+$query-box-color: #FFFFCC;
 $background-color: 	#FDFDFD;
 $sameVal-font-color : #BFBFBF;
 $sameVal-font-size : 8px;
@@ -16,6 +16,7 @@ $header-height : 45px;
 $searchbar-height : 30px;
 $filterbar-height :55px;
 $searchbar-top-padding : 10px;
+$filtersep-padding : 10px;
 
 body {
   background-color : $background-color;
@@ -59,15 +60,18 @@ body {
 }
 
 /*
+
 #searchbar input{
     position : fixed;
     right : 10px;
     padding-right:20px;
 }*/
 
-#searchbar input{
-    position:fixed;   
+
+#searchbar {
+ padding-left:10px;
 }
+
 
 #searchbar ul li{
    list-style: none;
@@ -78,8 +82,17 @@ body {
     float:left;
 }
 
+#searchEltContainer {
+    position:fixed;
+    background-color:white;
+    padding-top:1px;
+    -moz-border-radius: 3px;
+    -webkit-border-radius: 3px;
+    border-radius: 3px;
+}
+
 .bubbles {
-padding-top:3px;
+padding-top:2px;
 }
 
 #searchbar input{
@@ -88,10 +101,17 @@ padding-top:3px;
 
 
 #dateChooser, #spaceChooser, #clusterChooser{
-    float:left;
-    
+    float:left;   
 }
 
+
+
+.filterSeparator {
+    float:left;
+    border-left:1px solid #000;
+    height: $filterbar-height - 8px;
+    padding-right : $filtersep-padding;
+}
 
 
 
@@ -112,6 +132,7 @@ padding-top:3px;
 .innerDateChooser .facet, .innerSpaceChooser .facet{
      position:absolute;
      font-size: 9px;
+     
 }
 
 
@@ -177,14 +198,11 @@ background-color: $query-box-color;
   padding-left:5px;
   background-color: $bubble-color;
   margin: $bubble-margin;
-  -moz-border-radius: 4px;
-  -webkit-border-radius: 4px;
-  border-radius: 4px;
+  -moz-border-radius: 3px;
+  -webkit-border-radius: 3px;
+  border-radius: 3px;
 }
 
-.bubbletextfq {
-  background-color: $fqbubble-color;
-}
 
 .linearChooser ul {
    margin:0;
@@ -207,20 +225,20 @@ background-color: $query-box-color;
 }
 
 
-
 .shown {
     color : blue;
     text-decoration : underline;
 }
 
-.chooserSubElement:hover{
-    text-decoration : underline;
+.chooserSubElement .value:hover{
+    text-decoration : overline;
 }
+
 
 #totalNumFound {
     float:left;
     padding-left:5px;
-    padding-right:50px;
+    padding-right:$filtersep-padding;
 }
 
 .resultBox .numResults{
@@ -232,11 +250,11 @@ background-color: $query-box-color;
 
 .remover{
     position : absolute;
-    top : 0;
+    top : -2px;
     right : 0;
-    /* padding:0 2px; */
+
     width: 10px;
-    font-size: 12px;
+    font-size: 14px;
 
 }
 
@@ -253,8 +271,14 @@ background-color: $query-box-color;
 }
 
 
-.topBar .keyLabel {
+.topBar .keyLabel, .topBar .keyToggle {
    float:left;
+}
+
+.keyToggle{
+    font-size:10px;
+    padding-top:2px;
+    padding-right:2px;
 }
 
 .clusterElement {
@@ -281,9 +305,9 @@ padding:10px;
    float:left;
 }
 
-.hide {
+/*.hide {
   text-decoration : line-through;
-}
+}*/
 
 
 #header {

@@ -32,16 +32,38 @@ define(["utils","jquery","jquery-ui","ui.linearchooser","ui.clusterelement"], fu
 				facet_text = ''
 				
 				var top = $("<div class='topBar'></div>").appendTo(this.element);
-				var keytext;
+				
+				var keyList;
 				if (collapse != 'QUERY'){
-                   keytext = "<div class='" + classtext + "'>" + key.split('|').slice(start).join(' > ') + facet_text +  "</div>"
+                   keyList =  key.split('|').slice(start);
                   
 				} else{
-     			   keytext = "<div class='" + classtext + "'>" + key.split('|').slice(start,-1).join(' > ') + facet_text +  "</div>"
-				}
+     			   keyList = key.split('|').slice(start,-1);
+				}				
 				
-				var keydiv = $(keytext).appendTo(top);
-				
+				$.each(keyList,function(ind,val){
+				    keyList[ind] = '<span class="value">' + val + '</span>';
+				});
+	
+				$.each(keyList.slice(0,-1),function(ind,val){
+				    keyList[ind] = keyList[ind] + ' > ';
+				});
+
+                var outerkeydiv = $("<div class='outerkeydiv'></div>").appendTo(top);
+                var keytoggle =  $("<div class='keyToggle'>&#9660</div>").appendTo(outerkeydiv);
+                
+				var keydiv = $("<div class='linearChooser " + classtext + "'></div>").
+						appendTo(outerkeydiv).
+						linearchooser({
+							data : {
+								label : "",
+								list : [{label: "key", list: keyList}],
+								resp : [_.range(keyList.length)]
+							}
+						});
+			
+	
+	
 				
 /*				if (common){
 				var innerchooser = $("<div class='linearChooser'></div>").appendTo(
@@ -58,15 +80,19 @@ define(["utils","jquery","jquery-ui","ui.linearchooser","ui.clusterelement"], fu
 				   result_container.hide();
 			    }				
 					
-				keydiv.click(function(){
+					
+				keytoggle.click(function(){
 				   result_container.toggle();
 			
 				   if (keydiv.hasClass("hide")){
 				      keydiv.removeClass("hide");
 				      hidedict.remove(key);
+				      
+				      keytoggle.html("<div class='keyToggle'>&#9660</div>");
 				   } else {
 				      keydiv.addClass("hide");
 				      hidedict.add(key,true);
+				      keytoggle.html("<div class='keyToggle'>&#9654</div>");
 				   }
 				   $(root).data()['statehandler'].changestate();
 				});
