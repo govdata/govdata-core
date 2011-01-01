@@ -96,16 +96,18 @@ define(["jquery","jquery-ui","jquery-ui.extensions","ui.linearchooser","ui.clust
 
 			var filterBar = $("<div id='filterBar'></div>").appendTo($("#subHeader"));
 			
+	
 			self.element.find(".numFound").remove();
-			$("<div class='numFound' id='totalNumFound'><div style='font-size:30px'>" + numFound + "</div><div>Total Results</div></div>").
+			$("<div class='numFound' id='totalNumFound'><div id='innerNumFound' style='font-size:30px'>" + numFound + "</div><div>Total Results</div></div>").
 				appendTo(filterBar)
+				
 			
 			self.element.find(".linearChooser").remove();
 			var dateChooser = $("<div class='linearChooser' id='dateChooser'></div>").
 				appendTo(filterBar).
 				linearchooser({
 					data : {
-						label : "<div>Filter date by:</div>",
+						label : "<div style='width:120px'>Filter date by:</div>",
 						list : [{label: "date", list: dateDivisionsWithFacets}],
 					}
 				});	
@@ -121,11 +123,12 @@ define(["jquery","jquery-ui","jquery-ui.extensions","ui.linearchooser","ui.clust
 			
 			});
 			
+
 			var spaceChooser = $("<div class='linearChooser' id='spaceChooser'></div>").
 				appendTo(filterBar).
 				linearchooser({
 					data : {
-						label : "<div>Filter space by:</div>",
+						label : "<div style='width:120px'>Filter space by:</div>",
 						list : [{label: "space", list: spatialDivisionsWithFacets}],
 					}
 				});					
@@ -140,6 +143,9 @@ define(["jquery","jquery-ui","jquery-ui.extensions","ui.linearchooser","ui.clust
 				$(root).data()['statehandler'].changestate();			    
 			
 			});			
+			
+			filterBar.find(".clusterTarget").remove();
+			$("<div id='clusterTarget'></div>").appendTo(filterBar);
 			
 			self.element.find("hr").remove();
 			$("<hr/>").appendTo(filterBar);

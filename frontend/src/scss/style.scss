@@ -3,7 +3,7 @@
 
 @include global-reset;
 
-$bubble-color: #FFBB99;
+$bubble-color: #FDFDFD;
 $fqbubble-color: #3A1;
 $bubble-margin: 10px;
 $result-box-color: #FDFDFD;
@@ -12,15 +12,18 @@ $query-box-color: #EE2;
 $background-color: 	#FDFDFD;
 $sameVal-font-color : #BFBFBF;
 $sameVal-font-size : 8px;
-$header-height : 33px;
+$header-height : 45px;
 $searchbar-height : 30px;
-$filterbar-height : 40px;
+$filterbar-height :55px;
 $searchbar-top-padding : 10px;
 
 body {
   background-color : $background-color;
-  font-family : "museo-sans-1", "museo-sans-2";
+
+  font-family: "liberation-serif-1", "liberation-serif-2";
 }
+
+
 
 #searchbar {
     position:fixed;
@@ -35,12 +38,24 @@ body {
 
 #filterBar{
     position:fixed;
-    width : 100%;
+    width : 15000px;
     top : $searchbar-height + $header-height + $searchbar-top-padding;
-    height : filterbar-height;
-    z-index : 125;
+    height : $filterbar-height;
+    z-index:125;
     background-color : white;
+    overflow:auto;
+    padding-top:3px;
   
+}
+
+#subHeader{
+    font-size:18px;
+    background-color:$background-color;
+}
+
+#filterBar ul li {
+   display:inline;
+
 }
 
 /*
@@ -63,9 +78,22 @@ body {
     float:left;
 }
 
+.bubbles {
+padding-top:3px;
+}
+
 #searchbar input{
     float:right;
 }
+
+
+#dateChooser, #spaceChooser, #clusterChooser{
+    float:left;
+    
+}
+
+
+
 
 .innerDateChooser, .innerSpaceChooser{
      position:relative;
@@ -81,23 +109,16 @@ body {
 
 }
 
-
-    
-#clusterChooser{
-    float:left;
-}
-
 .innerDateChooser .facet, .innerSpaceChooser .facet{
      position:absolute;
      font-size: 9px;
 }
 
 
-
 hr {
-    top:$header-height + $searchbar-height + $filterbar-height + $searchbar-top-padding;
+    top:$header-height + $searchbar-height + $filterbar-height + $searchbar-top-padding - 10px;
     position:fixed;
-    size:10;
+    size:10px;
     width:100%;
     z-index : 125;
 
@@ -125,7 +146,7 @@ hr {
 }
 
 .resultBox{
-width:100px;
+width:200px;
 padding : 5px 5px;
 background-color: $result-box-color;
     -moz-border-radius: 5px;
@@ -139,6 +160,10 @@ background-color: $query-box-color;
 
 .sourceElement:hover, .queryElement:hover{
     text-decoration : underline;
+}
+
+.sourceElement, .queryElement{
+    padding-bottom:5px;
 }
 
 .sameVal {
@@ -181,14 +206,11 @@ background-color: $query-box-color;
   
 }
 
-#dateChooser, #spaceChooser {
-    float:left;
-    padding-right:20px;
-}
 
 
 .shown {
     color : blue;
+    text-decoration : underline;
 }
 
 .chooserSubElement:hover{
@@ -218,9 +240,7 @@ background-color: $query-box-color;
 
 }
 
-#filterBar {
-    overflow:auto;
-}
+ 
 
 .clusterElement .topBar {
     overflow:auto;
@@ -250,11 +270,6 @@ padding:10px;
  padding-top : 15px;
 }
 
-
-
-.clusterView {
- padding-top:15px;
-}
 
 .clusterView .topBar {
     overflow:auto;
@@ -303,4 +318,14 @@ padding:10px;
 }
 #header a:hover {
     text-decoration: overline;
+}
+
+#innerNumFound{
+font-family: "liberation-serif-1", "liberation-serif-2";
+}
+
+#logotext{
+    font-size:30px;
+    color : white;
+    font-family: "liberation-serif-1", "liberation-serif-2";
 }

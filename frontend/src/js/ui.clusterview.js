@@ -190,11 +190,10 @@ define(["utils","jquery","jquery-ui","ui.linearchooser","ui.clusterelement"], fu
 			}
 			var keydiv = $("<div class='" + classtext + "'>" + key.split('|').slice(start).join(' >> ') + facet_text + "</div>").appendTo(top);
 			
-			var clusterTarget = $('#filterBar');
+			var clusterTarget = $('#clusterTarget');
 			
 			clusterTarget.find('#clusterChooser').remove()
-
-			lc = $("<span id='clusterChooser' class='linearChooser'></span>").
+			lc = $("<div id='clusterChooser' class='linearChooser'></div>").
 			appendTo(clusterTarget).
 			linearchooser({
 				data : {

@@ -53,7 +53,7 @@ define(["utils","jquery","jquery-ui","ui.linearchooser","ui.clusterelement"], fu
 				   });
 				}*/
 				
-				var result_container = renderer(this.element,results,collapse,facet_dict[key]);
+				var result_container = renderer(this.element,results,collapse,facet_dict[key],key);
    			    if (hide === true){
 				   result_container.hide();
 			    }				

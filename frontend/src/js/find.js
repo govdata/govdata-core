@@ -11,7 +11,7 @@ define(["gov","common/location","common/timedate", "jquery","underscore","unders
 	find.submit = function(options, callback) {
 		var params = {
 			q : '',
-			rows : 60,
+			rows : 100,
 			'facet.field' : ['sourceSpec','datasetTight','dateDivisionsTight','spatialDivisionsTight'],
 			facet : 'true'
 		};
@@ -113,18 +113,22 @@ define(["gov","common/location","common/timedate", "jquery","underscore","unders
     dictIntersect = function(dict1,dict2){
         var k,v;
         $.each(dict2, function(k,v){
-           
-            if ((k in dict1) && (dict1[k] != v)) {
-             
-               delete dict1[k];
+            if ((k in dict1) && (! (_.isEqual(dict1[k], v)))) {
+                    delete dict1[k];
             }
         });
+        $.each(dict1, function(k,v){
+            if ( ! (k in dict2) ) {
+                 delete dict1[k];
+            }
+        });
+        
     };
     
     dictDiff = function(dict1,dict2){
         var k,v;
         $.each(dict2, function(k,v){
-            if (dict1[k] == v) {
+            if (_.isEqual(dict1[k], v)) {
                delete dict1[k];
             }
         });
@@ -151,6 +155,41 @@ define(["gov","common/location","common/timedate", "jquery","underscore","unders
         
     };
     
+    reduceDuplicates = function(Rlist){
+        var retains = [];
+        var retain, superset;
+        $.each(Rlist,function(i1,elt1){
+            retain = true
+            $.each(Rlist,function(i2,elt2){
+               if (retain) { 
+              
+				   if ((elt1['volume'][0] == elt2['volume'][0]) && (_.isEqual(elt1['sourceSpecParsed'],elt2['sourceSpecParsed'])) && (i1 != i2)){
+					  superset = true;
+					  $.each(elt2['queryParsed'],function(k,v){
+						  if (!((k in elt1['queryParsed']) && (_.isEqual(elt1['queryParsed'][k] , v)))){
+							  superset = false;
+						  } 
+					  });
+					  
+					  
+					  if (superset){
+					      retain = false;
+						 
+					  }
+				   
+				   }
+			   }
+            });
+            if (retain){
+                retains.push(i1);
+            }
+        });
+       
+
+       return _.map(retains,function(elt){return Rlist[elt];})
+       
+    };
+    
 	find.resultsRenderer = function(parent,resultlist,collapse,facet){
 	    
 	    var Rcopy = [];
@@ -164,12 +203,14 @@ define(["gov","common/location","common/timedate", "jquery","underscore","unders
 	               };
 	        Rcopy.push(ival);
 	    });
+	    
+	    Rcopy = reduceDuplicates(Rcopy);
 
 	    var common_container = $("<div class='commonContainer'></div>").appendTo(parent);
 	    
 	    var commons = computeCommons(Rcopy);
 	    
-	    var commonObj = $(find.resultRenderer(commons,collapse)).appendTo(parent);
+	    var commonObj = $(find.resultRenderer(commons,collapse)).appendTo(common_container);
 	    	   	    	    
 	    var result_container = $("<div class='resultMason'></div>").appendTo(parent);
 	    
@@ -185,7 +226,7 @@ define(["gov","common/location","common/timedate", "jquery","underscore","unders
 	    });
 	    
 	    result_container.masonry({
-	        columnWidth:140,
+	        columnWidth:230,
 	        singleMode : true,
 	        itemSelector : '.resultBox',
 	        resizeable:true,
