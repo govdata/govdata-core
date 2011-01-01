@@ -827,7 +827,7 @@ class findHandler(tornado.web.RequestHandler):
         assert 'q' in args.keys() and len(args['q']) == 1
         query = args['q'][0]
         if query == '':
-            query = '*';
+            query = '*:*';
         args.pop('q')
         args['wt'] = args.get('wt','json') # set default wt = 'json'
         self.set_header("Content-Type","application/json")
