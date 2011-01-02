@@ -824,9 +824,8 @@ class findHandler(tornado.web.RequestHandler):
     @tornado.web.asynchronous
     def get(self):
         args = self.request.arguments
-        assert 'q' in args.keys() and len(args['q']) == 1
-        query = args['q'][0]
-        if query == '':
+        query = args.get('q',[''])[0]
+        if not query:
             query = '*:*';
             args['qt'] = 'standard'
         args.pop('q')
