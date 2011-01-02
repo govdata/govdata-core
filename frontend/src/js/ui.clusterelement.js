@@ -22,15 +22,7 @@ define(["utils","jquery","jquery-ui","ui.linearchooser","ui.clusterelement"], fu
 				} else {
 					classtext = "keyLabel";
 				}				
-				var facet_text;
-/*				if (key in facet_dict){
-					facet_text = " <span class='facet'>(" + facet_dict[key] + ")</span>";
-				} else {
-					facet_text = '';
-				}			*/
-				
-				facet_text = ''
-				
+				var facet_text = "<div class='facetCount'>(" + facet_dict[key] + " Results)</div>";
 				var top = $("<div class='topBar'></div>").appendTo(this.element);
 				
 				var keyList;
@@ -61,6 +53,8 @@ define(["utils","jquery","jquery-ui","ui.linearchooser","ui.clusterelement"], fu
 								resp : [_.range(keyList.length)]
 							}
 						});
+						
+				var facetCount = $(facet_text).appendTo(outerkeydiv);
 			
 	
 	
@@ -75,6 +69,7 @@ define(["utils","jquery","jquery-ui","ui.linearchooser","ui.clusterelement"], fu
 				   });
 				}*/
 				
+			
 				var result_container = renderer(this.element,results,collapse,facet_dict[key],key);
    			    if (hide === true){
 				   result_container.hide();

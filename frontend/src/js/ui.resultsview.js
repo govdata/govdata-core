@@ -15,8 +15,9 @@ define(["jquery","jquery-ui","jquery-ui.extensions","ui.linearchooser","ui.clust
             sourceName = JSON.parse(key);
             var i, subsource;
 
-            $.each(_.keys(sourceName),function(i){
-               subsource = _.values(sourceName).slice(0,i).join('|');
+  
+            $.each(_.keys(sourceName),function(i,x){
+               subsource = _.values(sourceName).slice(0,i+1).join('|');
                facet_dict[subsource] = (facet_dict[subsource] || 0) + num;
             })
         });

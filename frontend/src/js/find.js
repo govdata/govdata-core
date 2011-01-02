@@ -195,7 +195,7 @@ define(["gov","common/location","common/timedate", "jquery","underscore","unders
        
     };
     
-	find.resultsRenderer = function(parent,resultlist,collapse,facet){
+	find.resultsRenderer = function(parent,resultlist,collapse,facet,key){
 	    
 		
 		var keyKeys = _.keys(JSON.parse(resultlist[0]['sourceSpec'][0]));
@@ -228,12 +228,38 @@ define(["gov","common/location","common/timedate", "jquery","underscore","unders
 	    });
 	    
 	    Rcopy = reduceDuplicates(Rcopy);
-
-	    var common_container = $("<div class='commonContainer'></div>").appendTo(parent);
-	    
+	   	    
 	    var commons = computeCommons(Rcopy);
 	    
-	    var commonObj = $(find.resultRenderer(commons,collapse)).appendTo(common_container);
+	    var keysplit = key.split('|');
+	    $.each(commons['sourceSpecParsed'],function(k,v){
+	        if (_.include(keysplit,v)){
+	            delete commons['sourceSpecParsed'][k];
+	        }
+	    });
+	    
+	    
+	    if (!((_.isEqual(commons['sourceSpecParsed'],{})) && (_.isEqual(commons['queryParsed'],{})))){
+	    
+           var commonBox = $("<div class='commonBox'><div class='commonText'>Common Query:</div></div>").appendTo(parent);
+           
+           var all_volume,cidx,rval;
+           var retains = [];
+           for (cidx in Rcopy){
+               rval = Rcopy[cidx];
+               if ((_.isEqual(rval['sourceSpecParsed'],{})) && (_.isEqual(rval['queryParsed'],{}))){
+                  all_volume = rval['volume'];
+               } else {
+                  retains.push(cidx);
+               }
+               
+           }
+           Rcopy = _.map(retains,function (elt) {return Rcopy[elt];});
+           commons['volume'] = [all_volume + ' records'];
+           
+           var commonResult= $(find.resultRenderer(commons,0)).appendTo(commonBox)
+           commonResult.addClass("commonResult");
+        }
 	    	   	    	    
 	    var result_container = $("<div class='resultMason'></div>").appendTo(parent);
 	    
