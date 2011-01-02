@@ -228,39 +228,39 @@ define(["gov","common/location","common/timedate", "jquery","underscore","unders
 	    });
 	    
 	    Rcopy = reduceDuplicates(Rcopy);
+
 	   	    
 	    var commons = computeCommons(Rcopy);
 	    
-	    var keysplit = key.split('|');
-	    $.each(commons['sourceSpecParsed'],function(k,v){
-	        if (_.include(keysplit,v)){
-	            delete commons['sourceSpecParsed'][k];
-	        }
-	    });
+ 	    var all_volume,cidx,rval;
+ 	    var retains = [], removes = [];
+	    for (cidx in Rcopy){
+		    rval = Rcopy[cidx];
+		    if ((_.isEqual(rval['sourceSpecParsed'],{})) && (_.isEqual(rval['queryParsed'],{}))){
+		 	   if (rval['volume'] !== undefined){
+  		 	     all_volume = rval['volume'];
+		 	     removes.push(cidx);
+		 	   }
+		    } else {
+			   retains.push(cidx);
+		    }            
+	    }
 	    
-	    
-	    if (!((_.isEqual(commons['sourceSpecParsed'],{})) && (_.isEqual(commons['queryParsed'],{})))){
-	    
-           var commonBox = $("<div class='commonBox'><div class='commonText'>Common Query:</div></div>").appendTo(parent);
-           
-           var all_volume,cidx,rval;
-           var retains = [];
-           for (cidx in Rcopy){
-               rval = Rcopy[cidx];
-               if ((_.isEqual(rval['sourceSpecParsed'],{})) && (_.isEqual(rval['queryParsed'],{}))){
-                  all_volume = rval['volume'];
-               } else {
-                  retains.push(cidx);
-               }
-               
-           }
+	    if (!_.isEqual(removes,[])){
+	       
+	       var common_col = collapse;
+	       if  ((_.keys(commons['sourceSpecParsed']).len == key.split('|').len) && (_.isEqual(commons['queryParsed'],{}))){
+	           common_col = collapse - 1;
+	       }
+	       
+           var commonBox = $("<div class='commonBox'><div class='commonText'>All Data for: </div></div>").appendTo(parent);  
            Rcopy = _.map(retains,function (elt) {return Rcopy[elt];});
-           commons['volume'] = [all_volume + ' records'];
-           
-           var commonResult= $(find.resultRenderer(commons,0)).appendTo(commonBox)
+           commons['volume'] = [all_volume + ' records'];      
+           var commonResult= $(find.resultRenderer(commons,common_col)).appendTo(commonBox)
            commonResult.addClass("commonResult");
         }
-	    	   	    	    
+	    	 
+	    	 
 	    var result_container = $("<div class='resultMason'></div>").appendTo(parent);
 	    
       
