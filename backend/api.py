@@ -824,11 +824,11 @@ class findHandler(tornado.web.RequestHandler):
     @tornado.web.asynchronous
     def get(self):
         args = self.request.arguments
-        query = args.get('q',[''])[0]
+        query = args.pop('q',[''])[0]
         if not query:
             query = '*:*';
             args['qt'] = 'standard'
-        args.pop('q')
+ 
         args['wt'] = args.get('wt','json') # set default wt = 'json'
         self.set_header("Content-Type","application/json")
         http = tornado.httpclient.AsyncHTTPClient()
