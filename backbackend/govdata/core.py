@@ -49,8 +49,8 @@ class CsvParser(DataIterator):
             
         else:
             raise StopIteration
-
-class GovParser(Object):
+            
+class GovParser(object):
 
     def __init__(self,
                  collectionName,

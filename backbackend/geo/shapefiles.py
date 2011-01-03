@@ -1,8 +1,10 @@
-from starflow.utils import MakeDir, wget,Contents, listdir, IsDir, RecursiveFileList, activate
+from starflow.utils import MakeDir, Contents, listdir, IsDir, RecursiveFileList, activate
 import os
 import subprocess
 import BeautifulSoup as BS
 from starflow.protocols import actualize
+
+from utils.basic import wget
 
 root = '../Data/ShapeFiles/'
 protocol_root = '../generated_code/ShapeFiles/'
