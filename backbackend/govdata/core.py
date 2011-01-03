@@ -7,7 +7,7 @@ except ImportError:
     from common.OrderedDict import OrderedDict
 
 
-class DataIterator(Object):
+class DataIterator(object):
 
     def __iter__(self):
         return self
