@@ -1,5 +1,0 @@
-#This is a configuration file for the system.  Each of the lines in this file is a regular expression used to filter the LinkList to determine which links to
-#automatically include in updates.   The regular expressions are filtering the python dotpath of the functionnames of the scripts that you want to run.  
-#Lines beginning with a hash mark (like this one) will be ignored. 
-#See documentation for the function System.LinkManagement.FilterForAutomaticUpdates for more information.  
-

@@ -1,0 +1,12 @@
+
+#######################################
+## StarFlow Local Configuration File ##
+#######################################
+
+[local_systemwide]
+system_mode=EXPLORATORY
+protection=ON
+generated_code_dir=generated_code
+name=govdata
+gmail_account_name=govlover
+gmail_account_passwd=revolvog

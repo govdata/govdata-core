@@ -1,22 +1,24 @@
 #!/usr/bin/env python
 
-import tornado.web
-import tornado.httpclient
 import os
 import json
 import ast
+import functools
+import time
+import string 
+
+import tornado.web
+import tornado.httpclient
 import pymongo as pm
 import pymongo.json_util
-from common.utils import IsFile, listdir, is_string_like, ListUnion, Flatten, is_num_like, uniqify
-import common.mongo as CM
+
 import common.timedate as td
 import common.location as loc
 import common.solr as solr
-import functools
-from common.acursor import asyncCursorHandler
-import time
 
-SPECIAL_KEYS = CM.SPECIAL_KEYS
+from common.utils import IsFile, listdir, is_string_like, ListUnion, Flatten, is_num_like, uniqify
+from common.acursor import asyncCursorHandler
+from common.mongo import processArg, Collection, SPECIAL_KEYS
 
 
 #=-=-=-=-=-=-=-=-=-=-=-=-=-
@@ -193,7 +195,7 @@ def get_args(collectionName,querySequence,timeQuery=None, spaceQuery = None, ver
 
     """
 
-    collection = CM.Collection(collectionName,versionNumber=versionNumber,attachMetadata=returnMetadata)
+    collection = Collection(collectionName,versionNumber=versionNumber,attachMetadata=returnMetadata)
         
     versionNumber = collection.versionNumber
     currentVersion = collection.currentVersion
@@ -477,46 +479,7 @@ def actionAct(a,v,o):
     elif a == '$exists':
         return True
         
-
-def processArg(arg,collection):
-    """Translates the arg to human readable to collections"""
-    V = collection.columns
-    C = collection.columnGroups
-    if is_string_like(arg):
-        argsplit = arg.split('.')
-        if argsplit[0] in V:
-            argsplit[0] = str(V.index(argsplit[0]))
-            return '.'.join(argsplit)
-        elif arg in C.keys():
-            return [str(V.index(c)) for c in C[arg]]
-        else:
-            return arg
-    elif isinstance(arg, list):
-
-        T = [processArg(d,collection) for d in arg]
-
-        Tr = []
-        for t in T:
-            if is_string_like(t):
-                Tr.append(t)
-            else:
-                Tr += t
-        return Tr
-    elif isinstance(arg,tuple):
-        return tuple(processArg(list(arg),collection))
-    elif isinstance(arg,dict):
-        T = [(processArg(k,collection), v)  for (k,v) in arg.items() if k != '$where' ]
-        S = dict([(k,v) for (k,v) in T if not (isinstance(k,list) or isinstance(k,tuple))])
-        for (k,v) in T:
-            if isinstance(k,list) or isinstance(k,tuple):
-                S["$or"] = [{kk:v} for kk in k]
-        if '$where' in arg:
-            S['$where'] = arg['$where']
-        return S
-    else:
-        return arg
-
-import string        
+       
 def processJSValue(code,collection):
     vars = collection.columns
     varMap = dict(zip(vars,[repr(str(x)) for x in range(len(vars))])) 
