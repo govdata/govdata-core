@@ -1,5 +1,5 @@
 from starflow.protocols import actualize
-from staflow.utils import IsDir,IsFile,ListUnion,MakeDir,wget,activate,is_string_like
+from starflow.utils import IsDir,IsFile,ListUnion,MakeDir,wget,activate,is_string_like
 import tabular as tb
 import numpy as np
 	
