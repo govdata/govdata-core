@@ -4,5 +4,8 @@
 #system searches to find python modules to analyze and include in the 
 #system updating.  See manual for more detailed information. 
 #Lines beginning with a hash mark (like this one) will be ignored.
-../Operations/
+../geo
+../govdata
+../parsers
+../utils
 
