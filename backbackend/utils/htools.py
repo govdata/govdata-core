@@ -1,8 +1,10 @@
-from starflow.protocols import actualize
-from starflow.utils import IsDir,IsFile,ListUnion,MakeDir,wget,activate,is_string_like
 import tabular as tb
 import numpy as np
-	
+
+from starflow.protocols import actualize
+from starflow.utils import IsDir,IsFile,ListUnion,MakeDir,activate,is_string_like
+from utils.basic import wget
+
 	
 @activate(lambda x : (x[0],x[1],x[2]),lambda x : (x[3],x[4]) if x[4] else x[3])
 def applyparser(oldmanifestpath,oldtotallinkpath,datadir,newmanifestpath,newtotallinkpath,F,splitfunc,prefixlist,round):
