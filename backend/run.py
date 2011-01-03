@@ -17,8 +17,8 @@ class GovLove(tornado.web.Application):
     def __init__(self,ioloop):
         handlers = [
             (r"/", mainHandler),
-            (r"/get", api.getHandler),
-            (r"/find", api.findHandler),
+            (r"/data", api.getHandler),
+            (r"/search", api.findHandler),
             (r"/sources", api.sourceHandler),
             (r"/table", api.tableHandler),
             (r"/timeline", api.timelineHandler),

@@ -11,14 +11,14 @@ define(["gov","common/location","common/timedate", "jquery","underscore","unders
 	find.submit = function(options, callback) {
 		var params = {
 			q : '',
-			rows : 50,
+			rows : 100,
 			'facet.field' : ['sourceSpec','datasetTight','dateDivisionsTight','spatialDivisionsTight'],
 			facet : 'true',
 			fl : ['mongoID','mongoText','sourceSpec','query','volume','topic','collectionName'].join(',')
 		};
 		$.extend(true,params,options);
 		$.ajax({
-			url: gov.API_URL + '/find',
+			url: gov.API_URL + '/search',
 			dataType: 'jsonp',
 			data: params,
 			traditional:true,
@@ -252,7 +252,7 @@ define(["gov","common/location","common/timedate", "jquery","underscore","unders
 	       if  ((_.keys(commons['sourceSpecParsed']).len == key.split('|').len) && (_.isEqual(commons['queryParsed'],{}))){
 	           common_col = collapse - 1;
 	       }
-	       
+
            var commonBox = $("<div class='commonBox'><div class='commonText'>All Data for: </div></div>").appendTo(parent);  
            Rcopy = _.map(retains,function (elt) {return Rcopy[elt];});
            commons['volume'] = [all_volume + ' records'];      
@@ -262,7 +262,6 @@ define(["gov","common/location","common/timedate", "jquery","underscore","unders
 	    	 
 	    	 
 	    var result_container = $("<div class='resultMason'></div>").appendTo(parent);
-	    
       
 	    $.each(Rcopy,function(ind,result){
 	        var prev_result;
@@ -271,7 +270,7 @@ define(["gov","common/location","common/timedate", "jquery","underscore","unders
 	        } else {
 	            prev_result = {}
 	        }
-	        result_container.append(find.resultRenderer(result,collapse,prev_result));
+	        result_container.append(find.resultRenderer(result,-1,prev_result));
 	    });
 	    
 	    result_container.masonry({
@@ -352,7 +351,40 @@ define(["gov","common/location","common/timedate", "jquery","underscore","unders
 			
 		return sb;
 	};
-
+    
+    
+    var specialdict = function(items){
+        self = this;
+        self.items = items ;
+        
+        self.value = function (){
+		    var self = this;
+		    return this.items
+		};
+		
+		self.update = function(val){
+		  self = this;
+		  self.items = val;
+		};
+		
+		remove = function(val){
+		  self = this;
+		  delete self.items[val];
+		
+		}
+		
+		add = function(key,val){
+		  self = this;
+		  self.items[key] = val;
+		  
+		}
+		
+		return self
+    }
+    
+    specialdict.prototype = new Object;
+    
+ 
 	find.load = function(params, state) {
 	
  
@@ -366,11 +398,15 @@ define(["gov","common/location","common/timedate", "jquery","underscore","unders
 		
         find.collapsedict = $(root).dict({
           items : {" " :0},
+          prefix : 'collapsedict'
         }).data("dict");
         
-        find.hidedict = $(root).dict({
+ /*       find.hidedict = $(self.element).dict({
           items : {" " :false},
-        }).data("dict");      
+        }).data("dict");      */
+        
+/*        find.collapsedict = specialdict({" " :0}); */
+        find.hidedict = specialdict({" " :false}); 
 
 		find.statehandler = $(root).statehandler({
 			objects : {

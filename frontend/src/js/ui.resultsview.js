@@ -99,7 +99,7 @@ define(["jquery","jquery-ui","jquery-ui.extensions","ui.linearchooser","ui.clust
 			
 	
 			self.element.find(".numFound").remove();
-			$("<div class='numFound' id='totalNumFound'><div id='innerNumFound' style='font-size:30px'>" + numFound + "</div><div>Total Results</div></div>").
+			$("<div class='numFound' id='totalNumFound'><div id='innerNumFound' style='font-size:30px'>" + numFound + "</div><div>Total Slices</div></div>").
 				appendTo(filterBar)
 			$('<div class="filterSeparator"></div>').appendTo(filterBar);	
 				

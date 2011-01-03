@@ -22,7 +22,7 @@ define(["utils","jquery","jquery-ui","ui.linearchooser","ui.clusterelement"], fu
 				} else {
 					classtext = "keyLabel";
 				}				
-				var facet_text = "<div class='facetCount'>(" + facet_dict[key] + " Results)</div>";
+				var facet_text = "<div class='facetCount'>(" + facet_dict[key] + " Slices)</div>";
 				var top = $("<div class='topBar'></div>").appendTo(this.element);
 				
 				var keyList;
@@ -89,6 +89,7 @@ define(["utils","jquery","jquery-ui","ui.linearchooser","ui.clusterelement"], fu
 				      hidedict.add(key,true);
 				      keytoggle.html("<div class='keyToggle'>&#9654</div>");
 				   }
+                   
 				   $(root).data()['statehandler'].changestate();
 				});
 				

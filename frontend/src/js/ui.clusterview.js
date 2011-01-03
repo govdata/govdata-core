@@ -94,6 +94,7 @@ define(["utils","jquery","jquery-ui","ui.linearchooser","ui.clusterelement"], fu
 		    if (num + 1 !== 0){
 
 		      var subcollapse = collapse + num + 1;
+		      console.log(key,subcollapse)
 		      collapsedict.items[key] = subcollapse;
 		      var newelt = $("<div class='clusterView'></div>");
 		      var clusterElement = $(e.target).closest(".clusterElement")
@@ -229,8 +230,9 @@ define(["utils","jquery","jquery-ui","ui.linearchooser","ui.clusterelement"], fu
     			} else {
     			    collapse = 'QUERY';
     			}
+    			
+    			    			
 				collapsedict.items[key] = collapse;
-		
 				collapseddata = collapseData(data,metadata,collapse);
 					
 				var subkey;
@@ -240,7 +242,7 @@ define(["utils","jquery","jquery-ui","ui.linearchooser","ui.clusterelement"], fu
 				   $(item).remove();
 				   
 				});
-						
+		
 				
 		        var res = renderclusters(collapseddata,collapsedict,hidedict,facet_dict,metadata,utils.count(key,'|'),collapse,self);
 
@@ -267,7 +269,7 @@ define(["utils","jquery","jquery-ui","ui.linearchooser","ui.clusterelement"], fu
 		        });
 		
 			});
-			            
+			     
 	      collapse = collapsedict.items[key] || 0
 	      var hide = hidedict.items[key] || false
           collapseddata = collapseData(data,metadata,collapse);
