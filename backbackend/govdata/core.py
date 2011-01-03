@@ -79,13 +79,11 @@ class GovParser(object):
         self.ID = ID
         self.incremental = incremental
         
-        self.verify()
+
         
     def verify(self):
         self.checkMetadata()
         
-        
-    
     def checkMetadata(self):
         checkMetadata(self.parser)
         
