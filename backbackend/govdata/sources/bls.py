@@ -53,7 +53,7 @@ def WgetMultiple(link, fname, maxtries=10):
 @protocolize()  
 def MakeBLS_Resource():
     L = [{'Parser':BLS_mainparse1,'Getter':WgetMultiple},None]
-    D = htools.hsuck('http://www.bls.gov/data/', os.path.join(DATA_ROOT,'BLS_Hierarchy') + '/', L, ipath=creates,write=False)
+    D = htools.hsuck('http://www.bls.gov/data/', os.path.join(DATA_ROOT,'BLS_Hierarchy') + '/', L, write=False)
     actualize(creates,D)
     
     
