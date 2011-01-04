@@ -12,7 +12,6 @@ import tabular as tb
 
 from starflow.protocols import actualize
 from starflow.utils import MakeDir,MakeDirs, PathExists, RecursiveFileList, activate
-from starflow.static import 
 import starflow.de as de
 
 from common.utils import IsFile, listdir, is_string_like, ListUnion,createCertificate, uniqify, IsDir, Flatten, dictListUniqify
@@ -30,12 +29,12 @@ GENERATED_CODE_DIR = WORKING_DE.relative_generated_code_dir
 
 isnan = np.isnan
 
-root = '../Data/OpenGovernment/'
+root = os.path.join('..','Data','OpenGovernment') + os.sep
 protocolroot = os.path.join(GENERATED_CODE_DIR,'OpenGovernment')
-CERT_ROOT = root + 'Certificates/'
-CERT_PROTOCOL_ROOT = '../generated_code/OpenGovernment/Certificates/'
-MONGOSOURCES_PATH = '../Data/OpenGovernment/MongoSources/'
-DOWNLOAD_ROOT = '../Data/OpenGovernment/Downloads/'
+CERT_ROOT = os.path.join(root,'Certificates') + os.sep
+CERT_PROTOCOL_ROOT = os.path.join(protocolroot,'Certificates') + os.sep
+MONGOSOURCES_PATH = os.path.join(root,'MongoSources') + os.sep
+DOWNLOAD_ROOT = os.path.join(root, 'Downloads') + os.sep
 
 def initialize(creates = protocolroot):
     MakeDir(protocolroot)

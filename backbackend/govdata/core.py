@@ -116,15 +116,15 @@ def checkCollectionName(name):
 def verify(name):
         
     checkCollectionName(name)
-	
-	F = urllib.urlopen('http://' + API_URL + '/verify?name=' + name)
+    
+    F = urllib.urlopen('http://' + API_URL + '/verify?name=' + name)
 
-	X = json.parse(F.read())
-	
-	if X:
-		return X
-	else:
-		raise NameNotVerifiedError(name)
+    X = json.parse(F.read())
+    
+    if X:
+        return X
+    else:
+        raise NameNotVerifiedError(name)
     
         
     
