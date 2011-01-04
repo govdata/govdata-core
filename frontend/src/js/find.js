@@ -38,7 +38,7 @@ define(["gov","common/location","common/timedate", "jquery","underscore","unders
 		$.extend(true,params,options);
 
 		$.ajax({
-			url: gov.API_URL + '/sources',
+			url: gov.API_URL + '/metadata',
 			dataType: 'jsonp',
 			data: params,
 			success : function(metadata){

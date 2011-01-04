@@ -12,6 +12,8 @@ import tabular as tb
 
 from starflow.protocols import actualize
 from starflow.utils import MakeDir,MakeDirs, PathExists, RecursiveFileList, activate
+from starflow.static import 
+import starflow.de as de
 
 from common.utils import IsFile, listdir, is_string_like, ListUnion,createCertificate, uniqify, IsDir, Flatten, dictListUniqify
 from common.mongo import cleanCollection, SPECIAL_KEYS, Collection
@@ -19,12 +21,17 @@ import common.timedate as td
 import common.location as loc
 import govdata.indexing as indexing
 
-from govdata.core import checkMetadata
+from govdata.core import checkMetadata, verify
+
+DE_MANAGER = de.DataEnvironmentManager()
+WORKING_DE = DE_MANAGER.working_de
+
+GENERATED_CODE_DIR = WORKING_DE.relative_generated_code_dir
 
 isnan = np.isnan
 
 root = '../Data/OpenGovernment/'
-protocolroot = '../generated_code/OpenGovernment/'
+protocolroot = os.path.join(GENERATED_CODE_DIR,'OpenGovernment')
 CERT_ROOT = root + 'Certificates/'
 CERT_PROTOCOL_ROOT = '../generated_code/OpenGovernment/Certificates/'
 MONGOSOURCES_PATH = '../Data/OpenGovernment/MongoSources/'
@@ -70,6 +77,8 @@ def backendProtocol(parserobj, certdir = None,
                     write = True,
                     uptostep=None):
  
+    parserObj.verify()
+    
     collectionName = parserObj.collectionName
     parser = parserObj.parser
     downloader = parserObj.downloader
@@ -231,6 +240,9 @@ COMPLETE_SPACE = False
 def updateCollection(download_dir,collectionName,parserClass,checkpath,certpath,parserArgs=None,parserKwargs=None,incremental=False):
     
     connection =  pm.Connection(document_class=pm.son.SON)
+    
+    source_metadata = verify(collectionName)
+    
     db = connection['govdata']
     assert not '__' in collectionName, 'collectionName must not contain consecutive underscores'
     metaCollectionName = '__' + collectionName + '__'
@@ -260,6 +272,7 @@ def updateCollection(download_dir,collectionName,parserClass,checkpath,certpath,
         
     if sources:
         iterator = parserClass(sources[0],*parserArgs,**parserKwargs)
+        iterator.set_source_metadata(source_metadata)
     
         uniqueIndexes = iterator.uniqueIndexes
         ColumnGroups = iterator.columnGroups

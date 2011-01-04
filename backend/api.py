@@ -857,7 +857,7 @@ class termsHandler(tornado.web.RequestHandler):
 
                
 #=-=-=-=-=-=-=-=-=-=-=-=-=-
-#SOURCES
+#METADATA
 #=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 class sourceHandler(asyncCursorHandler):
@@ -890,6 +890,30 @@ class sourceHandler(asyncCursorHandler):
         self.add_async_cursor(collection,querySequence)
 
 
+               
+#=-=-=-=-=-=-=-=-=-=-=-=-=-
+#SOURCE VERIFICATION
+#=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+class verificationHandler(asyncCursorHandler):
+
+    @tornado.web.asynchronous
+    def get(self):
+        args = self.request.arguments
+        for k in args:
+            args[k] = args[k][0]
+        
+        self.jsonPcallback = args.pop('callback',None)
+        
+        name = args['name']
+
+        querySequence = [['find_one',[({'name':name},),{}]]]
+           
+        connection = pm.Connection(document_class=pm.son.SON)
+        db = connection['govdata']
+        collection = db['__COMPONENTS__']
+
+        self.add_async_cursor(collection,querySequence)
         
         
 #=-=-=-=-=-=-=-=-=-=-=-=-=-

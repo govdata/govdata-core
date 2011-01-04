@@ -6,7 +6,7 @@ except ImportError:
     from common.OrderedDict import OrderedDict
 
 
-class DataIterator(object):
+class DataIterator(object):  
 
     def __iter__(self):
         return self
@@ -19,6 +19,11 @@ class DataIterator(object):
             raise AttributeError, "Can't find attribute " + attr
         else:
             return V        
+            
+    def set_source_metadata(self,source_metadata):
+        
+        self.metadata['']['source'] = source_metadata
+        
             
 class CsvParser(DataIterator):
 
@@ -48,7 +53,25 @@ class CsvParser(DataIterator):
             
         else:
             raise StopIteration
-            
+
+API_URL = '50.16.230.214'
+import urllib
+import urllib2
+import json
+
+class VerificationError(Exception):
+    pass
+    
+class CollectionNameError(VerificationError):
+
+    def __init__(self,name):
+        self.msg = '%s is not a valid string for a collection name.'
+        
+class NameNotVerifiedError(VerificationError):
+    def __init__(self,name):
+        self.msg = '%s not found in COMPONENTS database.'
+        
+
 class GovParser(object):
 
     def __init__(self,
@@ -78,15 +101,32 @@ class GovParser(object):
         self.ID = ID
         self.incremental = incremental
         
+    def verify(self):
+        verify(self.collectionName)
+    
+    def checkcollectionName(self):
+        checkCollectionName(self.collectionName)
+        
+    
+    
+def checkCollectionName(name):   
+    if False:
+        raise CollectionNameError(collectionName) 
+            
+def verify(name):
+        
+    checkCollectionName(name)
+	
+	F = urllib.urlopen('http://' + API_URL + '/verify?name=' + name)
+
+	X = json.parse(F.read())
+	
+	if X:
+		return X
+	else:
+		raise NameNotVerifiedError(name)
     
         
-    def verify(self):
-        self.checkMetadata()
-        
-    def checkMetadata(self):
-        checkMetadata(self.parser)
-        
-   
     
 def checkMetadata(iterator):
     assert hasattr(iterator,'metadata'), 'Has no metadata attribute.'
