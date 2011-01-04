@@ -15,7 +15,10 @@ SOURCE_DB_NAME = '__COMPONENTS__'
 
 CERTIFICATE_DIR = '../source/certificates'
 
-def initialize(creates = SOURCE_COMPONENTS_DIR):
+def initialize(creates = '../sources/'):
+    MakeDir(creates)
+
+def initialize_components(creates = SOURCE_COMPONENTS_DIR):
     MakeDir(creates)
     
 def initialize_certificates(creates = CERTIFICATE_DIR):
