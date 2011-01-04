@@ -13,7 +13,7 @@ SOURCE_COMPONENTS_DIR = '../sources/SOURCE_COMPONENTS/'
 
 SOURCE_DB_NAME = '__COMPONENTS__'
 
-CERTIFICATE_DIR = '../source/certificates'
+CERTIFICATE_DIR = '../sources/certificates/'
 
 def initialize(creates = '../sources/'):
     MakeDir(creates)
