@@ -2,9 +2,15 @@
 *.log
 *.pyc
 generated_code/
-Data/
+Data/*
 Temp/
 .starflow/*
 !.starflow/config
 !.starflow/live_module_filters
 !.starflow/setupfunctions.py
+!Data/OpenGovernment
+Data/OpenGovernment/*
+!Data/OpenGovernment/BLS
+Data/OpenGovernment/BLS/*
+!Data/OpenGovernment/BLS/Keywords.txt
+!Data/OpenGovernment/BLS/ProcessedManifest_2_HandAdditions.tsv

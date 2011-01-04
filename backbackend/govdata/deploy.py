@@ -62,7 +62,27 @@ def getT(x):
  
 #=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
-def backendProtocol(collectionName,parser,downloader = None, downloadProtocol= None,downloadArgs = None, downloadKwargs = None, parserArgs = None, parserKwargs = None, trigger = None, certdir = None, createCertDir = False, downloadPath = None , createPath = None, indexPath = None, slicesCorrespondToIndexes=True, write = True,ID = None,incremental = False,uptostep=None):
+def backendProtocol(parserobj, certdir = None, 
+                    createCertDir = False, 
+                    downloadPath = None, 
+                    createPath = None, 
+                    indexPath = None,  
+                    write = True,
+                    uptostep=None):
+ 
+    collectionName = parserObj.collectionName
+    parser = parserObj.parser
+    downloader = parserObj.downloader
+    downloadProtocol = parserObj.downloadProtocol
+    downloadArgs = parserObj.downloadArgs
+    downloadKwargs = parserObj.downloadKwargs
+    parserArgs = parserObj.parserArgs
+    parserKwargs = parserObj.parserKwargs
+    trigger = parserObj.trigger
+    ID = parserObj.ID
+    incremental = parserObj.incremental
+    slicesCorrespondToIndexes = parserObj.slicesCorrespondToIndexes
+    
     if ID == None:
         ID = collectionName
     if ID and not ID.endswith('_'):

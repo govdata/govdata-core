@@ -1,5 +1,4 @@
 import tabular as tb
-import pymongo as pm
 
 try:
     from collections import OrderedDict
@@ -79,7 +78,7 @@ class GovParser(object):
         self.ID = ID
         self.incremental = incremental
         
-
+    
         
     def verify(self):
         self.checkMetadata()
@@ -110,7 +109,7 @@ def checkMetadata(iterator):
     S = M.get('source') 
     assert isinstance(S,list), 'Metadata must contain source list.'
     try:
-        S = pm.son.SON(S)
+        S = OrderedDict(S)
     except:
         print 'Metadata source list in wrong format for making SON object.'
     else:
