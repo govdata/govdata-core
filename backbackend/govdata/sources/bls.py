@@ -54,7 +54,7 @@ def WgetMultiple(link, fname, maxtries=10):
 def MakeBLS_Resource():
     L = [{'Parser':BLS_mainparse1,'Getter':WgetMultiple},None]
     D = htools.hsuck('http://www.bls.gov/data/', os.path.join(DATA_ROOT,'BLS_Hierarchy') + '/', L, write=False)
-    actualize(creates,D)
+    actualize(D)
     
     
 MAIN_SPLITS = ['cu', 'cw', 'su', 'ap', 'li', 'pc', 'wp', 'ei', 'ce', 'sm', 'jt', 'bd', 'oe', 'lu', 'la', 'ml', 'nw', 'ci', 'cm', 'eb', 'ws', 'le', 'cx', 'pr', 'mp', 'ip', 'in', 'fi', 'ch', 'ii']
