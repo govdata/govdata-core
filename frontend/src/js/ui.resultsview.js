@@ -112,7 +112,7 @@ define(["jquery","jquery-ui","jquery-ui.extensions","ui.linearchooser","ui.clust
 					linearchooser({
 						data : {
 							label : "<div style='width:120px'>Filter date by:</div>",
-							list : [{label: "date", list: dateDivisionsWithFacets}],
+							list : [{label: "date", list: dateDivisionsWithFacets}]
 						}
 					});	
 					
@@ -136,7 +136,7 @@ define(["jquery","jquery-ui","jquery-ui.extensions","ui.linearchooser","ui.clust
 					linearchooser({
 						data : {
 							label : "<div style='width:120px'>Filter space by:</div>",
-							list : [{label: "space", list: spatialDivisionsWithFacets}],
+							list : [{label: "space", list: spatialDivisionsWithFacets}]
 						}
 					});					
 				

@@ -132,7 +132,7 @@ define(["utils","jquery","jquery-ui","ui.linearchooser","ui.clusterelement"], fu
 					collapsedict : collapsedict,
 					hidedict : hidedict,
 					resultsRenderer : context.options.resultsRenderer,
-					facet_dict : facet_dict,
+					facet_dict : facet_dict
 				});
 			
 		};
@@ -148,7 +148,7 @@ define(["utils","jquery","jquery-ui","ui.linearchooser","ui.clusterelement"], fu
 
    	$.widget( "ui.clusterview", {
 		options : {
-		    start : 0,
+		    start : 0
 		},
 		_create : function() {
 			var self = this,

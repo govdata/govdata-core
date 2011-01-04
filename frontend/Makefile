@@ -22,30 +22,26 @@ JS_COMPILER = \
 JSDOC_HOME = /Library/jsdoc-toolkit
 JSDOC = java -jar $(JSDOC_HOME)/jsrun.jar $(JSDOC_HOME)/app/run.js
 
-all: createfolders scss copyfiles govdata.js
-govdata.js: $(JS_FILES)
+all: scss optimize
 
-%data.js:: Makefile
-	rm -f $(BUILD)/$@
-	echo "// $(shell git rev-parse --short HEAD)" >> $(BUILD)/$@
-	cat $(filter %.js,$^) | $(JS_COMPILER) >> $(BUILD)/$@
+source: scss-watch serve-source
 
 scss-watch: Makefile
-	sass --scss --watch $(SRC)/scss:$(SRC)/css
+	sass --scss --watch $(SRC)/scss:$(SRC)/css &
+	
+scss: Makefile
+	sass --scss --update $(SRC)/scss:$(SRC)/css	
 
-serve: Makefile
+serve-build: Makefile
+	$(shell cd $(BUILD); python -m SimpleHTTPServer)
+
+serve-source: Makefile
 	$(shell cd $(SRC); python -m SimpleHTTPServer)
 
-scss: Makefile
-	sass --scss --update $(SRC)/scss:$(BUILD)/css
+optimize: Makefile
+	requirejs-0.2.1/build/build.sh $(SRC)/js/app.build.js
+	requirejs-0.2.1/build/build.sh $(SRC)/js/app.build.js
 
-createfolders: Makefile
-	mkdir -p $(BUILD)
-
-copyfiles: Makefile
-	cp $(SRC)/index-release.html $(BUILD)/index.html
-	cp $(SRC)/favicon.ico $(BUILD)/favicon.ico
-	cp -r $(SRC)/images $(BUILD)/images
 
 jsdoc: $(JS_FILES) Makefile
 	rm -rf jsdoc

@@ -277,7 +277,7 @@ define(["gov","common/location","common/timedate", "jquery","underscore","unders
 	        columnWidth:230,
 	        singleMode : true,
 	        itemSelector : '.resultBox',
-	        resizeable:true,
+	        resizeable:true
 	    });
 	    
 	   $('.sourceElement').unbind('click'); 
