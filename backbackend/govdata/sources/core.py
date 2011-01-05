@@ -46,7 +46,7 @@ def add_component(infile,certpath):
     
     coll = db[SOURCE_DB_NAME]
     coll.ensure_index('name',unique=True)
-    coll.ensure_index('source',unique=True)
+    coll.ensure_index('source')
     
     for k in All:
        rec = {'name': k, 'source' : All[k]}
