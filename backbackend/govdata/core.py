@@ -117,7 +117,7 @@ def verify(name):
         
     checkCollectionName(name)
     
-    F = urllib.urlopen('http://' + API_URL + '/verify?name=' + name)
+    F = urllib.urlopen('http://' + API_URL + '/source?name=' + name)
 
     X = json.parse(F.read())
     
