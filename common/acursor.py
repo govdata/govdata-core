@@ -652,6 +652,10 @@ class asyncCursorHandler(tornado.web.RequestHandler):
         
         if not hasattr(self,'processor'):
             self.processor = None
+        if not hasattr(self,'stream'):
+            self.stream = False
+        if not hasattr(self,'returnObj'):
+            self.returnObj = True
         
         self.writing = False
         
