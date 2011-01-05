@@ -29,7 +29,7 @@ def initialize_certificates(creates = CERTIFICATE_DIR):
 def combine_components(depends_on = SOURCE_COMPONENTS_DIR):
 
     L = [(x,os.path.relpath(x,depends_on).replace(os.sep,'__')) for x in RecursiveFileList(depends_on) if x.endswith('.pickle')]
-    D = [('component_' + name, add_component,(file,os.path.join(CERTIFICATE_DIR,name))) for (name,file) in L]
+    D = [('component_' + name, add_component,(file,os.path.join(CERTIFICATE_DIR,name))) for (file,name) in L]
     
     actualize(D)
     
