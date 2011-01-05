@@ -52,7 +52,7 @@ def add_component(infile,certpath):
        rec = {'name': k, 'source' : All[k]}
        coll.save(rec,safe=True)
        
-    createCertificateDict(certpath,rec)
+    createCertificateDict(certpath,All)
        
     
        
