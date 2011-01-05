@@ -20,7 +20,7 @@ import common.timedate as td
 import common.location as loc
 import govdata.indexing as indexing
 
-from govdata.core import checkMetadata, verify
+from govdata.core import checkMetadata, verify, NameNotVerifiedError
 
 DE_MANAGER = de.DataEnvironmentManager()
 WORKING_DE = DE_MANAGER.working_de
@@ -233,14 +233,30 @@ def download_check(download_dir, incremental, certpath):
             
     createCertificate(certpath,'Collection properly downloaded and pre-parsed.')
 
+
+def get_source_data(collectionName,connection =None):
+    if connection is None:
+        connection =  pm.Connection(document_class=pm.son.SON)
     
+    db = connection['govdata']
+    collection = db['__COMPONENTS__']
+    
+    X = collection.find_one({'name':collectionName})
+    
+    if not X:
+        raise NameNotVerifiedError(collectionName)
+    else:
+        return X
+    
+ 
+     
 COMPLETE_SPACE = False
 @activate(lambda x :  (x[0] + '/',x[3]),lambda x : x[4])
 def updateCollection(download_dir,collectionName,parserClass,checkpath,certpath,parserArgs=None,parserKwargs=None,incremental=False):
     
     connection =  pm.Connection(document_class=pm.son.SON)
     
-    source_metadata = verify(collectionName)
+    source_metadata = get_source_data(collectionName)
     
     db = connection['govdata']
     assert not '__' in collectionName, 'collectionName must not contain consecutive underscores'
