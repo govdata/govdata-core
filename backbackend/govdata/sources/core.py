@@ -1,6 +1,7 @@
 import cPickle as pickle
 import os
 import pymongo as pm
+import pymongo.son as son
 
 from starflow.protocols import actualize, protocolize
 from starflow.utils import RecursiveFileList, MakeDir, activate
@@ -40,7 +41,7 @@ def add_component(infile,certpath):
 
     All = pickle.load(open(infile))
        
-    conn = pm.Connection()
+    conn = pm.Connection(document_class=son.SON)
     
     db = conn['govdata']
     
@@ -49,7 +50,7 @@ def add_component(infile,certpath):
     coll.ensure_index('source')
     
     for k in All:
-       rec = {'name': k, 'source' : All[k]}
+       rec = {'name': k, 'source' : son.SON(All[k])}
        coll.save(rec,safe=True)
        
     createCertificateDict(certpath,All)

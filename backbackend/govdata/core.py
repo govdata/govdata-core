@@ -22,7 +22,7 @@ class DataIterator(object):
             
     def set_source_metadata(self,source_metadata):
         
-        self.metadata['']['source'] = source_metadata
+        self.metadata['']['source'] = source_metadata['source']
         
             
 class CsvParser(DataIterator):
@@ -119,7 +119,7 @@ def verify(name):
     
     F = urllib.urlopen('http://' + API_URL + '/source?name=' + name)
 
-    X = json.parse(F.read())
+    X = json.loads(F.read())
     
     if X:
         return X
