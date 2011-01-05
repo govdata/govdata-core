@@ -45,8 +45,8 @@ def add_component(infile,certpath):
     db = conn['govdata']
     
     coll = db[SOURCE_DB_NAME]
-    coll.ensureIndex('name',unique=True)
-    coll.ensureIndex('source',unique=True)
+    coll.ensure_index('name',unique=True)
+    coll.ensure_index('source',unique=True)
     
     for k in All:
        rec = {'name': k, 'source' : All[k]}
