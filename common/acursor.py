@@ -602,6 +602,7 @@ class asyncCursorHandler(tornado.web.RequestHandler):
             self.write('}')  
         
         if self.returnObj and not self.stream:
+            print(self.data)
             self.write(json.dumps(self.data,default=pm.json_util.default))
 
         if self.jsonPcallback:
