@@ -235,6 +235,7 @@ def download_check(download_dir, incremental, certpath):
 
 
 def get_source_data(collectionName,connection =None):
+    #when everything is python 2.7, do this from the API service
     if connection is None:
         connection =  pm.Connection(document_class=pm.son.SON)
     

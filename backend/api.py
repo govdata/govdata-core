@@ -40,9 +40,11 @@ class getHandler(asyncCursorHandler):
         # pre take off any paramaters besides q
         self.jsonPcallback = args.pop('callback',None)
 
-        q = json.loads(args['q'])
+        #q = json.loads(args['q'])
             
-        self.get_response(q)
+        #self.get_response(q)
+
+        self.get_response(args)
 
 
     @tornado.web.asynchronous
@@ -57,10 +59,38 @@ class getHandler(asyncCursorHandler):
         args = dict([(str(x),y) for (x,y) in args.items()])
 
         collectionName = args.pop('collection')
-        querySequence = args.pop('query')        
         
-        if isinstance(querySequence,dict):
-            querySequence = [querySequence]
+        querySequence = args.pop('querySequence',None)
+        
+        if querySequence is None:
+        
+            action = args.pop('action','find')
+            
+            assert action in ['find','find_one','count','distinct']
+
+            posargs = ()
+            kargs = {}
+            if action in ['find','find_one']:
+                posargs = (json.loads(args.pop('query','"{}"')),)
+                fields = args.pop('fields',None)
+                if fields:
+                    kargs['fields'] = json.loads(fields)
+            elif action == 'distinct':
+                posargs = args.pop('field')
+            else:
+                posargs = ()
+            
+            actionDict = {'action' : action}
+            if posargs:
+                actionDict['args'] = posargs
+            if kwargs:
+                actionDict['kargs'] = kargs
+                
+            querySequence = [actionDict]
+        else:
+            querySequence = json.loads(querySequence)
+            
+        
         for (i,x) in enumerate(querySequence):
             querySequence[i] = (x.get('action'),[x.get('args',()),x.get('kargs',{})])
             
