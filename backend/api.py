@@ -52,6 +52,9 @@ def getQuerySequence(args):
     else:
         querySequence = json.loads(querySequence)
         
+    for (i,x) in enumerate(querySequence):
+        querySequence[i] = (x.get('action'),[x.get('args',()),x.get('kargs',{})])
+        
     return querySequence
 
 
@@ -95,10 +98,7 @@ class getHandler(asyncCursorHandler):
         collectionName = args.pop('collection')
         
         querySequence = getQuerySequence(args)
-                    
-        for (i,x) in enumerate(querySequence):
-            querySequence[i] = (x.get('action'),[x.get('args',()),x.get('kargs',{})])
-            
+                                
         self.returnObj = args.pop('returnObj',False)   
         self.stream = args.pop('stream',True)
         
@@ -910,7 +910,7 @@ class sourceHandler(asyncCursorHandler):
         
         querySequence = getQuerySequence(args)
         
-        print("THING",querySequence)
+        
         
         querySequence = [[str(action),list(getArgs(args))] for (action,args) in querySequence]
     
