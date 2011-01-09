@@ -83,7 +83,7 @@ class getHandler(asyncCursorHandler):
             actionDict = {'action' : action}
             if posargs:
                 actionDict['args'] = posargs
-            if kwargs:
+            if kargs:
                 actionDict['kargs'] = kargs
                 
             querySequence = [actionDict]
