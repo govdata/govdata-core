@@ -76,7 +76,7 @@ class getHandler(asyncCursorHandler):
                 if fields:
                     kargs['fields'] = json.loads(fields)
             elif action == 'distinct':
-                posargs = args.pop('field')
+                posargs = (args.pop('field'),)
             else:
                 posargs = ()
             
