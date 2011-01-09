@@ -129,6 +129,10 @@ def verify(name):
         
     
 def checkMetadata(iterator):
+    """
+        Sanity check on metadata. 
+    """
+    
     assert hasattr(iterator,'metadata'), 'Has no metadata attribute.'
     
     metadata = iterator.metadata

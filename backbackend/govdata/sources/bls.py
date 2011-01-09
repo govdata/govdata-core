@@ -48,6 +48,9 @@ def WgetMultiple(link, fname, maxtries=10):
             
     print 'download of ' + link + ' failed after ' + str(maxtries) + ' attempts'
     return
+    
+def initialize(creates = DATA_ROOT):
+    MakeDir(creates)
 
    
 @protocolize()  
