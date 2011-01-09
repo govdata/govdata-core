@@ -910,6 +910,8 @@ class sourceHandler(asyncCursorHandler):
         
         querySequence = getQuerySequence(args)
         
+        print("THING",querySequence)
+        
         querySequence = [[str(action),list(getArgs(args))] for (action,args) in querySequence]
     
         if querySequence[0][1][0] == () or not (querySequence[0][1][0][0].has_key('versionOffset') or querySequence[0][1][0][0].has_key('version')):
