@@ -25,6 +25,7 @@ class DataIterator(object):
     def set_source_metadata(self,source_metadata):
         
         self.metadata['']['source'] = source_metadata['source']
+        print('SOURCE',source_metadata['source'])
         
             
 class CsvParser(DataIterator):
