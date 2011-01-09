@@ -68,7 +68,7 @@ def getT(x):
  
 #=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
-def backendProtocol(parserobj, certdir = None, 
+def backendProtocol(parserObj, certdir = None, 
                     createCertDir = False, 
                     downloadPath = None, 
                     createPath = None, 
