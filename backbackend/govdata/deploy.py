@@ -242,7 +242,7 @@ def get_source_data(collectionName,connection =None):
     db = connection['govdata']
     collection = db['__COMPONENTS__']
     
-    X = collection.find_one({'name':collectionName}).items()
+    X = collection.find_one({'name':collectionName})
     
     if not X:
         raise NameNotVerifiedError(collectionName)
