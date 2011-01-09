@@ -90,6 +90,7 @@ class getHandler(asyncCursorHandler):
         else:
             querySequence = json.loads(querySequence)
             
+        print("THING",querySequence)
         
         for (i,x) in enumerate(querySequence):
             querySequence[i] = (x.get('action'),[x.get('args',()),x.get('kargs',{})])
