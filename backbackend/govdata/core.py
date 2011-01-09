@@ -1,3 +1,5 @@
+import re
+
 import tabular as tb
 
 from common.utils import is_string_like
