@@ -108,5 +108,8 @@ def getcategorydata(code,depends_on = os.path.join(DATA_ROOT ,'BLS_Hierarchy','M
         ProgramName = ''
         ProgramAbbr = ''
     
+    if code == 'jt':
+        ProgramName = 'JOLTS'
+        
         
     return {'Topic':topic,'Subtopic':subtopic,'Dataset':Dataset,'ProgramName':ProgramName,'ProgramAbbr':ProgramAbbr,'DatasetCode':code}
