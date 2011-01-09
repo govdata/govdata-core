@@ -165,17 +165,17 @@ def backendProtocol(parserObj, certdir = None,
     StepList += [(ID + 'download_check',download_check,(download_root,incremental,downloadPath))]
         
     StepList += [(ID + 'updateCollection',updateCollection,[(download_root,collectionName,parser,downloadPath,createPath),{'parserArgs':parserArgs,'parserKwargs':parserKwargs,'incremental':incremental}]),
-    (ID + 'updateCollectionIndex',indexing.updateCollectionIndex,[(collectionName,createPath,indexPath),{'slicesCorrespondToIndexes':slicesCorrespondToIndexes}])]
+    (ID + 'updateCollectionIndex',indexing.updateCollectionIndex,(collectionName,createPath,indexPath),{'slicesCorrespondToIndexes':slicesCorrespondToIndexes})]
 
     if uptostep:
         for (i,d) in enumerate(StepList):
             if d[0] == ID + uptostep:
                 StepList = StepList[:i+1]
                 break
-
+                
     if write:
         outfile = outdir + 'steps.py'
-        actualize(outfile,StepList)
+        actualize(StepList,outfilename=outfile)
 
         
 def get_and_check_increments(download_dir):
