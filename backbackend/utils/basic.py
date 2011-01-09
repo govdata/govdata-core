@@ -1,5 +1,6 @@
 import random
 import cPickle
+import os
 
 from starflow.utils import activate
 
