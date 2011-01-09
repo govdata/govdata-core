@@ -31,7 +31,7 @@ define(["gov","common/location","common/timedate", "jquery","underscore","unders
 
 	find.getMetadata = function(doclist,callback,options){
 		var colls = _.uniq(_.map(doclist,function(doc){return doc["collectionName"][0] ;}));
-		var qSeq = [["find",[[{"name":{"$in":colls}}],{"fields":["name","metadata.source"]}]]];
+		var qSeq = [{'action':"find",'args':[{"name":{"$in":colls}}] , 'kargs':{"fields":["name","metadata.source"]}}];
 		var qSeqStr = JSON.stringify(qSeq);
 
 		var params = {querySequence: qSeqStr};

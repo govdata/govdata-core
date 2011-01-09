@@ -909,7 +909,7 @@ class sourceHandler(asyncCursorHandler):
 #               querySequence.insert(0,['find',None])
         
         querySequence = getQuerySequence(args)
-        
+        print(querySequence)
         
         
         querySequence = [[str(action),list(getArgs(args))] for (action,args) in querySequence]
