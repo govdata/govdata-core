@@ -174,6 +174,7 @@ def backendProtocol(parserObj, certdir = None,
                 break
 
     print(StepList)
+    print([len(a) for a in StepList])
     if write:
         outfile = outdir + 'steps.py'
         actualize(outfile,StepList)
