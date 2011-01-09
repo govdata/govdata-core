@@ -21,7 +21,7 @@ from common.acursor import asyncCursorHandler
 from common.mongo import processArg, Collection, SPECIAL_KEYS
 
 
-def getQuerySequence(args)       
+def getQuerySequence(args):     
     querySequence = args.pop('querySequence',None)
     
     if querySequence is None:
