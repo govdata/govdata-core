@@ -71,8 +71,7 @@ class getHandler(asyncCursorHandler):
             posargs = ()
             kargs = {}
             if action in ['find','find_one']:
-                posargs = (json.loads(args.pop('query','"{}"')),)
-                print('THING',posargs)
+                posargs = (json.loads(args.pop('query','{}')),)
                 fields = args.pop('fields',None)
                 if fields:
                     kargs['fields'] = json.loads(fields)
