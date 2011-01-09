@@ -793,7 +793,7 @@ def dropGovCollection(db,name,mode):
     if mode == 'all':
         mode = ['col','ind']
     if 'col' in mode:
-        dropGovCollectionFromMongoDB(name)
+        dropGovCollectionFromMongoDB(db,name)
     if 'ind' in mode:
         dropGovCollectionFromSolr(name)
         
@@ -801,7 +801,7 @@ def dropGovCollection(db,name,mode):
 def dropGovCollectionFromSolr(name):
     os.system('java -Ddata=args -jar ../../backend/solr-home/post.jar "<delete><query>collectionName:' + name + '</query></delete>"')
 
-def dropGovCollectionFromMongoDB(name):
+def dropGovCollectionFromMongoDB(db,name):
     db.drop_collection(name)
     db.drop_collection('__' + name + '__')
     db.drop_collection('__' + name + '__VERSIONS__')
