@@ -21,6 +21,40 @@ from common.acursor import asyncCursorHandler
 from common.mongo import processArg, Collection, SPECIAL_KEYS
 
 
+def getQuerySequence(args)       
+    querySequence = args.pop('querySequence',None)
+    
+    if querySequence is None:
+    
+        action = args.pop('action','find')
+        
+        assert action in ['find','find_one','count','distinct']
+    
+        posargs = ()
+        kargs = {}
+        if action in ['find','find_one']:
+            posargs = (json.loads(args.pop('query','{}')),)
+            fields = args.pop('fields',None)
+            if fields:
+                kargs['fields'] = json.loads(fields)
+        elif action == 'distinct':
+            posargs = (args.pop('field'),)
+        else:
+            posargs = ()
+        
+        actionDict = {'action' : action}
+        if posargs:
+            actionDict['args'] = posargs
+        if kargs:
+            actionDict['kargs'] = kargs
+            
+        querySequence = [actionDict]
+    else:
+        querySequence = json.loads(querySequence)
+        
+    return querySequence
+
+
 #=-=-=-=-=-=-=-=-=-=-=-=-=-
 #GET
 #=-=-=-=-=-=-=-=-=-=-=-=-=    
@@ -60,35 +94,7 @@ class getHandler(asyncCursorHandler):
 
         collectionName = args.pop('collection')
         
-        querySequence = args.pop('querySequence',None)
-        
-        if querySequence is None:
-        
-            action = args.pop('action','find')
-            
-            assert action in ['find','find_one','count','distinct']
-
-            posargs = ()
-            kargs = {}
-            if action in ['find','find_one']:
-                posargs = (json.loads(args.pop('query','{}')),)
-                fields = args.pop('fields',None)
-                if fields:
-                    kargs['fields'] = json.loads(fields)
-            elif action == 'distinct':
-                posargs = (args.pop('field'),)
-            else:
-                posargs = ()
-            
-            actionDict = {'action' : action}
-            if posargs:
-                actionDict['args'] = posargs
-            if kargs:
-                actionDict['kargs'] = kargs
-                
-            querySequence = [actionDict]
-        else:
-            querySequence = json.loads(querySequence)
+        querySequence = getQuerySequence(args)
                     
         for (i,x) in enumerate(querySequence):
             querySequence[i] = (x.get('action'),[x.get('args',()),x.get('kargs',{})])
@@ -614,13 +620,11 @@ class tableHandler(getHandler):
         # pre take off any paramaters besides q
         self.jsonPcallback = args.pop('callback',None)
 
-        args = json.loads(args['q'])
         self.args = args
  
         querySequence = args['query']
 
-        if isinstance(querySequence, dict):
-            querySequence = [querySequence]
+        
         actions = [q['action'] for q in querySequence]
         if set(actions) <= set(EXPOSED_ACTIONS) and 'find' == actions[0]:
             args['returnObj'] = True
@@ -899,11 +903,13 @@ class sourceHandler(asyncCursorHandler):
         
         self.jsonPcallback = args.pop('callback',None)
         
-        querySequence = json.loads(args.get('querySequence','[]'))
+#        querySequence = json.loads(args.get('querySequence','[]'))
 
-        if (not querySequence) or querySequence[0][0] not in ['find','find_one']:
-                querySequence.insert(0,['find',None])
-           
+#        if (not querySequence) or querySequence[0][0] not in ['find','find_one']:
+#               querySequence.insert(0,['find',None])
+        
+        querySequence = getQuerySequence(args)
+        
         querySequence = [[str(action),list(getArgs(args))] for (action,args) in querySequence]
     
         if querySequence[0][1][0] == () or not (querySequence[0][1][0][0].has_key('versionOffset') or querySequence[0][1][0][0].has_key('version')):
