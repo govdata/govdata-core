@@ -907,9 +907,11 @@ class sourceHandler(asyncCursorHandler):
 
 
         querySequence = getQuerySequence(args)
+        print(querySequence)
 
         if (not querySequence) or querySequence[0][0] not in ['find','find_one']:
                querySequence.insert(0,['find',None])
+        print(querySequence)
                 
         querySequence = [[str(action),list(getArgs(args))] for (action,args) in querySequence]
     
