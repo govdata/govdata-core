@@ -72,6 +72,7 @@ class getHandler(asyncCursorHandler):
             kargs = {}
             if action in ['find','find_one']:
                 posargs = (json.loads(args.pop('query','"{}"')),)
+                print('THING',posargs)
                 fields = args.pop('fields',None)
                 if fields:
                     kargs['fields'] = json.loads(fields)
@@ -89,9 +90,7 @@ class getHandler(asyncCursorHandler):
             querySequence = [actionDict]
         else:
             querySequence = json.loads(querySequence)
-            
-        print("THING",querySequence)
-        
+                    
         for (i,x) in enumerate(querySequence):
             querySequence[i] = (x.get('action'),[x.get('args',()),x.get('kargs',{})])
             
