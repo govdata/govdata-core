@@ -1,5 +1,7 @@
 import tabular as tb
 
+fromt common.utils import is_string_like
+
 try:
     from collections import OrderedDict
 except ImportError:
