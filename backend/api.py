@@ -905,13 +905,12 @@ class sourceHandler(asyncCursorHandler):
         
 #        querySequence = json.loads(args.get('querySequence','[]'))
 
-#        if (not querySequence) or querySequence[0][0] not in ['find','find_one']:
-#               querySequence.insert(0,['find',None])
-        
+
         querySequence = getQuerySequence(args)
-        print(querySequence)
-        
-        
+
+        if (not querySequence) or querySequence[0][0] not in ['find','find_one']:
+               querySequence.insert(0,['find',None])
+                
         querySequence = [[str(action),list(getArgs(args))] for (action,args) in querySequence]
     
         if querySequence[0][1][0] == () or not (querySequence[0][1][0][0].has_key('versionOffset') or querySequence[0][1][0][0].has_key('version')):
