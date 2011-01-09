@@ -94,6 +94,7 @@ class GovParser(object):
         self.downloader = downloader
         self.downloadProtocol = downloadProtocol
         self.downloadArgs = downloadArgs
+        self.downloadKwargs = downloadKwargs
         self.parserArgs = parserArgs
         self.parserKwargs = parserKwargs
         self.trigger = trigger
