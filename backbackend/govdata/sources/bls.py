@@ -74,7 +74,7 @@ def make_bls_resources(creates = os.path.join(SOURCE_COMPONENTS_DIR,'bls.pickle'
                             ('program',{'name':M['ProgramName'],'shortName':M['ProgramAbbr']}),
                             ('dataset',{'name':M['Dataset'],'shortName':M['DatasetCode']})]
 
-    F = open(creates)
+    F = open(creates,'w')
     pickle.dump(S,F)
     F.close()
     
