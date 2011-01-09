@@ -4,7 +4,7 @@ utilities for working with govdata in mongoDB format
 """
    
 import pymongo as pm
-from common.utils import Timer    
+from common.utils import Timer, is_string_like
 
 SPECIAL_KEYS =  ['__versionNumber__','__retained__','__addedKeys__','__originalVersion__']  
 
