@@ -18,6 +18,7 @@ define(["gov","common/location","common/timedate", "jquery","underscore","unders
 		};
 		$.extend(true,params,options);
 		$.ajax({
+
 			url: gov.API_URL + '/search',
 			dataType: 'jsonp',
 			data: params,

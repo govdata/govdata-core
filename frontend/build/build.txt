@@ -14,7 +14,7 @@ js/ui.searchbar.js
 js/ui.query.js
 js/ui.findresults.js
 js/jquery-ui.extensions.js
-/Users/rdf/src/burner/govdata-core/frontend/requirejs-0.2.1/build/../require/text.js
+/Users/dyamins/govlove_DVN/frontend/requirejs-0.2.1/build/../require/text.js
 require/text!templates/linearchooser.html
 js/ui.linearchooser.js
 js/utils.js
