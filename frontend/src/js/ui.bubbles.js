@@ -4,16 +4,22 @@ define(["jquery","jquery-ui"], function() {
 		add : function(val,type) {
 		    var self = this;
 		    var classtext;
+		    var classb;
 		    if (type === 'fq'){
-		        classtext = 'bubbletextfq'
+		        classtext = 'bubbletextfq';
+		        classb = 'fqbubble';
 		    } else {
-		        classtext = 'bubbletext'
+		        classtext = 'bubbletext';
+		        classb = 'qbubble';
 		    }
-			var bubbl = $("<div class='bubble'><span class='" + classtext + "'>"+val+"</span><span class='remover'>(x)</span></div>").
+			var bubbl = $("<li class='bubble " + classb +"'><span class='" + classtext + "'>"+val+"</span><span class='remover'>&otimes;</span></li>").
 				appendTo(this.element);
 			bubbl.find('.remover').click(function(){
 			   bubbl.remove();   
+			   
 			});
+			
+			return bubbl
 		},
 		value : function() {
 			var qval = _.map(this.element.find(".bubbletext"), function(b) {

@@ -12,7 +12,7 @@ define(["jquery","jquery-ui"], function() {
         changestate : function(){
            var self = this;   
            objects = self.objects;
-		   $.each(objects,function(name,obj){		      
+		   $.each(objects,function(name,obj){		
 		         self.values[name] = obj.value();	      
 		      });    
 		   $.address.jsonhash(self.values);

@@ -15,8 +15,9 @@ define(["jquery","jquery-ui","jquery-ui.extensions","ui.linearchooser","ui.clust
             sourceName = JSON.parse(key);
             var i, subsource;
 
-            $.each(_.keys(sourceName),function(i){
-               subsource = _.values(sourceName).slice(0,i).join('|');
+  
+            $.each(_.keys(sourceName),function(i,x){
+               subsource = _.values(sourceName).slice(0,i+1).join('|');
                facet_dict[subsource] = (facet_dict[subsource] || 0) + num;
             })
         });
@@ -78,62 +79,85 @@ define(["jquery","jquery-ui","jquery-ui.extensions","ui.linearchooser","ui.clust
 			var dateDivisions = facet_info['dateDivisions'];
 			
 			var dateDivisionsWithFacets = _.map(dateDivisions,function(x){
-			    return x + '<span class="facet"> (' + facet_dict[x] + ")</span>";
+			    return '<div class="innerDateChooser"><span class="value">' + x + '</span><span class="facet">' + facet_dict[x] + "</span></div>";
 			
 			});
 			
 			var spatialDivisionsWithFacets = _.map(spatialDivisions,function(x){
-			    return x + '<span class="facet"> (' + facet_dict[x] + ")</span>";
+			    return '<div class="innerSpaceChooser"><span class="value">' + x + '</span><span class="facet">' + facet_dict[x] + "</span></div>";
 			
 			});
+			
+			
 			
 			var numFound = self.options.dataHandler.numFound;
 			
+		
+			$("#subHeader").find('#filterBar').remove();
+
+			var filterBar = $("<div id='filterBar'></div>").appendTo($("#subHeader"));
+			
+	
 			self.element.find(".numFound").remove();
-			$("<span class='numFound' id='totalNumFound'>Total Results: " + numFound + "</span>").
-				appendTo(this.element)
+			$("<div class='numFound' id='totalNumFound'><div id='innerNumFound' style='font-size:30px'>" + numFound + "</div><div>Total Slices</div></div>").
+				appendTo(filterBar)
+			$('<div class="filterSeparator"></div>').appendTo(filterBar);	
+				
 			
 			self.element.find(".linearChooser").remove();
-			var dateChooser = $("<span class='linearChooser' id='dateChooser'></span>").
-				appendTo(this.element).
-				linearchooser({
-					data : {
-						label : "Filter date by:",
-						list : [{label: "date", list: dateDivisionsWithFacets}],
-					}
-				});	
+			
+			if (dateDivisionsWithFacets.length > 0){
+				var dateChooser = $("<div class='linearChooser' id='dateChooser'></div>").
+					appendTo(filterBar).
+					linearchooser({
+						data : {
+							label : "<div style='width:120px'>Filter date by:</div>",
+							list : [{label: "date", list: dateDivisionsWithFacets}]
+						}
+					});	
+					
+				dateChooser.find('.chooserSubElement').click(function(e){
+					var num = parseInt($(e.currentTarget)[0].id);
+					var filterval = dateDivisions[num];
+					var filteritems = query.filteritems;
+					var items = query.items;
+					filteritems.push('dateDivisionsTight:"' + filterval + '"');
+					query.update({'qval' : items, 'fqval' :filteritems});
+					$(root).data()['statehandler'].changestate();			    
 				
-			dateChooser.find('.chooserSubElement').click(function(e){
-			    var num = parseInt($(e.target)[0].id);
-			    var filterval = dateDivisions[num];
-				var filteritems = query.filteritems;
-				var items = query.items;
-			    filteritems.push('dateDivisionsTight:"' + filterval + '"');
-				query.update({'qval' : items, 'fqval' :filteritems});
-				$(root).data()['statehandler'].changestate();			    
+				});
+				$('<div class="filterSeparator"></div>').appendTo(filterBar);
+			}
 			
-			});
+
+			if (spatialDivisionsWithFacets.length > 0){
+				var spaceChooser = $("<div class='linearChooser' id='spaceChooser'></div>").
+					appendTo(filterBar).
+					linearchooser({
+						data : {
+							label : "<div style='width:120px'>Filter space by:</div>",
+							list : [{label: "space", list: spatialDivisionsWithFacets}]
+						}
+					});					
+				
+				spaceChooser.find('.chooserSubElement').click(function(e){
+					var num = parseInt($(e.currentTarget)[0].id);
+					var filterval = spatialDivisions[num];
+					var filteritems = query.filteritems;
+					var items = query.items;
+					filteritems.push('spatialDivisionsTight:"' + filterval + '"');
+					query.update({'qval' : items, 'fqval' :filteritems});
+					$(root).data()['statehandler'].changestate();			    
+				
+				});		
+				$('<div class="filterSeparator"></div>').appendTo(filterBar);
+			}
 			
-			var spaceChooser = $("<span class='linearChooser' id='spaceChooser'></span>").
-				appendTo(this.element).
-				linearchooser({
-					data : {
-						label : "Filter space by:",
-						list : [{label: "space", list: spatialDivisionsWithFacets}],
-					}
-				});					
+			filterBar.find(".clusterTarget").remove();
+			$("<div id='clusterTarget'></div>").appendTo(filterBar);
 			
-			spaceChooser.find('.chooserSubElement').click(function(e){
-			    var num = parseInt($(e.target)[0].id);
-			    var filterval = spatialDivisions[num];
-				var filteritems = query.filteritems;
-				var items = query.items;
-			    filteritems.push('spatialDivisionsTight:"' + filterval + '"');
-				query.update({'qval' : items, 'fqval' :filteritems});
-				$(root).data()['statehandler'].changestate();			    
-			
-			});			
-			
+			self.element.find("hr").remove();
+			$("<hr/>").appendTo(filterBar);
 			
 			self.element.find(".clusterView").remove();
 			var view = $("<div class='clusterView' id='__'></div>").

@@ -1,0 +1,12 @@
+
+#This is a configuration file for the system.  Each of the lines contains 
+#specially formatted expressions used to determine which directories the 
+#system searches to find python modules to analyze and include in the 
+#system updating.  See manual for more detailed information. 
+#Lines beginning with a hash mark (like this one) will be ignored.
+../geo
+../govdata
+../parsers
+../utils
+../generated_code
+

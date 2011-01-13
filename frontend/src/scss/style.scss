@@ -3,21 +3,212 @@
 
 @include global-reset;
 
-$bubble-color: #FA1;
-$fqbubble-color: #3A1;
+$bubble-color: #FFFFCC;
+$fqbubble-color: #CCFF99;
 $bubble-margin: 10px;
-$result-box-color: #FA1;
-$query-box-color: #EE2;
+$result-box-color: #FDFDFD;
+$inner-result-box-color: #F0EDEA;
+$query-box-color: #FFFFCC;
+$background-color: 	#FDFDFD;
+$sameVal-font-color : #BFBFBF;
+$sameVal-font-size : 8px;
+$header-height : 45px;
+$searchbar-height : 30px;
+$filterbar-height :55px;
+$searchbar-top-padding : 10px;
+$filtersep-padding : 10px;
+$common-query-color : #CCFF99;
+
+body {
+  background-color : $background-color;
+
+  font-family: "liberation-serif-1", "liberation-serif-2";
+}
+
+
+
+#searchbar {
+    position:fixed;
+    width : 100%;
+    top: $header-height;
+    height : $searchbar-height;
+    padding-right: 10px; 
+    padding-top: $searchbar-top-padding;
+    background-color : #F0F0F0;
+    z-index : 150;
+}
+
+#filterBar{
+    position:fixed;
+    width : 15000px;
+    top : $searchbar-height + $header-height + $searchbar-top-padding;
+    height : $filterbar-height;
+    z-index:125;
+    background-color : white;
+    overflow:auto;
+    padding-top:3px;
+  
+}
+
+#subHeader{
+    font-size:18px;
+    background-color:$background-color;
+}
+
+#filterBar ul li {
+   display:inline;
+
+}
+
+/*
+
+#searchbar input{
+    position : fixed;
+    right : 10px;
+    padding-right:20px;
+}*/
+
+
+#searchbar {
+ padding-left:10px;
+}
+
+
+#searchbar ul li{
+   list-style: none;
+   display : inline;
+}
+
+#searchbar .bubbles {
+    float:left;
+}
+
+#searchEltContainer {
+    position:fixed;
+    background-color:white;
+    padding-top:1px;
+    -moz-border-radius: 3px;
+    -webkit-border-radius: 3px;
+    border-radius: 3px;
+}
+
+.bubbles {
+padding-top:2px;
+}
+
+#searchbar input{
+    float:right;
+}
+
+
+#dateChooser, #spaceChooser, #clusterChooser{
+    float:left;   
+}
+
+
+
+.filterSeparator {
+    float:left;
+    border-left:1px solid #000;
+    height: $filterbar-height - 8px;
+    padding-right : $filtersep-padding;
+}
+
+
+
+.innerDateChooser, .innerSpaceChooser{
+     position:relative;
+     float:left; 
+     padding-right:25px;
+     padding-top:12px;
+}
+
+.innerClusterChooser{
+     float:left;
+     padding-top:12px;
+     padding-right:12px;
+
+}
+
+.innerDateChooser .facet, .innerSpaceChooser .facet{
+     position:absolute;
+     font-size: 9px;
+     
+}
+
+.facetCount{
+float:left;
+position:relative;
+right:50px;
+}
+
+hr {
+    top:$header-height + $searchbar-height + $filterbar-height + $searchbar-top-padding - 10px;
+    position:fixed;
+    size:10px;
+    width:100%;
+    z-index : 125;
+
+}
+
+.innerResultBox{
+    background-color : $inner-result-box-color;
+    -moz-border-radius: 5px;
+    -webkit-border-radius: 5px;
+    border-radius: 5px;
+
+}
+
+.innerResultBox:hover{
+    -moz-border-radius: 0px;
+    -webkit-border-radius: 0px;
+    border-radius: 0px;
+
+}
+
+.resultBox:hover {
+    background-color: #D3D0CD;
+    cursor: pointer;
+    
+}
+
+.resultBox{
+width:200px;
+padding : 5px 5px;
+background-color: $result-box-color;
+    -moz-border-radius: 5px;
+    -webkit-border-radius: 5px;
+    border-radius: 5px;
+}
+
+.resultBox .queryBox {
+background-color: $query-box-color;
+}
+
+.sourceElement:hover, .queryElement:hover{
+    text-decoration : underline;
+}
+
+.sourceElement, .queryElement{
+    padding-bottom:5px;
+}
+
+.sameVal {
+    color : $sameVal-font-color;
+    /* font-size : $sameVal-font-size; */
+}
 
 .bubble {
+  position : relative;
+  padding-right:12px;
+  padding-left:5px;
   background-color: $bubble-color;
   margin: $bubble-margin;
+  -moz-border-radius: 3px;
+  -webkit-border-radius: 3px;
+  border-radius: 3px;
 }
 
-.bubbletextfq {
-  background-color: $fqbubble-color;
-  margin: $bubble-margin;
-}
 
 .linearChooser ul {
    margin:0;
@@ -31,15 +222,56 @@ $query-box-color: #EE2;
   
 }
 
+
+
 .linearChooser .chooserElement li{
 
   margin-right:.2em;
   
 }
 
+
+.shown {
+    color : blue;
+    text-decoration : underline;
+}
+
+.chooserSubElement .value:hover{
+    text-decoration : overline;
+}
+
+
+#totalNumFound {
+    float:left;
+    padding-left:5px;
+    padding-right:$filtersep-padding;
+}
+
+.resultBox .numResults{
+    position : absolute;
+    top : 0;
+    right : -5px;
+    font-size : 9px;
+}
+
+
+
+.remover{
+    position : absolute;
+    top : -2px;
+    right : 0;
+
+    width: 10px;
+    font-size: 14px;
+
+}
+
+ 
+
 .clusterElement .topBar {
     overflow:auto;
     padding:2px;
+    position:relative;
 }
 
 .clusterElement .linearChooser {
@@ -47,8 +279,52 @@ $query-box-color: #EE2;
 }
 
 
-.clusterElement .keyLabel {
+.topBar .keyLabel, .topBar .keyToggle {
    float:left;
+}
+
+.commonBox{
+    width:1200px;
+    overflow:auto;
+}
+
+.commonText, .commonResult {
+float:left;
+}
+
+.commonText{
+    padding-left:14px;
+    padding-top:5px;
+}
+
+.commonResult{
+    width:auto ;
+    position:relative;
+   
+}
+
+.commonResult .numResults{
+
+    right : -30px;
+}
+
+.commonResult .innerResultBox{
+background-color : $common-query-color;
+}
+
+.commonResult .sourceElement, .commonResult .queryElement{
+    float:left;    
+    padding-right:11px;
+}
+
+.commonResult .innerResultBox{
+    overflow:auto;
+    }
+
+.keyToggle{
+    font-size:10px;
+    padding-top:2px;
+    padding-right:2px;
 }
 
 .clusterElement {
@@ -56,23 +332,17 @@ padding:10px;
 
 }
 
+.resultMason{
+ padding-left:10px;
+}
 #resultsView {
-padding : 10px 10px;
+ position:absolute;
+ width : 100% ;
+ top : $header-height + $searchbar-height + $filterbar-height;
+ padding : 10px 10px;
+ padding-top : 15px;
 }
 
-.resultBox{
-padding : 5px 5px;
-background-color: $result-box-color;
-}
-
-.resultBox .queryBox {
-background-color: $query-box-color;
-}
-
-.clusterView {
-
- padding:0 20px;
-}
 
 .clusterView .topBar {
     overflow:auto;
@@ -82,14 +352,53 @@ background-color: $query-box-color;
 
 .clusterView .keyLabel {
    float:left;
-   padding:0px 10px;
 }
 
-
-.remover {
- padding:0 2px;
-}
-
-.hide {
+/*.hide {
   text-decoration : line-through;
+}*/
+
+
+#header {
+    height: $header-height;
+    width: 100%;
+    color: #FFF;
+    position:fixed;
+    background: #333;
+    z-index: 200;
+    top: 0px;
+}
+
+#header ul{
+    padding: 7px;  
+    
+}
+#header ul {
+    float:left;
+}
+#header ul li {
+    padding: 0 10px;
+    float: left;
+}
+
+#header a {
+    text-decoration: none;
+    color: #DDD;
+}
+
+#header a:hover  {
+    color: #FFF;
+}
+#header a:hover {
+    text-decoration: overline;
+}
+
+#innerNumFound{
+font-family: "liberation-serif-1", "liberation-serif-2";
+}
+
+#logotext{
+    font-size:30px;
+    color : white;
+    font-family: "liberation-serif-1", "liberation-serif-2";
 }

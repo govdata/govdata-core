@@ -652,6 +652,10 @@ class asyncCursorHandler(tornado.web.RequestHandler):
         
         if not hasattr(self,'processor'):
             self.processor = None
+        if not hasattr(self,'stream'):
+            self.stream = False
+        if not hasattr(self,'returnObj'):
+            self.returnObj = True
         
         self.writing = False
         
@@ -796,7 +800,13 @@ def loop(handler,cursor,sock,fd):
 
 
 def processor_handler(processor,handler,cursor,sock,fd):
-    r = cursor.next()
+    try:
+        r = cursor.next()
+    except StopIteration:
+        r = None
+    else:
+        pass
+        
     if processor != None:
         result = processor(r)
     else:
@@ -814,18 +824,24 @@ def process_count(r):
 
     if r.get("errmsg", "") == "ns missing":
         result = 0
+    elif r is None:
+        result = 0
     else:
         result = int(r["n"])
         
     return result
        
 def process_distinct(r):
-
-    return r["values"]
+    if r is not None:
+        return r["values"]
+    else:
+        return []
     
 def process_group(r):
-
-    return r["retval"]    
+    if r is not None:
+        return r["retval"]    
+    else:
+        return None
 
                           
 

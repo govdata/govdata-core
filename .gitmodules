@@ -1,0 +1,3 @@
+[submodule "backbackend/parsers"]
+	path = backbackend/parsers
+	url = git://github.com/yamins81/govdata-parser.git

@@ -39,11 +39,11 @@ define(["underscore"],function() {
 			}
 			return [commonL,commonR];
 		},
-		count : function(str,char){
+		count : function(str,splitchar){
 		   if (str === " "){
 		      return 0;
 		   } else {
-		      return str.split(char).length;
+		      return str.split(splitchar).length;
 		   }
 		}
 	}

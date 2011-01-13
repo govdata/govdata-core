@@ -1,22 +1,61 @@
 #!/usr/bin/env python
 
-import tornado.web
-import tornado.httpclient
 import os
 import json
 import ast
+import functools
+import time
+import string 
+
+import tornado.web
+import tornado.httpclient
 import pymongo as pm
 import pymongo.json_util
-from common.utils import IsFile, listdir, is_string_like, ListUnion, Flatten, is_num_like, uniqify
-import common.mongo as CM
+
 import common.timedate as td
 import common.location as loc
 import common.solr as solr
-import functools
-from common.acursor import asyncCursorHandler
-import time
 
-SPECIAL_KEYS = CM.SPECIAL_KEYS
+from common.utils import IsFile, listdir, is_string_like, ListUnion, Flatten, is_num_like, uniqify
+from common.acursor import asyncCursorHandler
+from common.mongo import processArg, Collection, SPECIAL_KEYS
+
+
+def getQuerySequence(args):     
+    querySequence = args.pop('querySequence',None)
+    
+    if querySequence is None:
+    
+        action = args.pop('action','find')
+        
+        assert action in ['find','find_one','count','distinct']
+    
+        posargs = ()
+        kargs = {}
+        if action in ['find','find_one']:
+            posargs = (json.loads(args.pop('query','{}')),)
+            fields = args.pop('fields',None)
+            if fields:
+                kargs['fields'] = json.loads(fields)
+        elif action == 'distinct':
+            posargs = (args.pop('field'),)
+        else:
+            posargs = ()
+        
+        actionDict = {'action' : action}
+        if posargs:
+            actionDict['args'] = posargs
+        if kargs:
+            actionDict['kargs'] = kargs
+            
+        querySequence = [actionDict]
+    else:
+        querySequence = json.loads(querySequence)
+        
+    for (i,x) in enumerate(querySequence):
+        querySequence[i] = (x.get('action'),[x.get('args',()),x.get('kargs',{})])
+        
+    return querySequence
 
 
 #=-=-=-=-=-=-=-=-=-=-=-=-=-
@@ -38,9 +77,11 @@ class getHandler(asyncCursorHandler):
         # pre take off any paramaters besides q
         self.jsonPcallback = args.pop('callback',None)
 
-        q = json.loads(args['q'])
+        #q = json.loads(args['q'])
             
-        self.get_response(q)
+        #self.get_response(q)
+
+        self.get_response(args)
 
 
     @tornado.web.asynchronous
@@ -55,13 +96,9 @@ class getHandler(asyncCursorHandler):
         args = dict([(str(x),y) for (x,y) in args.items()])
 
         collectionName = args.pop('collection')
-        querySequence = args.pop('query')        
         
-        if isinstance(querySequence,dict):
-            querySequence = [querySequence]
-        for (i,x) in enumerate(querySequence):
-            querySequence[i] = (x.get('action'),[x.get('args',()),x.get('kargs',{})])
-            
+        querySequence = getQuerySequence(args)
+                                
         self.returnObj = args.pop('returnObj',False)   
         self.stream = args.pop('stream',True)
         
@@ -193,7 +230,7 @@ def get_args(collectionName,querySequence,timeQuery=None, spaceQuery = None, ver
 
     """
 
-    collection = CM.Collection(collectionName,versionNumber=versionNumber,attachMetadata=returnMetadata)
+    collection = Collection(collectionName,versionNumber=versionNumber,attachMetadata=returnMetadata)
         
     versionNumber = collection.versionNumber
     currentVersion = collection.currentVersion
@@ -477,46 +514,7 @@ def actionAct(a,v,o):
     elif a == '$exists':
         return True
         
-
-def processArg(arg,collection):
-    """Translates the arg to human readable to collections"""
-    V = collection.columns
-    C = collection.columnGroups
-    if is_string_like(arg):
-        argsplit = arg.split('.')
-        if argsplit[0] in V:
-            argsplit[0] = str(V.index(argsplit[0]))
-            return '.'.join(argsplit)
-        elif arg in C.keys():
-            return [str(V.index(c)) for c in C[arg]]
-        else:
-            return arg
-    elif isinstance(arg, list):
-
-        T = [processArg(d,collection) for d in arg]
-
-        Tr = []
-        for t in T:
-            if is_string_like(t):
-                Tr.append(t)
-            else:
-                Tr += t
-        return Tr
-    elif isinstance(arg,tuple):
-        return tuple(processArg(list(arg),collection))
-    elif isinstance(arg,dict):
-        T = [(processArg(k,collection), v)  for (k,v) in arg.items() if k != '$where' ]
-        S = dict([(k,v) for (k,v) in T if not (isinstance(k,list) or isinstance(k,tuple))])
-        for (k,v) in T:
-            if isinstance(k,list) or isinstance(k,tuple):
-                S["$or"] = [{kk:v} for kk in k]
-        if '$where' in arg:
-            S['$where'] = arg['$where']
-        return S
-    else:
-        return arg
-
-import string        
+       
 def processJSValue(code,collection):
     vars = collection.columns
     varMap = dict(zip(vars,[repr(str(x)) for x in range(len(vars))])) 
@@ -622,13 +620,11 @@ class tableHandler(getHandler):
         # pre take off any paramaters besides q
         self.jsonPcallback = args.pop('callback',None)
 
-        args = json.loads(args['q'])
         self.args = args
  
         querySequence = args['query']
 
-        if isinstance(querySequence, dict):
-            querySequence = [querySequence]
+        
         actions = [q['action'] for q in querySequence]
         if set(actions) <= set(EXPOSED_ACTIONS) and 'find' == actions[0]:
             args['returnObj'] = True
@@ -824,9 +820,11 @@ class findHandler(tornado.web.RequestHandler):
     @tornado.web.asynchronous
     def get(self):
         args = self.request.arguments
-        assert 'q' in args.keys() and len(args['q']) == 1
-        query = args['q'][0]
-        args.pop('q')
+        query = args.pop('q',[''])[0]
+        if not query:
+            query = '*:*';
+            args['qt'] = 'standard'
+ 
         args['wt'] = args.get('wt','json') # set default wt = 'json'
         self.set_header("Content-Type","application/json")
         http = tornado.httpclient.AsyncHTTPClient()
@@ -892,7 +890,7 @@ class termsHandler(tornado.web.RequestHandler):
 
                
 #=-=-=-=-=-=-=-=-=-=-=-=-=-
-#SOURCES
+#METADATA
 #=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 class sourceHandler(asyncCursorHandler):
@@ -905,11 +903,14 @@ class sourceHandler(asyncCursorHandler):
         
         self.jsonPcallback = args.pop('callback',None)
         
-        querySequence = json.loads(args.get('querySequence','[]'))
+#        querySequence = json.loads(args.get('querySequence','[]'))
 
+
+        querySequence = getQuerySequence(args)
+   
         if (not querySequence) or querySequence[0][0] not in ['find','find_one']:
-                querySequence.insert(0,['find',None])
-           
+               querySequence.insert(0,['find',None])
+       
         querySequence = [[str(action),list(getArgs(args))] for (action,args) in querySequence]
     
         if querySequence[0][1][0] == () or not (querySequence[0][1][0][0].has_key('versionOffset') or querySequence[0][1][0][0].has_key('version')):
@@ -925,6 +926,30 @@ class sourceHandler(asyncCursorHandler):
         self.add_async_cursor(collection,querySequence)
 
 
+               
+#=-=-=-=-=-=-=-=-=-=-=-=-=-
+#SOURCE VERIFICATION
+#=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+class verificationHandler(asyncCursorHandler):
+
+    @tornado.web.asynchronous
+    def get(self):
+        args = self.request.arguments
+        for k in args:
+            args[k] = args[k][0]
+        
+        self.jsonPcallback = args.pop('callback',None)
+        
+        name = args['name']
+
+        querySequence = [['find_one',[({'name':name},),{}]]]
+           
+        connection = pm.Connection(document_class=pm.son.SON)
+        db = connection['govdata']
+        collection = db['__COMPONENTS__']
+
+        self.add_async_cursor(collection,querySequence)
         
         
 #=-=-=-=-=-=-=-=-=-=-=-=-=-

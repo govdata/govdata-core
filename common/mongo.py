@@ -4,7 +4,7 @@ utilities for working with govdata in mongoDB format
 """
    
 import pymongo as pm
-from common.utils import Timer    
+from common.utils import Timer, is_string_like
 
 SPECIAL_KEYS =  ['__versionNumber__','__retained__','__addedKeys__','__originalVersion__']  
 
@@ -83,3 +83,43 @@ def cleanCollection(collection):
         print 'couldnt delete index'
     else:
         pass
+        
+        
+def processArg(arg,collection):
+    """Translates the arg to human readable to collections"""
+    V = collection.columns
+    C = collection.columnGroups
+    if is_string_like(arg):
+        argsplit = arg.split('.')
+        if argsplit[0] in V:
+            argsplit[0] = str(V.index(argsplit[0]))
+            return '.'.join(argsplit)
+        elif arg in C.keys():
+            return [str(V.index(c)) for c in C[arg]]
+        else:
+            return arg
+    elif isinstance(arg, list):
+
+        T = [processArg(d,collection) for d in arg]
+
+        Tr = []
+        for t in T:
+            if is_string_like(t):
+                Tr.append(t)
+            else:
+                Tr += t
+        return Tr
+    elif isinstance(arg,tuple):
+        return tuple(processArg(list(arg),collection))
+    elif isinstance(arg,dict):
+        T = [(processArg(k,collection), v)  for (k,v) in arg.items() if k != '$where' ]
+        S = dict([(k,v) for (k,v) in T if not (isinstance(k,list) or isinstance(k,tuple))])
+        for (k,v) in T:
+            if isinstance(k,list) or isinstance(k,tuple):
+                S["$or"] = [{kk:v} for kk in k]
+        if '$where' in arg:
+            S['$where'] = arg['$where']
+        return S
+    else:
+        return arg
+        
