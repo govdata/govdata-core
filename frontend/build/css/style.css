@@ -1,0 +1,133 @@
+/*@mixin inline-list {
+  list-style-type: none;
+  &, & li {
+    margin: 0px;
+    padding: 0px;
+    display: inline; } }*/
+/*@mixin round($tl, $tr, $br, $bl) {
+  -moz-border-radius: {
+    topleft: #{$tl}px;
+    topright: #{$tr}px;
+    bottomright: #{$br}px;
+    bottomleft: #{$bl}px; };
+  -webkit-border: {
+    top-left-radius: #{$tl}px;
+    top-right-radius: #{$tr}px;
+    bottom-right-radius: #{$br}px;
+    bottom-left-radius: #{$bl}px; };
+  border: {
+    top-left-radius: #{$tl}px;
+    top-right-radius: #{$tr}px;
+    bottom-right-radius: #{$br}px;
+    bottom-left-radius: #{$bl}px; }; }
+
+@mixin vertical-gradiant($start, $end) {
+  background-image: -webkit-gradient(linear, 0% 10%, 0% 90%, from($start), to($end));
+  background-image: -moz-linear-gradient(0% 100% 90deg, $start, $end); }*/
+html, body, div, span, applet, object, iframe,
+h1, h2, h3, h4, h5, h6, p, blockquote, pre,
+a, abbr, acronym, address, big, cite, code,
+del, dfn, em, font, img, ins, kbd, q, s, samp,
+small, strike, strong, sub, sup, tt, var,
+dl, dt, dd, ol, ul, li,
+fieldset, form, label, legend,
+table, caption, tbody, tfoot, thead, tr, th, td {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  font-weight: inherit;
+  font-style: inherit;
+  font-size: 100%;
+  font-family: inherit;
+  vertical-align: baseline; }
+
+*:focus {
+  outline: 0; }
+
+body {
+  line-height: 1;
+  color: black;
+  background: white; }
+
+ol, ul {
+  list-style: none; }
+
+/* tables still need 'cellspacing="0"' in the markup */
+table {
+  border-collapse: separate;
+  border-spacing: 0;
+  vertical-align: middle; }
+
+caption, th, td {
+  text-align: left;
+  font-weight: normal;
+  vertical-align: middle; }
+
+q, blockquote {
+  quotes: "" ""; }
+  q:before, q:after, blockquote:before, blockquote:after {
+    content: ""; }
+
+a img {
+  border: none; }
+
+.bubble {
+  background-color: #ffaa11;
+  margin: 10px; }
+
+.bubbletextfq {
+  background-color: #33aa11;
+  margin: 10px; }
+
+.linearChooser ul {
+  margin: 0;
+  padding: 0;
+  display: inline; }
+
+.linearChooser ul li {
+  display: inline;
+  margin-right: 4em; }
+
+.linearChooser .chooserElement li {
+  margin-right: .2em; }
+
+.clusterElement .topBar {
+  overflow: auto;
+  padding: 2px; }
+
+.clusterElement .linearChooser {
+  float: right; }
+
+.clusterElement .keyLabel {
+  float: left; }
+
+.clusterElement {
+  padding: 10px; }
+
+#resultsView {
+  padding: 10px 10px; }
+
+.resultBox {
+  padding: 5px 5px;
+  background-color: #ffaa11; }
+
+.resultBox .queryBox {
+  background-color: #eeee22; }
+
+.clusterView {
+  padding: 0 20px; }
+
+.clusterView .topBar {
+  overflow: auto;
+  padding: 2px; }
+
+.clusterView .keyLabel {
+  float: left;
+  padding: 0px 10px; }
+
+.remover {
+  padding: 0 2px; }
+
+.hide {
+  text-decoration: line-through; }
