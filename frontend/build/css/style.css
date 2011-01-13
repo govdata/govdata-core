@@ -1,29 +1,4 @@
-/*@mixin inline-list {
-  list-style-type: none;
-  &, & li {
-    margin: 0px;
-    padding: 0px;
-    display: inline; } }*/
-/*@mixin round($tl, $tr, $br, $bl) {
-  -moz-border-radius: {
-    topleft: #{$tl}px;
-    topright: #{$tr}px;
-    bottomright: #{$br}px;
-    bottomleft: #{$bl}px; };
-  -webkit-border: {
-    top-left-radius: #{$tl}px;
-    top-right-radius: #{$tr}px;
-    bottom-right-radius: #{$br}px;
-    bottom-left-radius: #{$bl}px; };
-  border: {
-    top-left-radius: #{$tl}px;
-    top-right-radius: #{$tr}px;
-    bottom-right-radius: #{$br}px;
-    bottom-left-radius: #{$bl}px; }; }
 
-@mixin vertical-gradiant($start, $end) {
-  background-image: -webkit-gradient(linear, 0% 10%, 0% 90%, from($start), to($end));
-  background-image: -moz-linear-gradient(0% 100% 90deg, $start, $end); }*/
 html, body, div, span, applet, object, iframe,
 h1, h2, h3, h4, h5, h6, p, blockquote, pre,
 a, abbr, acronym, address, big, cite, code,
@@ -41,93 +16,239 @@ table, caption, tbody, tfoot, thead, tr, th, td {
   font-size: 100%;
   font-family: inherit;
   vertical-align: baseline; }
-
 *:focus {
   outline: 0; }
-
 body {
   line-height: 1;
   color: black;
   background: white; }
-
 ol, ul {
   list-style: none; }
-
-/* tables still need 'cellspacing="0"' in the markup */
 table {
   border-collapse: separate;
   border-spacing: 0;
   vertical-align: middle; }
-
 caption, th, td {
   text-align: left;
   font-weight: normal;
   vertical-align: middle; }
-
 q, blockquote {
   quotes: "" ""; }
   q:before, q:after, blockquote:before, blockquote:after {
     content: ""; }
-
 a img {
   border: none; }
-
+body {
+  background-color: #fdfdfd;
+  font-family: "liberation-serif-1", "liberation-serif-2"; }
+#searchbar {
+  position: fixed;
+  width: 100%;
+  top: 45px;
+  height: 30px;
+  padding-right: 10px;
+  padding-top: 10px;
+  background-color: #F0F0F0;
+  z-index: 150; }
+#filterBar {
+  position: fixed;
+  width: 15000px;
+  top: 85px;
+  height: 55px;
+  z-index: 125;
+  background-color: white;
+  overflow: auto;
+  padding-top: 3px; }
+#subHeader {
+  font-size: 18px;
+  background-color: #fdfdfd; }
+#filterBar ul li {
+  display: inline; }
+#searchbar {
+  padding-left: 10px; }
+#searchbar ul li {
+  list-style: none;
+  display: inline; }
+#searchbar .bubbles {
+  float: left; }
+#searchEltContainer {
+  position: fixed;
+  background-color: white;
+  padding-top: 1px;
+  -moz-border-radius: 3px;
+  -webkit-border-radius: 3px;
+  border-radius: 3px; }
+.bubbles {
+  padding-top: 2px; }
+#searchbar input {
+  float: right; }
+#dateChooser, #spaceChooser, #clusterChooser {
+  float: left; }
+.filterSeparator {
+  float: left;
+  border-left: 1px solid #000;
+  height: 47px;
+  padding-right: 10px; }
+.innerDateChooser, .innerSpaceChooser {
+  position: relative;
+  float: left;
+  padding-right: 25px;
+  padding-top: 12px; }
+.innerClusterChooser {
+  float: left;
+  padding-top: 12px;
+  padding-right: 12px; }
+.innerDateChooser .facet, .innerSpaceChooser .facet {
+  position: absolute;
+  font-size: 9px; }
+.facetCount {
+  float: left;
+  position: relative;
+  right: 50px; }
+hr {
+  top: 130px;
+  position: fixed;
+  size: 10px;
+  width: 100%;
+  z-index: 125; }
+.innerResultBox {
+  background-color: #f0edea;
+  -moz-border-radius: 5px;
+  -webkit-border-radius: 5px;
+  border-radius: 5px; }
+.innerResultBox:hover {
+  -moz-border-radius: 0px;
+  -webkit-border-radius: 0px;
+  border-radius: 0px; }
+.resultBox:hover {
+  background-color: #D3D0CD;
+  cursor: pointer; }
+.resultBox {
+  width: 200px;
+  padding: 5px 5px;
+  background-color: #fdfdfd;
+  -moz-border-radius: 5px;
+  -webkit-border-radius: 5px;
+  border-radius: 5px; }
+.resultBox .queryBox {
+  background-color: #ffffcc; }
+.sourceElement:hover, .queryElement:hover {
+  text-decoration: underline; }
+.sourceElement, .queryElement {
+  padding-bottom: 5px; }
+.sameVal {
+  color: #bfbfbf;
+   }
 .bubble {
-  background-color: #ffaa11;
-  margin: 10px; }
-
-.bubbletextfq {
-  background-color: #33aa11;
-  margin: 10px; }
-
+  position: relative;
+  padding-right: 12px;
+  padding-left: 5px;
+  background-color: #ffffcc;
+  margin: 10px;
+  -moz-border-radius: 3px;
+  -webkit-border-radius: 3px;
+  border-radius: 3px; }
 .linearChooser ul {
   margin: 0;
   padding: 0;
   display: inline; }
-
 .linearChooser ul li {
   display: inline;
   margin-right: 4em; }
-
 .linearChooser .chooserElement li {
   margin-right: .2em; }
-
+.shown {
+  color: blue;
+  text-decoration: underline; }
+.chooserSubElement .value:hover {
+  text-decoration: overline; }
+#totalNumFound {
+  float: left;
+  padding-left: 5px;
+  padding-right: 10px; }
+.resultBox .numResults {
+  position: absolute;
+  top: 0;
+  right: -5px;
+  font-size: 9px; }
+.remover {
+  position: absolute;
+  top: -2px;
+  right: 0;
+  width: 10px;
+  font-size: 14px; }
 .clusterElement .topBar {
   overflow: auto;
-  padding: 2px; }
-
+  padding: 2px;
+  position: relative; }
 .clusterElement .linearChooser {
   float: right; }
-
-.clusterElement .keyLabel {
+.topBar .keyLabel, .topBar .keyToggle {
   float: left; }
-
+.commonBox {
+  width: 1200px;
+  overflow: auto; }
+.commonText, .commonResult {
+  float: left; }
+.commonText {
+  padding-left: 14px;
+  padding-top: 5px; }
+.commonResult {
+  width: auto;
+  position: relative; }
+.commonResult .numResults {
+  right: -30px; }
+.commonResult .innerResultBox {
+  background-color: #ccff99; }
+.commonResult .sourceElement, .commonResult .queryElement {
+  float: left;
+  padding-right: 11px; }
+.commonResult .innerResultBox {
+  overflow: auto; }
+.keyToggle {
+  font-size: 10px;
+  padding-top: 2px;
+  padding-right: 2px; }
 .clusterElement {
   padding: 10px; }
-
+.resultMason {
+  padding-left: 10px; }
 #resultsView {
-  padding: 10px 10px; }
-
-.resultBox {
-  padding: 5px 5px;
-  background-color: #ffaa11; }
-
-.resultBox .queryBox {
-  background-color: #eeee22; }
-
-.clusterView {
-  padding: 0 20px; }
-
+  position: absolute;
+  width: 100%;
+  top: 130px;
+  padding: 10px 10px;
+  padding-top: 15px; }
 .clusterView .topBar {
   overflow: auto;
   padding: 2px; }
-
 .clusterView .keyLabel {
-  float: left;
-  padding: 0px 10px; }
-
-.remover {
-  padding: 0 2px; }
-
-.hide {
-  text-decoration: line-through; }
+  float: left; }
+#header {
+  height: 45px;
+  width: 100%;
+  color: #FFF;
+  position: fixed;
+  background: #333;
+  z-index: 200;
+  top: 0px; }
+#header ul {
+  padding: 7px; }
+#header ul {
+  float: left; }
+#header ul li {
+  padding: 0 10px;
+  float: left; }
+#header a {
+  text-decoration: none;
+  color: #DDD; }
+#header a:hover {
+  color: #FFF; }
+#header a:hover {
+  text-decoration: overline; }
+#innerNumFound {
+  font-family: "liberation-serif-1", "liberation-serif-2"; }
+#logotext {
+  font-size: 30px;
+  color: white;
+  font-family: "liberation-serif-1", "liberation-serif-2"; }

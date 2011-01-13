@@ -1,0 +1,1 @@
+define(["jquery","jquery-ui"],function(){$.widget("ui.statehandler",{_create:function(){this.objects=this.options.objects;this.values={}},changestate:function(){var a=this;objects=a.objects;$.each(objects,function(b,c){a.values[b]=c.value()});$.address.jsonhash(a.values)},setstate:function(a){var b=this;$.each(a,function(c,d){b.objects[c].update(d)})},destroy:function(){}})});

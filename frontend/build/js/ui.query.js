@@ -1,0 +1,2 @@
+define(["jquery","jquery-ui"],function(){$.widget("ui.query",{options:{items:[],filteritems:[]},update:function(a){this.items=a.qval;if(a.fqval!==undefined)this.filteritems=a.fqval;this._trigger("update",null);this.submit()},submit:function(){var a=this;this.options.submitFn({q:this.items.join(" AND "),fq:this.filteritems},function(b){a._trigger("newData",null,b)})},_create:function(){this.items=this.options.items;this.filteritems=this.options.filteritems},value:function(){return{qval:this.items,
+fqval:this.filteritems}},destroy:function(){}})});

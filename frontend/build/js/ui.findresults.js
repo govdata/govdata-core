@@ -1,0 +1,1 @@
+define(["jquery","jquery-ui"],function(){$.widget("ui.findresults",{options:{metadataFn:function(){}},newResults:function(b){var a=this;this.results=b;this.docs=this.results.response.docs;this.facet_counts=this.results.facet_counts;this.numFound=this.results.response.numFound;this.options.metadataFn(this.docs,function(c){a.metadata=c;a._trigger("newResults",null)})}})});

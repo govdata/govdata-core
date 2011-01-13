@@ -1,0 +1,1 @@
+define(function(){var a={};a.phrase=function(c){var b="";_.each(c,function(d,e){if(e!=="f")b+=d+", "});return b.slice(0,-2)};return a});
