@@ -36,108 +36,108 @@
  * for the nls/fr-fr/colors bundle to be that mixed in locale.
  */
 (function () {
-    //regexp for reconstructing the master bundle name from parts of the regexp match
-    //nlsRegExp.exec("foo/bar/baz/nls/en-ca/foo") gives:
-    //["foo/bar/baz/nls/en-ca/foo", "foo/bar/baz/nls/", "/", "/", "en-ca", "foo"]
-    //nlsRegExp.exec("foo/bar/baz/nls/foo") gives:
-    //["foo/bar/baz/nls/foo", "foo/bar/baz/nls/", "/", "/", "foo", ""]
-    //so, if match[5] is blank, it means this is the top bundle definition.
-    var nlsRegExp = /(^.*(^|\/)nls(\/|$))([^\/]*)\/?([^\/]*)/;
+	//regexp for reconstructing the master bundle name from parts of the regexp match
+	//nlsRegExp.exec("foo/bar/baz/nls/en-ca/foo") gives:
+	//["foo/bar/baz/nls/en-ca/foo", "foo/bar/baz/nls/", "/", "/", "en-ca", "foo"]
+	//nlsRegExp.exec("foo/bar/baz/nls/foo") gives:
+	//["foo/bar/baz/nls/foo", "foo/bar/baz/nls/", "/", "/", "foo", ""]
+	//so, if match[5] is blank, it means this is the top bundle definition.
+	var nlsRegExp = /(^.*(^|\/)nls(\/|$))([^\/]*)\/?([^\/]*)/;
 
-    //Helper function to avoid repeating code. Lots of arguments in the
-    //desire to stay functional and support RequireJS contexts without having
-    //to know about the RequireJS contexts.
-    function addPart(locale, master, needed, toLoad, prefix, suffix) {
-        if (master[locale]) {
-            needed.push(locale);
-            if (master[locale] === true || master[locale] === 1) {
-                toLoad.push(prefix + locale + '/' + suffix);
-            }
-        }
-    }
+	//Helper function to avoid repeating code. Lots of arguments in the
+	//desire to stay functional and support RequireJS contexts without having
+	//to know about the RequireJS contexts.
+	function addPart(locale, master, needed, toLoad, prefix, suffix) {
+		if (master[locale]) {
+			needed.push(locale);
+			if (master[locale] === true || master[locale] === 1) {
+				toLoad.push(prefix + locale + '/' + suffix);
+			}
+		}
+	}
 
-    function addIfExists(req, locale, toLoad, prefix, suffix) {
-        var fullName = prefix + locale + '/' + suffix;
-        if (require._fileExists(req.nameToUrl(fullName, null))) {
-            toLoad.push(fullName);
-        }
-    }
+	function addIfExists(req, locale, toLoad, prefix, suffix) {
+		var fullName = prefix + locale + '/' + suffix;
+		if (require._fileExists(req.nameToUrl(fullName, null))) {
+			toLoad.push(fullName);
+		}
+	}
 
-    define({
-        /**
-         * Called when a dependency needs to be loaded.
-         */
-        load: function (name, req, onLoad, config) {
-            config = config || {};
+	define({
+		/**
+		 * Called when a dependency needs to be loaded.
+		 */
+		load: function (name, req, onLoad, config) {
+			config = config || {};
 
-            var masterName,
-                match = nlsRegExp.exec(name),
-                prefix = match[1],
-                locale = match[4],
-                suffix = match[5],
-                parts = locale.split("-"),
-                toLoad = [],
-                value = {},
-                i, part, current = "";
+			var masterName,
+				match = nlsRegExp.exec(name),
+				prefix = match[1],
+				locale = match[4],
+				suffix = match[5],
+				parts = locale.split("-"),
+				toLoad = [],
+				value = {},
+				i, part, current = "";
 
-            //If match[5] is blank, it means this is the top bundle definition,
-            //so it does not have to be handled. Locale-specific requests
-            //will have a match[4] value but no match[5]
-            if (match[5]) {
-                //locale-specific bundle
-                prefix = match[1];
-                masterName = prefix + suffix;
-            } else {
-                //Top-level bundle.
-                masterName = name;
-                suffix = match[4];
-                locale = config.locale || (config.locale =
-                        typeof navigator === "undefined" ? "root" :
-                        (navigator.language ||
-                         navigator.userLanguage || "root").toLowerCase());
-                parts = locale.split("-");
-            }
+			//If match[5] is blank, it means this is the top bundle definition,
+			//so it does not have to be handled. Locale-specific requests
+			//will have a match[4] value but no match[5]
+			if (match[5]) {
+				//locale-specific bundle
+				prefix = match[1];
+				masterName = prefix + suffix;
+			} else {
+				//Top-level bundle.
+				masterName = name;
+				suffix = match[4];
+				locale = config.locale || (config.locale =
+						typeof navigator === "undefined" ? "root" :
+						(navigator.language ||
+						 navigator.userLanguage || "root").toLowerCase());
+				parts = locale.split("-");
+			}
 
-            if (require.isBuild) {
-                //Check for existence of all locale possible files and
-                //require them if exist.
-                toLoad.push(masterName);
-                addIfExists(req, "root", toLoad, prefix, suffix);
-                for (i = 0; (part = parts[i]); i++) {
-                    current += (current ? "-" : "") + part;
-                    addIfExists(req, current, toLoad, prefix, suffix);
-                }
-                req(toLoad);
-                onLoad();
-            } else {
-                //First, fetch the master bundle, it knows what locales are available.
-                req([masterName], function (master) {
-                    //Figure out the best fit
-                    var needed = [];
+			if (require.isBuild) {
+				//Check for existence of all locale possible files and
+				//require them if exist.
+				toLoad.push(masterName);
+				addIfExists(req, "root", toLoad, prefix, suffix);
+				for (i = 0; (part = parts[i]); i++) {
+					current += (current ? "-" : "") + part;
+					addIfExists(req, current, toLoad, prefix, suffix);
+				}
+				req(toLoad);
+				onLoad();
+			} else {
+				//First, fetch the master bundle, it knows what locales are available.
+				req([masterName], function (master) {
+					//Figure out the best fit
+					var needed = [];
 
-                    //Always allow for root, then do the rest of the locale parts.
-                    addPart("root", master, needed, toLoad, prefix, suffix);
-                    for (i = 0; (part = parts[i]); i++) {
-                        current += (current ? "-" : "") + part;
-                        addPart(current, master, needed, toLoad, prefix, suffix);
-                    }
+					//Always allow for root, then do the rest of the locale parts.
+					addPart("root", master, needed, toLoad, prefix, suffix);
+					for (i = 0; (part = parts[i]); i++) {
+						current += (current ? "-" : "") + part;
+						addPart(current, master, needed, toLoad, prefix, suffix);
+					}
 
-                    //Load all the parts missing.
-                    req(toLoad, function () {
-                        var i, partBundle;
-                        for (i = needed.length - 1; i > -1 && (part = needed[i]); i--) {
-                            partBundle = master[part];
-                            if (partBundle === true || partBundle === 1) {
-                                partBundle = req(prefix + part + '/' + suffix);
-                            }
-                            require.mixin(value, partBundle);
-                        }
+					//Load all the parts missing.
+					req(toLoad, function () {
+						var i, partBundle;
+						for (i = needed.length - 1; i > -1 && (part = needed[i]); i--) {
+							partBundle = master[part];
+							if (partBundle === true || partBundle === 1) {
+								partBundle = req(prefix + part + '/' + suffix);
+							}
+							require.mixin(value, partBundle);
+						}
 
-                        //All done, notify the loader.
-                        onLoad(value);
-                    });
-                });
-            }
-        }
-    });
+						//All done, notify the loader.
+						onLoad(value);
+					});
+				});
+			}
+		}
+	});
 }());

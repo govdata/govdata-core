@@ -2,16 +2,16 @@ define(["jquery","jquery-ui"], function() {
 
 	$.widget( "ui.bubbles", {
 		add : function(val,type) {
-		    var self = this;
-		    var classtext;
-		    var classb;
-		    if (type === 'fq'){
-		        classtext = 'bubbletextfq';
-		        classb = 'fqbubble';
-		    } else {
-		        classtext = 'bubbletext';
-		        classb = 'qbubble';
-		    }
+			var self = this;
+			var classtext;
+			var classb;
+			if (type === 'fq'){
+				classtext = 'bubbletextfq';
+				classb = 'fqbubble';
+			} else {
+				classtext = 'bubbletext';
+				classb = 'qbubble';
+			}
 			var bubbl = $("<li class='bubble " + classb +"'><span class='" + classtext + "'>"+val+"</span><span class='remover'>&otimes;</span></li>").
 				appendTo(this.element);
 			bubbl.find('.remover').click(function(){

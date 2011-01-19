@@ -10,8 +10,8 @@ require(["find","jquery","jquery.address"],
 				console.log("SHOW");
 				show.load(params,state);
 			} else  { // find
-			    $.address.path('find');
-				find.load(params,state);			    
+				$.address.path('find');
+				find.load(params,state);				
 			}
 
 		});

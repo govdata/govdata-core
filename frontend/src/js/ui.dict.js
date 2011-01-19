@@ -1,7 +1,7 @@
 define(["jquery","jquery-ui"], function() {
 
 	$.widget( "ui.dict", {
-	    
+		
 		_create : function() {
 		  self = this;
 		  self.items = self.options.items;
@@ -25,8 +25,8 @@ define(["jquery","jquery-ui"], function() {
 		  
 		},
 		value : function (){
-		    var self = this;
-		    return this.items
+			var self = this;
+			return this.items
 		},
 		destroy : function() {}
 	});

@@ -11,23 +11,23 @@
   dl, dt, dd, ol, ul, li,
   fieldset, form, label, legend,
   table, caption, tbody, tfoot, thead, tr, th, td {
-    @include reset-box-model;
-    @include reset-font; }
+	@include reset-box-model;
+	@include reset-font; }
   *:focus {
-    @include reset-focus; }
+	@include reset-focus; }
   body {
-    @include reset-body; }
+	@include reset-body; }
   ol, ul {
-    @include reset-list-style; }
+	@include reset-list-style; }
   /* tables still need 'cellspacing="0"' in the markup */
   table {
-    @include reset-table; }
+	@include reset-table; }
   caption, th, td {
-    @include reset-table-cell; }
+	@include reset-table-cell; }
   q, blockquote {
-    @include reset-quotation; }
+	@include reset-quotation; }
   a img {
-    @include reset-image-anchor-border; } }
+	@include reset-image-anchor-border; } }
 
 // Reset all elements within some selector scope.To reset the selector itself,
 // mixin the appropriate reset mixin for that element type as well. This could be
@@ -36,17 +36,17 @@
   div, span, object, iframe, h1, h2, h3, h4, h5, h6, p,
   pre, a, abbr, acronym, address, code, del, dfn, em, img,
   dl, dt, dd, ol, ul, li, fieldset, form, label, legend, caption, tbody, tfoot, thead, tr {
-    @include reset-box-model;
-    @include reset-font; }
+	@include reset-box-model;
+	@include reset-font; }
   /* tables still need 'cellspacing="0"' in the markup */
   table {
-    @include reset-table; }
+	@include reset-table; }
   caption, th, td {
-    @include reset-table-cell; }
+	@include reset-table-cell; }
   q, blockquote {
-    @include reset-quotation; }
+	@include reset-quotation; }
   a img {
-    @include reset-image-anchor-border; } }
+	@include reset-image-anchor-border; } }
 
 //Mixins partials
 @mixin reset-box-model {
@@ -57,10 +57,10 @@
 
 @mixin reset-font {
   font: {
-    weight: inherit;
-    style: inherit;
-    size: 100%;
-    family: inherit; };
+	weight: inherit;
+	style: inherit;
+	size: 100%;
+	family: inherit; };
   vertical-align: baseline; }
 
 @mixin reset-focus {
@@ -87,12 +87,12 @@
 @mixin reset-quotation {
   quotes: "" "";
   &:before, &:after {
-    content: ""; } }
+	content: ""; } }
 
 @mixin reset-image-anchor-border {
   border: none; }
 
 @mixin reset-html5 {
   section, article, aside, header, footer, nav, dialog, figure {
-    display: block; } }
+	display: block; } }
 

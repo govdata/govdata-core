@@ -30,14 +30,14 @@ define(["jquery","jquery-ui","ui.bubbles"], function() {
 									return false;
 								});
 		
-		    
+			
 			this.bubbles = bubbles;
 			this.q = this.options.query;
 			this.listenTo(this.q, "update", this.update)
 	
 		},
 		update : function() {
-            var self = this;
+			var self = this;
 			var items = self.q.items;
 
 
@@ -60,13 +60,13 @@ define(["jquery","jquery-ui","ui.bubbles"], function() {
 			
 		},
 		addBubble : function(val,type) {
-		    var self = this;
+			var self = this;
 			var bubble = this.bubbles.add(val,type);
 			bubble.find('.remover').click(function(){
-			    self.submit();
+				self.submit();
 			});
 
-									         
+											 
 		},
 		destroy : function() {
 			this.element.empty();
