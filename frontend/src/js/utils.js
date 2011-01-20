@@ -41,9 +41,9 @@ define(["underscore"],function() {
 		},
 		count : function(str,splitchar){
 		   if (str === " "){
-		      return 0;
+			  return 0;
 		   } else {
-		      return str.split(splitchar).length;
+			  return str.split(splitchar).length;
 		   }
 		}
 	}

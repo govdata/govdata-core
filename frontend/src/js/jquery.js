@@ -6067,7 +6067,7 @@ jQuery.offset = {
 		}
 		var curElem   = jQuery( elem ),
 			curOffset = curElem.offset(),
-			curTop    = parseInt( jQuery.curCSS( elem, "top",  true ), 10 ) || 0,
+			curTop	= parseInt( jQuery.curCSS( elem, "top",  true ), 10 ) || 0,
 			curLeft   = parseInt( jQuery.curCSS( elem, "left", true ), 10 ) || 0;
 
 		if ( jQuery.isFunction( options ) ) {
@@ -6100,7 +6100,7 @@ jQuery.fn.extend({
 		offsetParent = this.offsetParent(),
 
 		// Get correct offsets
-		offset       = this.offset(),
+		offset	   = this.offset(),
 		parentOffset = /^body|html$/i.test(offsetParent[0].nodeName) ? { top: 0, left: 0 } : offsetParent.offset();
 
 		// Subtract element margins

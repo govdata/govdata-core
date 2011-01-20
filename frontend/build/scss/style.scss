@@ -28,31 +28,31 @@ body {
 
 
 #searchbar {
-    position:fixed;
-    width : 100%;
-    top: $header-height;
-    height : $searchbar-height;
-    padding-right: 10px; 
-    padding-top: $searchbar-top-padding;
-    background-color : #F0F0F0;
-    z-index : 150;
+	position:fixed;
+	width : 100%;
+	top: $header-height;
+	height : $searchbar-height;
+	padding-right: 10px; 
+	padding-top: $searchbar-top-padding;
+	background-color : #F0F0F0;
+	z-index : 150;
 }
 
 #filterBar{
-    position:fixed;
-    width : 15000px;
-    top : $searchbar-height + $header-height + $searchbar-top-padding;
-    height : $filterbar-height;
-    z-index:125;
-    background-color : white;
-    overflow:auto;
-    padding-top:3px;
+	position:fixed;
+	width : 15000px;
+	top : $searchbar-height + $header-height + $searchbar-top-padding;
+	height : $filterbar-height;
+	z-index:125;
+	background-color : white;
+	overflow:auto;
+	padding-top:3px;
   
 }
 
 #subHeader{
-    font-size:18px;
-    background-color:$background-color;
+	font-size:18px;
+	background-color:$background-color;
 }
 
 #filterBar ul li {
@@ -63,9 +63,9 @@ body {
 /*
 
 #searchbar input{
-    position : fixed;
-    right : 10px;
-    padding-right:20px;
+	position : fixed;
+	right : 10px;
+	padding-right:20px;
 }*/
 
 
@@ -80,16 +80,16 @@ body {
 }
 
 #searchbar .bubbles {
-    float:left;
+	float:left;
 }
 
 #searchEltContainer {
-    position:fixed;
-    background-color:white;
-    padding-top:1px;
-    -moz-border-radius: 3px;
-    -webkit-border-radius: 3px;
-    border-radius: 3px;
+	position:fixed;
+	background-color:white;
+	padding-top:1px;
+	-moz-border-radius: 3px;
+	-webkit-border-radius: 3px;
+	border-radius: 3px;
 }
 
 .bubbles {
@@ -97,43 +97,43 @@ padding-top:2px;
 }
 
 #searchbar input{
-    float:right;
+	float:right;
 }
 
 
 #dateChooser, #spaceChooser, #clusterChooser{
-    float:left;   
+	float:left;   
 }
 
 
 
 .filterSeparator {
-    float:left;
-    border-left:1px solid #000;
-    height: $filterbar-height - 8px;
-    padding-right : $filtersep-padding;
+	float:left;
+	border-left:1px solid #000;
+	height: $filterbar-height - 8px;
+	padding-right : $filtersep-padding;
 }
 
 
 
 .innerDateChooser, .innerSpaceChooser{
-     position:relative;
-     float:left; 
-     padding-right:25px;
-     padding-top:12px;
+	 position:relative;
+	 float:left; 
+	 padding-right:25px;
+	 padding-top:12px;
 }
 
 .innerClusterChooser{
-     float:left;
-     padding-top:12px;
-     padding-right:12px;
+	 float:left;
+	 padding-top:12px;
+	 padding-right:12px;
 
 }
 
 .innerDateChooser .facet, .innerSpaceChooser .facet{
-     position:absolute;
-     font-size: 9px;
-     
+	 position:absolute;
+	 font-size: 9px;
+	 
 }
 
 .facetCount{
@@ -143,42 +143,42 @@ right:50px;
 }
 
 hr {
-    top:$header-height + $searchbar-height + $filterbar-height + $searchbar-top-padding - 10px;
-    position:fixed;
-    size:10px;
-    width:100%;
-    z-index : 125;
+	top:$header-height + $searchbar-height + $filterbar-height + $searchbar-top-padding - 10px;
+	position:fixed;
+	size:10px;
+	width:100%;
+	z-index : 125;
 
 }
 
 .innerResultBox{
-    background-color : $inner-result-box-color;
-    -moz-border-radius: 5px;
-    -webkit-border-radius: 5px;
-    border-radius: 5px;
+	background-color : $inner-result-box-color;
+	-moz-border-radius: 5px;
+	-webkit-border-radius: 5px;
+	border-radius: 5px;
 
 }
 
 .innerResultBox:hover{
-    -moz-border-radius: 0px;
-    -webkit-border-radius: 0px;
-    border-radius: 0px;
+	-moz-border-radius: 0px;
+	-webkit-border-radius: 0px;
+	border-radius: 0px;
 
 }
 
 .resultBox:hover {
-    background-color: #D3D0CD;
-    cursor: pointer;
-    
+	background-color: #D3D0CD;
+	cursor: pointer;
+	
 }
 
 .resultBox{
 width:200px;
 padding : 5px 5px;
 background-color: $result-box-color;
-    -moz-border-radius: 5px;
-    -webkit-border-radius: 5px;
-    border-radius: 5px;
+	-moz-border-radius: 5px;
+	-webkit-border-radius: 5px;
+	border-radius: 5px;
 }
 
 .resultBox .queryBox {
@@ -186,16 +186,16 @@ background-color: $query-box-color;
 }
 
 .sourceElement:hover, .queryElement:hover{
-    text-decoration : underline;
+	text-decoration : underline;
 }
 
 .sourceElement, .queryElement{
-    padding-bottom:5px;
+	padding-bottom:5px;
 }
 
 .sameVal {
-    color : $sameVal-font-color;
-    /* font-size : $sameVal-font-size; */
+	color : $sameVal-font-color;
+	/* font-size : $sameVal-font-size; */
 }
 
 .bubble {
@@ -232,46 +232,46 @@ background-color: $query-box-color;
 
 
 .shown {
-    color : blue;
-    text-decoration : underline;
+	color : blue;
+	text-decoration : underline;
 }
 
 .chooserSubElement .value:hover{
-    text-decoration : overline;
+	text-decoration : overline;
 }
 
 
 #totalNumFound {
-    float:left;
-    padding-left:5px;
-    padding-right:$filtersep-padding;
+	float:left;
+	padding-left:5px;
+	padding-right:$filtersep-padding;
 }
 
 .resultBox .numResults{
-    position : absolute;
-    top : 0;
-    right : -5px;
-    font-size : 9px;
+	position : absolute;
+	top : 0;
+	right : -5px;
+	font-size : 9px;
 }
 
 
 
 .remover{
-    position : absolute;
-    top : -2px;
-    right : 0;
+	position : absolute;
+	top : -2px;
+	right : 0;
 
-    width: 10px;
-    font-size: 14px;
+	width: 10px;
+	font-size: 14px;
 
 }
 
  
 
 .clusterElement .topBar {
-    overflow:auto;
-    padding:2px;
-    position:relative;
+	overflow:auto;
+	padding:2px;
+	position:relative;
 }
 
 .clusterElement .linearChooser {
@@ -284,8 +284,8 @@ background-color: $query-box-color;
 }
 
 .commonBox{
-    width:1200px;
-    overflow:auto;
+	width:1200px;
+	overflow:auto;
 }
 
 .commonText, .commonResult {
@@ -293,19 +293,19 @@ float:left;
 }
 
 .commonText{
-    padding-left:14px;
-    padding-top:5px;
+	padding-left:14px;
+	padding-top:5px;
 }
 
 .commonResult{
-    width:auto ;
-    position:relative;
+	width:auto ;
+	position:relative;
    
 }
 
 .commonResult .numResults{
 
-    right : -30px;
+	right : -30px;
 }
 
 .commonResult .innerResultBox{
@@ -313,18 +313,18 @@ background-color : $common-query-color;
 }
 
 .commonResult .sourceElement, .commonResult .queryElement{
-    float:left;    
-    padding-right:11px;
+	float:left;	
+	padding-right:11px;
 }
 
 .commonResult .innerResultBox{
-    overflow:auto;
-    }
+	overflow:auto;
+	}
 
 .keyToggle{
-    font-size:10px;
-    padding-top:2px;
-    padding-right:2px;
+	font-size:10px;
+	padding-top:2px;
+	padding-right:2px;
 }
 
 .clusterElement {
@@ -345,8 +345,8 @@ padding:10px;
 
 
 .clusterView .topBar {
-    overflow:auto;
-    padding:2px;
+	overflow:auto;
+	padding:2px;
 }
 
 
@@ -360,37 +360,37 @@ padding:10px;
 
 
 #header {
-    height: $header-height;
-    width: 100%;
-    color: #FFF;
-    position:fixed;
-    background: #333;
-    z-index: 200;
-    top: 0px;
+	height: $header-height;
+	width: 100%;
+	color: #FFF;
+	position:fixed;
+	background: #333;
+	z-index: 200;
+	top: 0px;
 }
 
 #header ul{
-    padding: 7px;  
-    
+	padding: 7px;  
+	
 }
 #header ul {
-    float:left;
+	float:left;
 }
 #header ul li {
-    padding: 0 10px;
-    float: left;
+	padding: 0 10px;
+	float: left;
 }
 
 #header a {
-    text-decoration: none;
-    color: #DDD;
+	text-decoration: none;
+	color: #DDD;
 }
 
 #header a:hover  {
-    color: #FFF;
+	color: #FFF;
 }
 #header a:hover {
-    text-decoration: overline;
+	text-decoration: overline;
 }
 
 #innerNumFound{
@@ -398,7 +398,7 @@ font-family: "liberation-serif-1", "liberation-serif-2";
 }
 
 #logotext{
-    font-size:30px;
-    color : white;
-    font-family: "liberation-serif-1", "liberation-serif-2";
+	font-size:30px;
+	color : white;
+	font-family: "liberation-serif-1", "liberation-serif-2";
 }

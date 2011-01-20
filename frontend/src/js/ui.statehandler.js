@@ -9,20 +9,20 @@ define(["jquery","jquery-ui"], function() {
 
 
 		},
-        changestate : function(){
-           var self = this;   
-           objects = self.objects;
+		changestate : function(){
+		   var self = this;   
+		   objects = self.objects;
 		   $.each(objects,function(name,obj){		
-		         self.values[name] = obj.value();	      
-		      });    
+				 self.values[name] = obj.value();		  
+			  });	
 		   $.address.jsonhash(self.values);
 		
 		},
 		setstate : function(state){
 		   var self = this;
-           $.each(state,function(name,obj){     
-		        self.objects[name].update(obj);
-           });
+		   $.each(state,function(name,obj){	 
+				self.objects[name].update(obj);
+		   });
 
 		},
 		destroy : function() {}

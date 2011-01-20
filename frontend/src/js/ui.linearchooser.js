@@ -12,7 +12,7 @@ define(["text!templates/linearchooser.html","jquery",
 						this.options.data.resp = _.map(this.options.data.list,
 																						function(elt){
 																							return _.range(elt.list.length); 
-																						});            
+																						});			
 				}
 				$(_.template(tmpl, this.options.data)).appendTo(this.element);
 

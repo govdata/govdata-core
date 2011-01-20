@@ -1,25 +1,25 @@
 /*@mixin inline-list {
   list-style-type: none;
   &, & li {
-    margin: 0px;
-    padding: 0px;
-    display: inline; } }*/
+	margin: 0px;
+	padding: 0px;
+	display: inline; } }*/
 /*@mixin round($tl, $tr, $br, $bl) {
   -moz-border-radius: {
-    topleft: #{$tl}px;
-    topright: #{$tr}px;
-    bottomright: #{$br}px;
-    bottomleft: #{$bl}px; };
+	topleft: #{$tl}px;
+	topright: #{$tr}px;
+	bottomright: #{$br}px;
+	bottomleft: #{$bl}px; };
   -webkit-border: {
-    top-left-radius: #{$tl}px;
-    top-right-radius: #{$tr}px;
-    bottom-right-radius: #{$br}px;
-    bottom-left-radius: #{$bl}px; };
+	top-left-radius: #{$tl}px;
+	top-right-radius: #{$tr}px;
+	bottom-right-radius: #{$br}px;
+	bottom-left-radius: #{$bl}px; };
   border: {
-    top-left-radius: #{$tl}px;
-    top-right-radius: #{$tr}px;
-    bottom-right-radius: #{$br}px;
-    bottom-left-radius: #{$bl}px; }; }
+	top-left-radius: #{$tl}px;
+	top-right-radius: #{$tr}px;
+	bottom-right-radius: #{$br}px;
+	bottom-left-radius: #{$bl}px; }; }
 
 @mixin vertical-gradiant($start, $end) {
   background-image: -webkit-gradient(linear, 0% 10%, 0% 90%, from($start), to($end));
@@ -106,9 +106,9 @@ body {
 /*
 
 #searchbar input{
-    position : fixed;
-    right : 10px;
-    padding-right:20px;
+	position : fixed;
+	right : 10px;
+	padding-right:20px;
 }*/
 #searchbar {
   padding-left: 10px; }

@@ -1,10 +1,10 @@
 define(["jquery","jquery-ui"], function() {
 
 	$.widget( "ui.query", {
-	    options : {
-	       items : [],
-	       filteritems : []
-	    },
+		options : {
+		   items : [],
+		   filteritems : []
+		},
 		update : function(valdict) {
 			this.items = valdict["qval"];
 			if (valdict["fqval"] !== undefined){
@@ -26,8 +26,8 @@ define(["jquery","jquery-ui"], function() {
 			this.filteritems = this.options.filteritems;
 		},
 		value : function(){
-		    var self = this;
-		    return {'qval': self.items , 'fqval': self.filteritems}
+			var self = this;
+			return {'qval': self.items , 'fqval': self.filteritems}
 		},
 		destroy : function() {}
 	});
