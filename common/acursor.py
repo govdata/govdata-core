@@ -47,9 +47,21 @@ class Cursor(object):
     """A cursor / iterator over Mongo query results.
     """
 
-    def __init__(self, collection, spec, fields, skip, limit, slave_okay,
-                 timeout, tailable, snapshot=False,
-                 _sock=None, _must_use_master=False, _is_command=False,as_class=None):
+    def __init__(self, 
+                 collection, 
+                 spec, 
+                 fields, 
+                 skip, 
+                 limit, 
+                 slave_okay,
+                 timeout, 
+                 tailable, 
+                 snapshot=False,
+                 _sock=None, 
+                 _must_use_master=False, 
+                 _is_command=False,
+                 as_class=None,
+                 sort = None):
         """Create a new cursor.
 
         Should not be called directly by application developers.
@@ -68,7 +80,7 @@ class Cursor(object):
         self.__timeout = timeout
         self.__tailable = tailable
         self.__snapshot = snapshot
-        self.__ordering = None
+        self.__ordering = sort and helpers._index_document(sort) or None
         self.__explain = False
         self.__hint = None
         self.__socket = _sock
@@ -627,7 +639,18 @@ class asyncCursorHandler(tornado.web.RequestHandler):
         sock.setblocking(0)
         self.socket = sock
         
-        cursor = Cursor(collection,spec,fields,skip,limit, slave_okay, timeout,tailable,_sock=sock,_must_use_master=_must_use_master, _is_command=_is_command)
+        cursor = Cursor(collection,
+                        spec,
+                        fields,
+                        skip,
+                        limit,
+                        slave_okay, 
+                        timeout,
+                        tailable,
+                        _sock=sock,
+                        _must_use_master=_must_use_master, 
+                        _is_command=_is_command,
+                        sort = self.__ordering.items())
        
         callback = functools.partial(callback,self,cursor)
         io_loop = self.settings['io_loop']
@@ -666,6 +689,7 @@ class asyncCursorHandler(tornado.web.RequestHandler):
         for (a,(p,k)) in querySequence[:-1]:
             k = dict([(str(kk),v) for (kk,v) in k.items()])
             R = getattr(R,a)(*p,**k)   
+            self.__ordering = R._Cursor__ordering
             
         (act,(arg,karg)) = querySequence[-1]
     
@@ -733,6 +757,7 @@ class asyncCursorHandler(tornado.web.RequestHandler):
             
         else:
             R = getattr(R,act)(*arg,**karg)
+            self.__ordering = R._Cursor__ordering
     
             if isinstance(R,pm.cursor.Cursor):
     
