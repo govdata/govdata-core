@@ -639,6 +639,9 @@ class asyncCursorHandler(tornado.web.RequestHandler):
         sock.setblocking(0)
         self.socket = sock
         
+        if not hasattr(self,'__ordering'):
+            self.__ordering = None
+            
         cursor = Cursor(collection,
                         spec,
                         fields,
