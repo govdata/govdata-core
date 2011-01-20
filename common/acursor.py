@@ -650,7 +650,7 @@ class asyncCursorHandler(tornado.web.RequestHandler):
                         _sock=sock,
                         _must_use_master=_must_use_master, 
                         _is_command=_is_command,
-                        sort = self.__ordering.items())
+                        sort = self.__ordering.items() if self.__ordering else None)
        
         callback = functools.partial(callback,self,cursor)
         io_loop = self.settings['io_loop']
