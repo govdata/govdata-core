@@ -476,11 +476,7 @@ class AsyncCursorHandler(tornado.web.RequestHandler):
         IOStream = tornado.iostream.IOStream(sock,io_loop)
         self.__IOStream = IOStream
         
-        
-        print(self.__ordering,hasattr(self,'__ordering'))
-        if not hasattr(self,'__ordering'):
-            self.__ordering = None
-            
+                   
         self.cursor = Cursor(collection,
                         spec,
                         fields,
@@ -529,6 +525,7 @@ class AsyncCursorHandler(tornado.web.RequestHandler):
         
         R = collection 
         
+        self.__ordering = None
         for (a,(p,k)) in querySequence[:-1]:
             assert a not in ['count','distinct','find_one','group']
             k = dict([(str(kk),v) for (kk,v) in k.items()])
