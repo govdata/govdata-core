@@ -602,6 +602,7 @@ class AsyncCursorHandler(tornado.web.RequestHandler):
             R = getattr(R,act)(*arg,**karg)
             self.__ordering = R._Cursor__ordering
     
+            print(R._Cursor__spec,self.__ordering)
             if isinstance(R,pm.cursor.Cursor):
     
                 if self.stream:
