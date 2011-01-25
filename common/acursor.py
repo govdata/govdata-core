@@ -476,7 +476,10 @@ class AsyncCursorHandler(tornado.web.RequestHandler):
         IOStream = tornado.iostream.IOStream(sock,io_loop)
         self.__IOStream = IOStream
         
-
+     
+        if not hasattr(self,'__ordering'):
+            self.__ordering = None
+            
         self.cursor = Cursor(collection,
                         spec,
                         fields,
@@ -487,7 +490,9 @@ class AsyncCursorHandler(tornado.web.RequestHandler):
                         tailable,
                         _IOStream=IOStream,
                         _must_use_master=_must_use_master, 
-                        _is_command=_is_command)
+                        _is_command=_is_command,
+                        sort = self.__ordering.items() if self.__ordering else None
+                        )
 
 
         callback = functools.partial(callback,self)
