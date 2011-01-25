@@ -28,6 +28,7 @@ from pymongo.objectid import ObjectId
 import socket
 import tornado.httpclient
 import tornado.web
+import tornado.iostream
 import os
 import json
 
@@ -42,13 +43,12 @@ _QUERY_OPTIONS = {
     "no_timeout": 16
 }
 
-
 class Cursor(object):
+
     """A cursor / iterator over Mongo query results.
     """
 
-    def __init__(self, 
-                 collection, 
+    def __init__(self,collection, 
                  spec, 
                  fields, 
                  skip, 
@@ -57,17 +57,12 @@ class Cursor(object):
                  timeout, 
                  tailable, 
                  snapshot=False,
-                 _sock=None, 
+                 _IOStream=None, 
                  _must_use_master=False, 
                  _is_command=False,
                  as_class=None,
                  sort = None):
-        """Create a new cursor.
 
-        Should not be called directly by application developers.
-
-        .. mongodoc:: cursors
-        """
         if as_class is None:
             as_class = collection.database.connection.document_class
 
@@ -83,7 +78,7 @@ class Cursor(object):
         self.__ordering = sort and helpers._index_document(sort) or None
         self.__explain = False
         self.__hint = None
-        self.__socket = _sock
+        self.__IOStream = _IOStream
         self.__must_use_master = _must_use_master
         self.__is_command = _is_command
         self.__as_class = as_class
@@ -94,6 +89,7 @@ class Cursor(object):
         self.__retrieved = 0
         self.__killed = False
 
+ 
     @property
     def collection(self):
         """The :class:`~pymongo.collection.Collection` that this
@@ -138,7 +134,7 @@ class Cursor(object):
         copy.__ordering = self.__ordering
         copy.__explain = self.__explain
         copy.__hint = self.__hint
-        copy.__socket = self.__socket
+        copy.__IOStream = self.__IOStream
         return copy
 
     def __die(self):
@@ -222,67 +218,6 @@ class Cursor(object):
         self.__skip = skip
         return self
 
-    def __getitem__(self, index):
-        """Get a single document or a slice of documents from this cursor.
-
-        Raises :class:`~pymongo.errors.InvalidOperation` if this
-        cursor has already been used.
-
-        To get a single document use an integral index, e.g.::
-
-          >>> db.test.find()[50]
-
-        An :class:`IndexError` will be raised if the index is negative
-        or greater than the amount of documents in this cursor. Any
-        limit applied to this cursor will be ignored.
-
-        To get a slice of documents use a slice index, e.g.::
-
-          >>> db.test.find()[20:25]
-
-        This will return this cursor with a limit of ``5`` and skip of
-        ``20`` applied.  Using a slice index will override any prior
-        limits or skips applied to this cursor (including those
-        applied through previous calls to this method). Raises
-        :class:`IndexError` when the slice has a step, a negative
-        start value, or a stop value less than or equal to the start
-        value.
-
-        :Parameters:
-          - `index`: An integer or slice index to be applied to this cursor
-        """
-        self.__check_okay_to_chain()
-        if isinstance(index, slice):
-            if index.step is not None:
-                raise IndexError("Cursor instances do not support slice steps")
-
-            skip = 0
-            if index.start is not None:
-                if index.start < 0:
-                    raise IndexError("Cursor instances do not support negative indices")
-                skip = index.start
-
-            if index.stop is not None:
-                limit = index.stop - skip
-                if limit <= 0:
-                    raise IndexError("stop index must be greater than start index for slice %r" % index)
-            else:
-                limit = 0
-
-            self.__skip = skip
-            self.__limit = limit
-            return self
-
-        if isinstance(index, (int, long)):
-            if index < 0:
-                raise IndexError("Cursor instances do not support negative indices")
-            clone = self.clone()
-            clone.skip(index + self.__skip)
-            clone.limit(-1) # use a hard limit
-            for doc in clone:
-                return doc
-            raise IndexError("no such item for Cursor instance")
-        raise TypeError("index %r cannot be applied to Cursor instances" % index)
 
     def sort(self, key_or_list, direction=None):
         """Sorts this cursor's results.
@@ -307,81 +242,8 @@ class Cursor(object):
         self.__ordering = helpers._index_document(keys)
         return self
 
-    def count(self, with_limit_and_skip=False):
-        """Get the size of the results set for this query.
-
-        Returns the number of documents in the results set for this query. Does
-        not take :meth:`limit` and :meth:`skip` into account by default - set
-        `with_limit_and_skip` to ``True`` if that is the desired behavior.
-        Raises :class:`~pymongo.errors.OperationFailure` on a database error.
-
-        :Parameters:
-          - `with_limit_and_skip` (optional): take any :meth:`limit` or
-            :meth:`skip` that has been applied to this cursor into account when
-            getting the count
-
-        .. note:: The `with_limit_and_skip` parameter requires server
-           version **>= 1.1.4-**
-
-        .. versionadded:: 1.1.1
-           The `with_limit_and_skip` parameter.
-           :meth:`~pymongo.cursor.Cursor.__len__` was deprecated in favor of
-           calling :meth:`count` with `with_limit_and_skip` set to ``True``.
-        """
-        command = {"query": self.__spec, "fields": self.__fields}
-
-        if with_limit_and_skip:
-            if self.__limit:
-                command["limit"] = self.__limit
-            if self.__skip:
-                command["skip"] = self.__skip
-
-        r = self.__collection.database.command("count", self.__collection.name,
-                                               allowable_errors=["ns missing"],
-                                               **command)
-        if r.get("errmsg", "") == "ns missing":
-            return 0
-        return int(r["n"])
-
-    def distinct(self, key):
-        """Get a list of distinct values for `key` among all documents
-        in the result set of this query.
-
-        Raises :class:`TypeError` if `key` is not an instance of
-        :class:`basestring`.
-
-        :Parameters:
-          - `key`: name of key for which we want to get the distinct values
-
-        .. note:: Requires server version **>= 1.1.3+**
-
-        .. seealso:: :meth:`pymongo.collection.Collection.distinct`
-
-        .. versionadded:: 1.2
-        """
-        if not isinstance(key, basestring):
-            raise TypeError("key must be an instance of basestring")
-
-        options = {"key": key}
-        if self.__spec:
-            options["query"] = self.__spec
-
-        return self.__collection.database.command("distinct",
-                                                  self.__collection.name,
-                                                  **options)["values"]
-
-    def explain(self):
-        """Returns an explain plan record for this cursor.
-
-        .. mongodoc:: explain
-        """
-        c = self.clone()
-        c.__explain = True
-
-        # always use a hard limit for explains
-        if c.__limit:
-            c.__limit = -abs(c.__limit)
-        return c.next()
+ 
+        
 
     def hint(self, index):
         """Adds a 'hint', telling Mongo the proper index to use for the query.
@@ -444,57 +306,26 @@ class Cursor(object):
     def __send_message(self, message):
         """Send a message on the given socket in a nonblocking fashion -- nothing is returned
         """
-        sock = self.__socket
-        (request_id, data) = message
-        X = sock.send(data)
-        if X == 0:
-            X = sock.send(data)
+        IOStream = self.__IOStream
+        (request_id, data) = message        
+        IOStream.write(data)
 
-       
 
-    def next(self):
-    
-        sock = self.__socket
-        request_id = self.__request_id
+
+    def next(self,callback):
+
+        nextback_curry = functools.partial(self.nextback,callback)
         
-        if len(self.__data) == 0:
-            response = self.__receive_message_on_socket(1, request_id, sock)
+        IOStream = self.__IOStream
        
-            if isinstance(response, tuple):
-                (connection_id, response) = response
-            else:
-                connection_id = None
-    
-            self.__connection_id = connection_id
-    
-            try:
-                response = helpers._unpack_response(response, self.__id,as_class=self.__as_class)
-            except AutoReconnect:
-                db.connection._reset()
-                raise
-
-            self.__id = response["cursor_id"]
-    
-            # starting from doesn't get set on getmore's for tailable cursors
-            if not self.__tailable:
-                assert response["starting_from"] == self.__retrieved
-    
-            self.__retrieved += response["number_returned"]
-            self.__data = response["data"]
-         
-            self.__id = response["cursor_id"]
-
-
-        if self.__limit and self.__id and self.__limit <= self.__retrieved or not self.__id:
-            self.__die()
-
-        db = self.__collection.database
-        if len(self.__data):
-            next = db._fix_outgoing(self.__data.pop(0), self.__collection)
+        if not len(self.__data):
+            self._refresh();
+            request_id = self.__request_id
+            self.__receive_message_on_stream(1, request_id, IOStream, nextback_curry)      
         else:
-            raise StopIteration
-        return next        
-        
+            self.nextback(callback,None)
+
+      
 
     def _refresh(self):
         """Refreshes the cursor with more data from Mongo.
@@ -504,26 +335,18 @@ class Cursor(object):
         cursor cannot be refreshed due to an error on the query.
         """
         
-
         if len(self.__data) or self.__killed:
             return
             
         if self.__id is None:
-            # Query
-
             message = Message.query(self.__query_options(),
                               self.__collection.full_name,
                               self.__skip, self.__limit,
                               self.__query_spec(), self.__fields)
                  
             self.__request_id = message[0]  
-            
-
             self.__send_message(message)
-            
-
         elif self.__id:
-            # Get More
             limit = 0
             if self.__limit:
                 if self.__limit > self.__retrieved:
@@ -532,11 +355,12 @@ class Cursor(object):
                     self.__killed = True
 
             message = Message.get_more(self.__collection.full_name,
-                                 limit, self.__id)
-                                  
+                                 limit, self.__id)                      
             self.__request_id = message[0]
+            print(self.__id)
             self.__send_message(message)
 
+        
 
 
     @property
@@ -554,65 +378,78 @@ class Cursor(object):
 
     def __iter__(self):
         return self
+  
+    def nextback(self,callback,response):
+       
+        if response is not None:
+            if isinstance(response, tuple):
+                (connection_id, response) = response
+            else:
+                connection_id = None
+    
+            self.__connection_id = connection_id
+    
+            try:
+                response = helpers._unpack_response(response, self.__id,as_class=self.__as_class)
+            except AutoReconnect:
+                db.connection._reset()
+                raise
+                
+     
+            self.__id = response["cursor_id"]
+            
+            # starting from doesn't get set on getmore's for tailable selfs
+            if not self.__tailable:
+                assert response["starting_from"] == self.__retrieved
+    
+            self.__retrieved += response["number_returned"]
+
+            self.__data = response["data"]
+         
+            
+            self.__id = response["cursor_id"]
+    
+    
+        if self.__limit and self.__id and self.__limit <= self.__retrieved or not self.__id:
+            self.__die()
+    
+        db = self.__collection.database
         
-
-
-    def __receive_data_on_socket(self, length, sock):
-        """Lowest level receive operation.
-
-        Takes length to receive and repeatedly calls recv until able to
-        return a buffer of that length, raising ConnectionFailure on error.
-        """
-        message = ""
-        sock.setblocking(1)
-        while len(message) < length:
-            chunk = sock.recv(length - len(message))            
-            if chunk == "":
-                raise ConnectionFailure("connection closed")
-            message += chunk
-        sock.setblocking(0)
-        return message
-        
-
-    def __receive_message_on_socket(self, operation, request_id, sock):
-        """Receive a message in response to `request_id` on `sock`.
+        if len(self.__data):
+            callback(db._fix_outgoing(self.__data.pop(0), self.__collection)) 
+        else:
+            callback(StopIteration)
+  
+       
+    def __receive_message_on_stream(self, operation, request_id, IOStream,callback):
+        """Receive a message in response to `request_id` on `iostream`.
 
         Returns the response data with the header removed.
         """
-        header = self.__receive_data_on_socket(16, sock)
-        length = struct.unpack("<i", header[:4])[0]
-        assert request_id == struct.unpack("<i", header[8:12])[0], \
-            "ids don't match %r %r" % (request_id,
-                                       struct.unpack("<i", header[8:12])[0])
-        assert operation == struct.unpack("<i", header[12:])[0]
-
-        return self.__receive_data_on_socket(length - 16, sock)
-        
-#=-=-=-=-=-=-=-=-=-=-=-=-=-
-#ASYNC MONGO STUFF
-#=-=-=-=-=-=-=-=-=-=-=-=-=-
+        receive_body_curry = functools.partial(receive_body_on_stream,operation,request_id,IOStream,callback)
+        IOStream.read_bytes(16,receive_body_curry)
+    
+    
 
 
-class asyncCursorHandler(tornado.web.RequestHandler):
+
+class AsyncCursorHandler(tornado.web.RequestHandler):
 
 
     def organize_fields(self,fields):
         pass
         
+        
     def begin(self):    
         if self.jsonPcallback:
             self.write(self.jsonPcallback + '(')
-        if self.stream:
-            self.write('{')
+
         if self.returnObj:
             self.data = []
  
  
     def end(self):
- 
-        if self.stream:
-            self.write('}')  
-        
+
         if self.returnObj and not self.stream:
             self.write(json.dumps(self.data,default=pm.json_util.default))
 
@@ -633,16 +470,14 @@ class asyncCursorHandler(tornado.web.RequestHandler):
         timeout = True
         tailable = False
         
+        io_loop = self.settings['io_loop']
+    
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        H = sock.connect(("localhost", 27017))
-        sock.setblocking(0)
-        self.socket = sock
+        IOStream = tornado.iostream.IOStream(sock,io_loop)
+        self.__IOStream = IOStream
         
-        if not hasattr(self,'__ordering'):
-            self.__ordering = None
-            
-        cursor = Cursor(collection,
+
+        self.cursor = Cursor(collection,
                         spec,
                         fields,
                         skip,
@@ -650,17 +485,18 @@ class asyncCursorHandler(tornado.web.RequestHandler):
                         slave_okay, 
                         timeout,
                         tailable,
-                        _sock=sock,
+                        _IOStream=IOStream,
                         _must_use_master=_must_use_master, 
-                        _is_command=_is_command,
-                        sort = self.__ordering.items() if self.__ordering else None)
+                        _is_command=_is_command)
+
+
+        callback = functools.partial(callback,self)
+        
+        start_callback = functools.partial(start,self,callback)
+
+        IOStream.connect(('localhost',27017),callback=start_callback)
        
-        callback = functools.partial(callback,self,cursor)
-        io_loop = self.settings['io_loop']
-    
-        io_loop.add_handler(sock.fileno(), callback, io_loop.READ)  
-    
-        cursor._refresh()
+     
     
     
     def add_command_handler(self,collection,command,processor):
@@ -673,8 +509,6 @@ class asyncCursorHandler(tornado.web.RequestHandler):
         
 
     def add_async_cursor(self,collection,querySequence):
-
-        self.collection = collection
         
         if not hasattr(self,'processor'):
             self.processor = None
@@ -690,6 +524,7 @@ class asyncCursorHandler(tornado.web.RequestHandler):
         R = collection 
         
         for (a,(p,k)) in querySequence[:-1]:
+            assert a not in ['count','distinct','find_one','group']
             k = dict([(str(kk),v) for (kk,v) in k.items()])
             R = getattr(R,a)(*p,**k)   
             self.__ordering = R._Cursor__ordering
@@ -780,60 +615,16 @@ class asyncCursorHandler(tornado.web.RequestHandler):
                
            
     def done(self):
-    
-        io_loop = self.settings['io_loop']
-        sock = self.socket
-        io_loop.remove_handler(sock.fileno())
-        sock.close()
-        
+        self.__IOStream.close()        
         self.end()    
     
     
-def loop(handler,cursor,sock,fd):
-    
-    hasdata = True
-
-    collection = handler.collection
-    processor = handler.processor
-
-    while hasdata:
-        try:
-            r = cursor.next()
-        except StopIteration:
-            cursor._Cursor__die()
-            break
-        else:
-
-            if len(cursor._Cursor__data) == 0:
-                hasdata = False
-                    
-            if processor:
-                r = processor(r,handler,collection)
-                 
-            if handler.stream:
-                handler.write((',' if handler.writing else '') + json.dumps(r,default=pm.json_util.default))
-                if not handler.writing:
-                    handler.writing = True
-            if handler.returnObj:
-                handler.data.append(r)
-    
-    if cursor.alive:
-        cursor._refresh()
-  
-    else:
-        if handler.stream:
-            handler.write(']')
-        
-        handler.done()
-
-
-def processor_handler(processor,handler,cursor,sock,fd):
-    try:
-        r = cursor.next()
-    except StopIteration:
+def processor_handler(processor,handler,resp):
+   
+    if resp == StopIteration:
         r = None
     else:
-        pass
+        r = resp
         
     if processor != None:
         result = processor(r)
@@ -871,5 +662,63 @@ def process_group(r):
     else:
         return None
 
-                          
+             
+             
+def receive_body_on_stream(operation,request_id,IOStream,callback,header):
+                            
+        length = struct.unpack("<i", header[:4])[0]
+        assert request_id == struct.unpack("<i", header[8:12])[0], \
+            "ids don't match %r %r" % (request_id,
+                                       struct.unpack("<i", header[8:12])[0])
+        assert operation == struct.unpack("<i", header[12:])[0]
+
+        IOStream.read_bytes(length-16,callback)
+        
+
+
+def loop(handler,r):
+      
+    cursor = handler.cursor
+    db = cursor._Cursor__collection.database
+
+    if r == StopIteration:
+         cursor._Cursor__die()
+    else:
+        processor = handler.processor 
+        collection = cursor._Cursor__collection
+        
+        while True:
+              
+            if processor:
+                r = processor(r,handler,collection)
+                 
+            if handler.stream:
+                handler.write((',' if handler.writing else '') + json.dumps(r,default=pm.json_util.default))
+                handler.flush()
+                if not handler.writing:
+                    handler.writing = True
+            if handler.returnObj:
+                handler.data.append(r)
+                
+            if len(cursor._Cursor__data):
+                r = db._fix_outgoing(cursor._Cursor__data.pop(0), collection)
+            else:
+                break
+                        
+    if cursor.alive:
+        cursor.next(functools.partial(loop,handler))      
+  
+    else:
+        if handler.stream:
+            handler.write(']')
+        
+        handler.done()
+
+
+        
+
+
+def start(handler,callback):
+    handler.cursor.next(callback)        
+    
 

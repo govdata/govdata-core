@@ -903,9 +903,6 @@ class sourceHandler(asyncCursorHandler):
         
         self.jsonPcallback = args.pop('callback',None)
         
-#        querySequence = json.loads(args.get('querySequence','[]'))
-
-
         querySequence = getQuerySequence(args)
    
         if (not querySequence) or querySequence[0][0] not in ['find','find_one']:
