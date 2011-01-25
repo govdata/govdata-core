@@ -476,8 +476,8 @@ class AsyncCursorHandler(tornado.web.RequestHandler):
         IOStream = tornado.iostream.IOStream(sock,io_loop)
         self.__IOStream = IOStream
         
-        print(self.__ordering)
-     
+        
+        print(self.__ordering,hasattr(self,'__ordering'))
         if not hasattr(self,'__ordering'):
             self.__ordering = None
             
