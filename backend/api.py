@@ -99,8 +99,8 @@ class getHandler(AsyncCursorHandler):
         
         querySequence = getQuerySequence(args)
                                 
-        self.returnObj = args.pop('returnObj',True)   
-        self.stream = args.pop('stream',False)
+        self.returnObj = args.pop('returnObj',False)   
+        self.stream = args.pop('stream',True)
         
         self.returnMetadata = args.pop('returnMetadata',False)   
                 
