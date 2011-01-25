@@ -17,7 +17,7 @@ import common.location as loc
 import common.solr as solr
 
 from common.utils import IsFile, listdir, is_string_like, ListUnion, Flatten, is_num_like, uniqify
-from common.acursor import asyncCursorHandler
+from common.acursor import AsyncCursorHandler
 from common.mongo import processArg, Collection, SPECIAL_KEYS
 
 
@@ -65,7 +65,7 @@ def getQuerySequence(args):
 
 EXPOSED_ACTIONS = ['find','find_one','group','skip','limit','sort','count','distinct']
 
-class getHandler(asyncCursorHandler):
+class getHandler(AsyncCursorHandler):
     @tornado.web.asynchronous
     def get(self):
         
@@ -893,7 +893,7 @@ class termsHandler(tornado.web.RequestHandler):
 #METADATA
 #=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-class sourceHandler(asyncCursorHandler):
+class sourceHandler(AsyncCursorHandler):
 
     @tornado.web.asynchronous
     def get(self):
@@ -928,7 +928,7 @@ class sourceHandler(asyncCursorHandler):
 #SOURCE VERIFICATION
 #=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-class verificationHandler(asyncCursorHandler):
+class verificationHandler(AsyncCursorHandler):
 
     @tornado.web.asynchronous
     def get(self):
@@ -1104,7 +1104,7 @@ def header(record):
 
 OAI_FORMATS={'oai_dc':{'metadataPrefix':'oai_dc','keys':DC_KEYS,'formatter':dc_formatter,'schema':'http://www.openarchives.org/OAI/2.0/oai_dc.xsd','metadataNameSpace':'http://www.openarchives.org/OAI/2.0/oai_dc/','limit':10},'ddi':{'metadataPrefix':'ddi','keys':DDI_KEYS,'formatter':ddi_formatter,'schema':'','metadataNameSpace':'','limit':10}}
 
-class oaiHandler(asyncCursorHandler):
+class oaiHandler(AsyncCursorHandler):
 
     @tornado.web.asynchronous
     def get(self):
