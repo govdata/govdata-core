@@ -480,6 +480,7 @@ class AsyncCursorHandler(tornado.web.RequestHandler):
         if not hasattr(self,'__ordering'):
             self.__ordering = None
             
+        print("ORDER",self.__ordering)
         self.cursor = Cursor(collection,
                         spec,
                         fields,
@@ -601,8 +602,7 @@ class AsyncCursorHandler(tornado.web.RequestHandler):
         else:
             R = getattr(R,act)(*arg,**karg)
             self.__ordering = R._Cursor__ordering
-    
-            print(R._Cursor__spec,self.__ordering)
+
             if isinstance(R,pm.cursor.Cursor):
     
                 if self.stream:
